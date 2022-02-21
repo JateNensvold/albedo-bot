@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from albedo_bot.schema.base import Base
 
 
-class Heroes(Base):
+class Hero(Base):
     """[summary]
     """
 

@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, BIGINT, String
 from sqlalchemy.orm import relationship
 
 from albedo_bot.schema.base import Base
@@ -10,10 +10,9 @@ class Guild(Base):
     """
 
     __tablename__ = "guilds"
-    guild_id = Column(Integer, primary_key=True)
+    discord_id = Column(BIGINT, primary_key=True)
     name = Column(String())
-    mention = Column(String())
-    players = relationship("Players")
+    players = relationship("Player")
 
     def __repr__(self) -> str:
         """[summary]
@@ -21,4 +20,4 @@ class Guild(Base):
         Returns:
             str: [description]
         """
-        return f"{self.guild_id}, {self.name}, {self.mention}"
+        return f"<{self.discord_id}, {self.name}>"

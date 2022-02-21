@@ -1,18 +1,17 @@
-from sqlalchemy import Column, ForeignKey, String, Integer
+from sqlalchemy import Column, ForeignKey, String, BIGINT
 from sqlalchemy.orm import relationship
 
 from albedo_bot.schema.base import Base
 
 
-class Players(Base):
+class Player(Base):
     """[summary]
     """
 
     __tablename__ = "players"
-    discord_id = Column(Integer, primary_key=True)
+    discord_id = Column(BIGINT, primary_key=True)
     name = Column(String())
-    mention = Column(String())
-    guild_id = Column(Integer, ForeignKey("guilds.guild_id"))
+    guild_id = Column(BIGINT, ForeignKey("guilds.discord_id"))
     hero_instances = relationship("HeroInstance")
 
     def __repr__(self) -> str:
@@ -21,4 +20,4 @@ class Players(Base):
         Returns:
             str: [description]
         """
-        return f"{self.id}, {self.name}"
+        return f"{self.discord_id}, {self.name}"

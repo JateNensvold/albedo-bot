@@ -10,8 +10,8 @@ with open("README.md", 'r', encoding="utf-8") as f:
 setup(
     name='albedo-bot',
     version='1.0',
-    description='A module for running a python Discord Bot for managing AFK '
-    'arena rosters for players in AFK Arena',
+    description='A module for running a python Discord Bot used to manage players AFK '
+    'arena rosters',
     license="MIT",
     long_description=long_description,
     author='Nate Jensvold',
