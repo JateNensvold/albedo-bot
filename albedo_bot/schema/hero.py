@@ -10,7 +10,7 @@ class Hero(Base):
 
     __tablename__ = "heroes"
     id = Column(Integer,  Sequence("hero_id_seq"), primary_key=True)
-    name = Column(String())
+    name = Column(String(), unique=True)
     hero_instances = relationship("HeroInstance")
 
     def __repr__(self) -> str:

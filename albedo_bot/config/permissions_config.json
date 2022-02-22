@@ -1,0 +1,50 @@
+{
+    "owner": {
+        "names": [
+            [
+                270762725179654144,
+                "tosh"
+            ]
+        ],
+        "roles": [],
+        "priority": 1000000
+    },
+    "admin": {
+        "names": [],
+        "roles": [
+            [
+                694282718925815818,
+                "Admin"
+            ]
+        ],
+        "priority": 1000
+    },
+    "manager": {
+        "names": [],
+        "roles": [
+            [
+                720391291594211409,
+                "Manager"
+            ]
+        ],
+        "priority": 500
+    },
+    "guild_manager": {
+        "names": [],
+        "roles": [
+            [
+                932325988157763634,
+                "Black Manager"
+            ],
+            [
+                932326246715633774,
+                "Blurple Manager"
+            ],
+            [
+                915875106201403432,
+                "Blanc Manager"
+            ]
+        ],
+        "priority": 100
+    }
+}

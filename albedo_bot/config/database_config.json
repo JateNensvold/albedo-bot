@@ -1,0 +1,6 @@
+{
+    "user": "postgres",
+    "password": "postgres",
+    "address": "172.20.0.7",
+    "name": "afk_database"
+}

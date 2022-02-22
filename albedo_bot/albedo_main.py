@@ -1,56 +1,29 @@
 import os
 import json
 from typing import Dict
+
 # Import commands so bot will register all commands
 from albedo_bot.commands.base import bot, session
+import albedo_bot.global_values as GV
 import albedo_bot.commands  # pylint: disable=unused-import
-# client = discord.Client()
+
 TOKEN = os.getenv('TOKEN')
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 CONFIG_DATA: Dict = None
-
-# @client.event
-# async def on_message(message):
-#     if not message.guild:
-#         await message.channel.send('this is a dm')
-# print(TOKEN)
-
-
-# @CLIENT.event
-# async def on_ready():
-#     """[summary]
-#     """
-#     print(f"We have logged in as {CLIENT.user}")
-
-
-# @client.event
-# async def on_message(message: discord.Message):
-#     """[summary]
-
-#     Args:
-#         message ([type]): [description]
-#     """
-#     # print(message)
-#     # await message.channel.send('Hello!')
-#     # if message.author == CLIENT.user:
-#     #     return
-
-#     print(message)
-
-#     if message.content.startswith('$hello'):
-#         await message.channel.send('Hello!')
 
 
 class ConfigData:
     """[summary]
     """
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, skip_file: bool = False):
         """[summary]
 
         Args:
             file_path (str): [description]
         """
+        if skip_file:
+            return
         self.data = {}
         self.read_config(file_path)
         self.file_path = file_path
@@ -84,10 +57,16 @@ def main():
     """[summary]
     """
 
-    config_path = os.path.join(os.path.dirname(DIR_PATH), "guild_config.json")
-    with ConfigData(config_path) as data:
+    with ConfigData(GV.GUILD_JSON_PATH, skip_file=True) as data:
         global CONFIG_DATA  # pylint: disable=global-statement
         CONFIG_DATA = data
+        GV.DATABASE.postgres_connect(GV.DATABASE_DATA["user"],
+                                     GV.DATABASE_DATA["password"],
+                                     GV.DATABASE_DATA["address"],
+                                     GV.DATABASE_DATA["name"])
+        if TOKEN is None:
+            raise Exception(
+                "Set 'TOKEN' Environment variable before running bot")
         bot.run(TOKEN)
 
 

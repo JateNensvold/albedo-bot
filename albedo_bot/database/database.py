@@ -39,6 +39,11 @@ class Database:
             address (str): [description]
             database_name ([type]): [description]
         """
+        self.user = user
+        self.password = password
+        self.address = address
+        self.database_name = database_name
+
         db_string = (f"postgresql+psycopg2://{user}:{password}@{address}/"
                      f"{database_name}")
 
@@ -50,16 +55,26 @@ class Database:
         # self.connection.autocommit = True
         # self.cursor = self.connection.cursor()
 
-    def create_database(self, database_name: str):
-        """[summary]
+    def create_database(self, database_name: str, raise_error: bool = True):
+        """
+        Creates a database with the current connection under the name
+        'database_name'. If a database of that name already exists an exception
+        will get raised when 'raise_error' is True, otherwise the existing
+        database will be selected
 
         Args:
-            database_name (str): [description]
+            database_name (str): new database name
         """
         if database_name not in self.list_database():
             with self.engine.connect() as connection:
                 connection.execute("commit")
                 connection.execute(f"CREATE DATABASE {database_name}")
+        else:
+            if raise_error:
+                raise Exception((
+                    f"Database with the name '{database_name}' already exists. "
+                    "Choose a new name or delete the existing database before "
+                    "creating a new one"))
 
         self.select_database(database_name)
 
@@ -95,5 +110,4 @@ class Database:
         # tables = self.engine.execute(
         #     "SELECT * FROM pg_catalog.pg_tables;").fetchall()
         # # print([db_string[0] for db_string in tables])
-        print(tables)
         return tables

@@ -10,7 +10,8 @@ async def player(ctx: Context):
     """[summary]
 
     Args:
-        ctx ([type]): [description]
+        ctx (Context): invocation context containing information on how
+            a discord event/command was invoked
     """
     if ctx.invoked_subcommand is None:
         await ctx.send('Invalid sub command passed...')
@@ -21,7 +22,8 @@ async def register(ctx: Context):
     """[summary]
 
     Args:
-        ctx (Context): [description]
+        ctx (Context): invocation context containing information on how
+            a discord event/command was invoked
     """
 
     author_id = ctx.author.id
@@ -55,7 +57,8 @@ async def register_player(ctx: Context, player_id: int, guild_id: int):
     """[summary]
 
     Args:
-        ctx (Context): [description]
+        ctx (Context): invocation context containing information on how
+            a discord event/command was invoked
     """
 
     guild_result = session.query(Guild).filter_by(discord_id=guild_id).first()
