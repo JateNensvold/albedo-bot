@@ -1,11 +1,13 @@
 import os
 import json
 from typing import Dict
+from albedo_bot.schema import Guild
+from sqlalchemy.orm import Session
 
 # Import commands so bot will register all commands
-from albedo_bot.commands.base import bot, session
-import albedo_bot.global_values as GV
 import albedo_bot.commands  # pylint: disable=unused-import
+from albedo_bot.global_values import bot
+import albedo_bot.global_values as GV
 
 TOKEN = os.getenv('TOKEN')
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -50,7 +52,7 @@ class ConfigData:
     def __exit__(self,  _exc_type, _exc_value, _traceback):
         """[summary]
         """
-        session.flush()
+        GV.session.flush()
 
 
 def main():
@@ -60,6 +62,7 @@ def main():
     with ConfigData(GV.GUILD_JSON_PATH, skip_file=True) as data:
         global CONFIG_DATA  # pylint: disable=global-statement
         CONFIG_DATA = data
+
         GV.DATABASE.postgres_connect(GV.DATABASE_DATA["user"],
                                      GV.DATABASE_DATA["password"],
                                      GV.DATABASE_DATA["address"],
@@ -67,6 +70,9 @@ def main():
         if TOKEN is None:
             raise Exception(
                 "Set 'TOKEN' Environment variable before running bot")
+        print(f"Database tables: {GV.DATABASE.list_tables()}")
+        GV.session = Session(bind=GV.DATABASE.engine, autoflush=True)
+
         bot.run(TOKEN)
 
 

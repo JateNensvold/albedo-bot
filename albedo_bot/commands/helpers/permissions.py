@@ -1,6 +1,9 @@
-from typing import Dict, List, Tuple, Callable
-from discord.ext.commands.context import Context
+from typing import Dict, List, Tuple
 
+from discord.ext.commands.context import Context
+from discord.ext import commands
+
+from albedo_bot.commands.helpers.errors import DiscordPermissionError
 PERMISSIONS_LOOKUP: Dict[int, "Permissions"] = {}
 ROLE_LOOKUP: Dict[str, "Permissions"] = {}
 
@@ -64,45 +67,115 @@ class Permissions:
             PERMISSIONS_LOOKUP[role_id] = self
 
 
-def has_permission(expected_permission: int):
+# def check_permission(expected_permission: Union[int, str]):
+#     """
+#     A decorator factory for discord.py event hooks that have a 'Context' as
+#     their first argument. It checks if the person calling a command has the
+#     needed level of permissions to run a command.
+#     """
+#     print("hello")
+
+#     def permission_decorator(decorated: Callable):
+#         """
+#         Inner function of decorator used to pass decorated function to
+#         decorator helper
+
+#         Args:
+#             decorated (function): function being decorated
+#         """
+#         def _has_permission(ctx: Context, *args, **kwargs):
+#             """
+#             Decorator helper that performs permissions checks and accepts the
+#             parameters that will get passed to the decorated function
+
+#             Args:
+#                 ctx (Context): invocation context containing information on how
+#                     a discord event/command was invoked
+#             """
+#             print(expected_permission)
+#             permission = 0
+
+#             if ctx.author.id in PERMISSIONS_LOOKUP:
+#                 permission = max(permission, PERMISSIONS_LOOKUP[ctx.author.id])
+
+#             for role in ctx.author.roles:
+#                 if role.id in PERMISSIONS_LOOKUP:
+#                     permission = max(permission, PERMISSIONS_LOOKUP[role])
+
+#             if isinstance(expected_permission, str):
+#                 try:
+#                     expected_permission = ROLE_LOOKUP[expected_permission]
+#                 except KeyError as exception:
+#                     from albedo_bot.global_values import PERMISSIONS_JSON_PATH
+#                     raise Exception(
+#                         (f"{expected_permission} is was not defined as a role, "
+#                          "refer to your permissions config "
+#                          f"file({PERMISSIONS_JSON_PATH}) to see the current "
+#                          "roles")) from exception
+#             print(permission, expected_permission)
+#             if permission >= expected_permission:
+#                 return decorated(ctx, *args, **kwargs)
+#             else:
+#                 ctx.send(
+#                     f"{ctx.author.name} does not have permission to use this "
+#                     "command, contact an admin for more details")
+
+#         return _has_permission
+#     return permission_decorator
+
+def has_permission(arg):
+    """_summary_
+
+    Args:
+        arg (_type_): _description_
     """
-    A decorator factory for discord.py event hooks that have a 'Context' as
-    their first argument. It checks if the person calling a command has the
-    needed level of permissions to run a command. 
-    """
-    def permission_decorator(decorated: Callable):
-        """
-        Inner function of decorator used to pass decorated function to
-        decorator helper
+
+    def predicate(ctx):
+        """_summary_
 
         Args:
-            decorated (function): function being decorated
+            ctx (_type_): _description_
+
+        Returns:
+            _type_: _description_
         """
-        def _has_permission(ctx: Context, *args, **kwargs):
-            """
-            Decorator helper that performs permissions checks and accepts the
-            parameters that will get passed to the decorated function
+        return _check_permission(ctx, arg)
+    return commands.check(predicate)
 
-            Args:
-                ctx (Context): invocation context containing information on how
-                    a discord event/command was invoked
-            """
 
-            permission = 0
+def _check_permission(ctx: Context, raw_expected_permission: int):
+    """
+    Decorator helper that performs permissions checks and accepts the
+    parameters that will get passed to the decorated function
 
-            if ctx.author.id in PERMISSIONS_LOOKUP:
-                permission = max(permission, PERMISSIONS_LOOKUP[ctx.author.id])
+    Args:
+        ctx (Context): invocation context containing information on how
+            a discord event/command was invoked
+    """
+    permission = 0
+    expected_permission = raw_expected_permission
 
-            for role in ctx.author.roles:
-                if role.id in PERMISSIONS_LOOKUP:
-                    permission = max(permission, PERMISSIONS_LOOKUP[role])
+    if ctx.author.id in PERMISSIONS_LOOKUP:
+        permission = max(
+            permission, PERMISSIONS_LOOKUP[ctx.author.id].priority)
 
-            if permission >= expected_permission:
-                return decorated(ctx, *args, **kwargs)
-            else:
-                ctx.send(
-                    f"{ctx.author.name} does not have permission to use this "
-                    "command, contact an admin for more details")
+    for role in ctx.author.roles:
+        if role.id in PERMISSIONS_LOOKUP:
+            permission = max(permission, PERMISSIONS_LOOKUP[role].priority)
 
-        return _has_permission
-    return permission_decorator
+    if isinstance(raw_expected_permission, str):
+        try:
+            expected_permission = ROLE_LOOKUP[raw_expected_permission].priority
+        except KeyError as exception:
+            from albedo_bot.global_values import PERMISSIONS_JSON_PATH
+            raise Exception(
+                (f"{raw_expected_permission} is was not defined as a role, "
+                    "refer to your permissions config "
+                    f"file({PERMISSIONS_JSON_PATH}) to see the current "
+                    "roles")) from exception
+    if permission >= expected_permission:
+        return True
+
+    raise DiscordPermissionError(
+        f"A permission level of `{raw_expected_permission}` is required to run "
+        "this command")

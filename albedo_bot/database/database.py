@@ -1,6 +1,8 @@
+from typing import Callable
 import sqlalchemy
 
 from albedo_bot.schema import base
+from sqlalchemy.orm import Session
 
 
 class Database:
@@ -8,7 +10,7 @@ class Database:
     """
 
     def __init__(self, user: str, password: str, address: str,
-                 database_name: str = "postgres"):
+                 database_name: str = "postgres", session_callback: Callable = None):
         """[summary]
 
         Args:
@@ -22,6 +24,8 @@ class Database:
         self.address = address
         self.database_name = database_name
         self.engine: sqlalchemy.engine.Engine = None
+        self.session: Session = None
+        self.session_callback = session_callback
 
         self.base = base.Base
         self.metadata: sqlalchemy.MetaData = self.base.metadata
@@ -48,6 +52,9 @@ class Database:
                      f"{database_name}")
 
         self.engine = sqlalchemy.create_engine(db_string)  # connect to server
+        self.session = Session(bind=self.engine, autoflush=True)
+        if self.session_callback is not None:
+            self.session_callback(self.session)
         # self.connection = psycopg2.connect(
         #     database=database_name, user='postgres',
         #     password='postgres', host='127.0.0.1', port='5432'
@@ -99,7 +106,7 @@ class Database:
         database_tuples = self.engine.execute(
             'SELECT datname FROM pg_database;').fetchall()
         database_list = [db_string[0] for db_string in database_tuples]
-        print(database_list)
+        # print(database_list)
         return database_list
 
     def list_tables(self):

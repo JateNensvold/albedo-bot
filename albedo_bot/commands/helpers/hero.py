@@ -1,11 +1,11 @@
-
 from discord.ext.commands.context import Context
-from albedo_bot.commands.base import bot, session
+from albedo_bot.global_values import bot
+import albedo_bot.global_values as GV
 from albedo_bot.schema import Hero
 
 
 @bot.group()
-async def hero(ctx: Context):
+async def hero_command(ctx: Context):
     """[summary]
 
     Args:
@@ -30,7 +30,7 @@ async def _find_hero(ctx: Context, hero_name):
         [type]: Return True if 'hero_name' is found in the heroes table,
             False otherwise
     """
-    hero_result = session.query(Hero).filter_by(
+    hero_result = GV.session.query(Hero).filter_by(
         name=hero_name).first()
     if hero_result is not None:
         ctx.send(
@@ -50,5 +50,5 @@ async def _add_hero(ctx: Context, hero_name: str):
     """
     if not _find_hero(ctx, hero_name):
         new_hero = Hero(name=hero_name)
-        session.add(new_hero)
+        GV.session.add(new_hero)
         await ctx.send(f"Added new hero {hero_name} as '{new_hero}'")
