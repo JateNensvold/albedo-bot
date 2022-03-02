@@ -67,12 +67,11 @@ class MemberConverter(Converter):
                 member = ctx.message.mentions[0]
                 assert isinstance(member, Member)
                 return member
-            elif isinstance(argument, str):
+            else:
                 argument = int(argument)
                 member = await ctx.guild.fetch_member(argument)
                 return member
-            else:
-                raise Exception()
+
         except AssertionError as exception:
             raise BadArgument(
                 f"Invalid player mention `{argument}`") from exception

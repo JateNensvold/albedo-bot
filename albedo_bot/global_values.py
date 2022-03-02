@@ -56,6 +56,8 @@ with open(DATABASE_JSON_PATH, "r", encoding="utf-8") as file:
                         DATABASE_DATA["address"], session_callback=update_session)
 bot = commands.Bot(command_prefix="-")
 setup(bot)
+admin = commands.Bot(command_prefix="--")
+setup(admin)
 
 # Load permissions after initializing database to prevent circular import
 

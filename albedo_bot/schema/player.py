@@ -10,7 +10,7 @@ class Player(Base):
 
     __tablename__ = "players"
     discord_id = Column(BIGINT, primary_key=True)
-    name = Column(String())
+    name = Column(String)
     guild_id = Column(BIGINT, ForeignKey("guilds.discord_id"))
     hero_instances = relationship("HeroInstance")
 

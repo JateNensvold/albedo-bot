@@ -10,8 +10,10 @@ class Hero(Base):
 
     __tablename__ = "heroes"
     id = Column(Integer,  Sequence("hero_id_seq"), primary_key=True)
-    name = Column(String(), unique=True)
+    name = Column(String, unique=True)
     hero_instances = relationship("HeroInstance")
+    checklist_hero = relationship("ChecklistHero")
+
 
     def __repr__(self) -> str:
         """[summary]

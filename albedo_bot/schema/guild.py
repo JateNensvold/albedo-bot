@@ -11,7 +11,7 @@ class Guild(Base):
 
     __tablename__ = "guilds"
     discord_id = Column(BIGINT, primary_key=True)
-    name = Column(String())
+    name = Column(String)
     players = relationship("Player")
 
     def __repr__(self) -> str:

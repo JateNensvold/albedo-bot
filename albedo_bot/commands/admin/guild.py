@@ -4,10 +4,22 @@ from discord.ext.commands.context import Context
 import albedo_bot.global_values as GV
 from albedo_bot.schema import Guild
 from albedo_bot.commands.helpers.converter import GuildConverter
-from albedo_bot.commands.helpers.guild import guild
+from albedo_bot.commands.admin.base import admin
 
 
-@guild.command(name="add")
+@admin.group(name="guild")
+async def guild_command(ctx: Context):
+    """[summary]
+
+    Args:
+        ctx (Context): invocation context containing information on how
+            a discord event/command was invoked
+    """
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid sub command passed...')
+
+
+@guild_command.command(name="add")
 @has_permission("manager")
 async def _add(ctx: Context, guild_id: GuildConverter):
     """[summary]
@@ -22,7 +34,7 @@ async def _add(ctx: Context, guild_id: GuildConverter):
     await ctx.send(f"Successfully added {new_guild}")
 
 
-@guild.command(name="remove", alias=["delete"])
+@guild_command.command(name="remove", alias=["delete"])
 @has_permission("manager")
 async def remove(ctx: Context, guild_role: GuildConverter):
     """[summary]
@@ -42,7 +54,7 @@ async def remove(ctx: Context, guild_role: GuildConverter):
     await ctx.send(f"Successfully removed {guild_object}")
 
 
-@guild.command(name="list")
+@guild_command.command(name="list")
 @has_permission("guild_manager")
 async def _list(ctx: Context):
     """[summary]

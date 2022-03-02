@@ -1,7 +1,6 @@
 import os
 import json
 from typing import Dict
-from albedo_bot.schema import Guild
 from sqlalchemy.orm import Session
 
 # Import commands so bot will register all commands
@@ -71,7 +70,7 @@ def main():
             raise Exception(
                 "Set 'TOKEN' Environment variable before running bot")
         print(f"Database tables: {GV.DATABASE.list_tables()}")
-        GV.session = Session(bind=GV.DATABASE.engine, autoflush=True)
+        GV.session = Session(bind=GV.DATABASE.engine, autoflush=True, autocommit=True)
 
         bot.run(TOKEN)
 
