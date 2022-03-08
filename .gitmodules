@@ -1,0 +1,3 @@
+[submodule "albedo_bot/afk_helper"]
+	path = albedo_bot/afk_helper
+	url = git@github.com:Dae314/AFKBuilder.git
