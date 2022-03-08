@@ -11,8 +11,19 @@ class Hero(Base):
     __tablename__ = "heroes"
     id = Column(Integer,  Sequence("hero_id_seq"), primary_key=True)
     name = Column(String, unique=True)
+    hero_faction = Column(Integer)
+    hero_class = Column(Integer)
+    hero_type = Column(Integer)
+    ascension_type = Column(Integer)
+    hero_portrait = Column(String)
+
     hero_instances = relationship("HeroInstance")
     checklist_hero = relationship("ChecklistHero")
+    checklist_hero = relationship("HeroSkill")
+    checklist_hero = relationship("HeroSkill")
+    checklist_hero = relationship("HeroSkill")
+    checklist_hero = relationship("HeroSkill")
+    checklist_hero = relationship("HeroSkill")
 
 
     def __repr__(self) -> str:
@@ -21,4 +32,4 @@ class Hero(Base):
         Returns:
             str: [description]
         """
-        return f"{self.id}, {self.name}"
+        return f"Hero<{self.id}, {self.name}>"
