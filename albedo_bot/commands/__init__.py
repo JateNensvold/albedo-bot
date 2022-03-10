@@ -1,6 +1,6 @@
 # Modules/Folders
 from albedo_bot.commands.admin import *
-
+from albedo_bot.commands.roster import *
 # Files
 from albedo_bot.commands.hero import *
 from albedo_bot.commands.checklist import *

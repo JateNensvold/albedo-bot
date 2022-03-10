@@ -2,6 +2,8 @@ from typing import Union
 from discord.ext.commands import Converter, Context, BadArgument
 from discord import Role, Member
 from discord.utils import get
+import albedo_bot.global_values as GV
+from albedo_bot.schema.hero import Hero
 
 
 class GuildConverter(Converter):
@@ -24,7 +26,6 @@ class GuildConverter(Converter):
         Returns:
             _type_: _description_
         """
-        print(ctx.message.role_mentions)
         try:
             if len(ctx.message.role_mentions) > 0:
                 role = ctx.message.role_mentions[0]
@@ -78,3 +79,39 @@ class MemberConverter(Converter):
         except Exception as exception:
             raise BadArgument(
                 f"Invalid member name or id `{argument}`") from exception
+
+
+class HeroConverter(Converter):
+    """_summary_
+
+    Args:
+        Converter (_type_): _description_
+    """
+
+    async def convert(self, ctx: Context, argument: Union[str, int]):
+        """_summary_
+
+        Args:
+            ctx (Context): _description_
+            argument (Union[str, int]): _description_
+
+        Raises:
+            BadArgument: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        try:
+            try:
+                int_argument = int(argument)
+                hero_instance_object = GV.session.query(Hero).filter_by(
+                    id=int_argument).first()
+            except ValueError as _:
+                hero_instance_object = GV.session.query(Hero).filter_by(
+                    name=argument).first()
+            if hero_instance_object is None:
+                raise AssertionError
+            return hero_instance_object
+        except AssertionError as exception:
+            raise BadArgument(
+                f"Invalid hero name or id `{argument}`") from exception
