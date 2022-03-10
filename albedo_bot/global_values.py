@@ -1,12 +1,12 @@
-from albedo_bot.commands.helpers.permissions import Permissions
 import os
 import json
 from typing import Dict
 
 from discord.ext import commands
 from sqlalchemy.orm import Session
+
 from albedo_bot.database.database import Database
-from albedo_bot.commands.helpers.errors import ErrorHandler
+
 par_dir = os.path.dirname(__file__)
 
 CONFIG_FOLDER_PATH = os.path.join(par_dir, "config")
@@ -14,7 +14,7 @@ CONFIG_FOLDER_PATH = os.path.join(par_dir, "config")
 PERMISSIONS_JSON_PATH = os.path.join(
     CONFIG_FOLDER_PATH, "permissions_config.json")
 DATABASE_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "database_config.json")
-HERO_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "heroSkills.json")
+HERO_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "hero_data.json")
 GUILD_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "guild_config.json")
 
 
@@ -41,6 +41,13 @@ def update_session(new_session: Session):
     session = new_session
 
 
+with open(DATABASE_JSON_PATH, "r", encoding="utf-8") as file:
+    DATABASE_DATA = json.load(file)
+    DATABASE = Database(DATABASE_DATA["user"], DATABASE_DATA["password"],
+                        DATABASE_DATA["address"], session_callback=update_session)
+bot = commands.Bot(command_prefix="-")
+
+
 def setup(bot_client: commands.Bot):
     """_summary_
 
@@ -50,16 +57,12 @@ def setup(bot_client: commands.Bot):
     bot_client.add_cog(ErrorHandler(bot_client))
 
 
-with open(DATABASE_JSON_PATH, "r", encoding="utf-8") as file:
-    DATABASE_DATA = json.load(file)
-    DATABASE = Database(DATABASE_DATA["user"], DATABASE_DATA["password"],
-                        DATABASE_DATA["address"], session_callback=update_session)
-bot = commands.Bot(command_prefix="-")
-setup(bot)
-admin = commands.Bot(command_prefix="--")
-setup(admin)
+# Load ErrorHandler after bot to prevent circular import
+from albedo_bot.commands.helpers.errors import ErrorHandler  # noqa
 
-# Load permissions after initializing database to prevent circular import
+# Load permissions after initializing database and bot to prevent circular
+# import
+from albedo_bot.commands.helpers.permissions import Permissions  # noqa
 
 with open(PERMISSIONS_JSON_PATH, "r", encoding="utf-8") as file:
     PERMISSIONS_DATA = json.load(file)
