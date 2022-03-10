@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String, Integer, Text
+from sqlalchemy import Column, ForeignKey, String, Integer, Text, null
 
 from albedo_bot.schema.base import Base
 
@@ -11,7 +11,8 @@ class HeroFurniture(Base):
     """
 
     __tablename__ = "hero_furniture"
-    id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
+    id = Column(Integer, ForeignKey("heroes.id"),
+                     primary_key=True, nullable=False)
     furniture_name = Column(String)
     image = Column(String)
 
@@ -34,7 +35,7 @@ class HeroFurnitureUpgrade(Base):
     __tablename__ = "hero_furniture_upgrade"
     id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
     description = Column(Text)
-    furniture_unlock = Column(Integer)
+    furniture_unlock = Column(Integer, primary_key=True)
 
     def __repr__(self) -> str:
         """[summary]

@@ -1,6 +1,16 @@
-from sqlalchemy import Column, ForeignKey, String, Integer, Text
+from sqlalchemy import Column, ForeignKey, String, Integer, Text, Sequence
+from sqlalchemy.orm import relationship
+from sqlalchemy import Enum
 
 from albedo_bot.schema.base import Base
+
+
+skill_type_values = ("level",
+                     "engraving",
+                     "ascension",
+                     "si",
+                     "furn")
+SKILL_TYPE_ENUM = Enum(*skill_type_values, name="skill_type_enum")
 
 
 class HeroSkill(Base):
@@ -11,11 +21,14 @@ class HeroSkill(Base):
     """
 
     __tablename__ = "hero_skills"
-    id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
+    skill_id = Column(Integer,  Sequence("hero_skill_id_seq"), unique=True)
+    hero_id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
     skill_name = Column(String, primary_key=True)
     description = Column(Text)
     skill_image = Column(String)
-    skill_unlock = Column(Integer)
+    skill_type = Column(SKILL_TYPE_ENUM)
+    skill_unlock = Column(String)
+    checklist_hero = relationship("HeroSkillUpgrade")
 
     def __repr__(self) -> str:
         """[summary]
@@ -33,12 +46,11 @@ class HeroSkillUpgrade(Base):
         Base (_type_): _description_
     """
     __tablename__ = "hero_skills_upgrade"
-    id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
-    skill_name = Column(String, ForeignKey(
-        "hero_skills.skill_name"))
+    skill_id = Column(Integer, ForeignKey(
+        "hero_skills.skill_id"), primary_key=True)
     description = Column(Text)
-    skill_unlock = Column(Integer, primary_key=True)
-    unlock_type = Column(Integer, primary_key=True)
+    skill_unlock = Column(String, primary_key=True)
+    unlock_type = Column(SKILL_TYPE_ENUM, primary_key=True)
 
     def __repr__(self) -> str:
         """[summary]
@@ -46,5 +58,5 @@ class HeroSkillUpgrade(Base):
         Returns:
             str: [description]
         """
-        return (f"HeroSkillUpgrade<{self.id}, {self.skill_name}, "
+        return (f"HeroSkillUpgrade<{self.skill_id}, "
                 f"{self.skill_unlock}, {self.unlock_type}>")

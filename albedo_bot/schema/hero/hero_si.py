@@ -32,8 +32,6 @@ class HeroSignatureItemUpgrade(Base):
     """
     __tablename__ = "hero_signature_item_upgrade"
     id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
-    si_name = Column(String, ForeignKey(
-        "hero_signature_item.name"))
     description = Column(Text)
     si_level = Column(Integer, primary_key=True)
 
@@ -43,4 +41,4 @@ class HeroSignatureItemUpgrade(Base):
         Returns:
             str: [description]
         """
-        return f"HeroSIUpgrade<{self.id}, {self.si_name}, {self.si_level}>"
+        return f"HeroSIUpgrade<{self.id}, {self.si_level}>"

@@ -1,9 +1,24 @@
 
-from albedo_bot.schema.base import Base
+from typing import List, NamedTuple
 
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
-from typing import List, NamedTuple
-from ..hero import ASCENSION_LOOKUP
+from sqlalchemy import Enum
+
+from albedo_bot.schema.base import Base
+
+ascension_values = ("E",
+                    "E+",
+                    "L",
+                    "L+",
+                    "M",
+                    "M+",
+                    "A",
+                    "A1",
+                    "A2",
+                    "A3",
+                    "A4",
+                    "A5")
+ASCENSION_ENUM = Enum(*ascension_values, name="ascension_enum")
 
 
 class HeroInstanceTuple(NamedTuple):
@@ -19,7 +34,7 @@ class HeroInstanceTuple(NamedTuple):
     hero_id: int
     si: int
     fi: int
-    ascension: int
+    ascension: str
     engraving: int
 
 
@@ -49,7 +64,7 @@ class HeroList:
         for hero_tuple in self.heroes:
             formated_heroes.append(
                 f"{hero_tuple.hero_name: <{self.longest_name}} "
-                f"{ASCENSION_LOOKUP[hero_tuple.ascension]: <{3}} "
+                f"{hero_tuple.ascension: <{3}} "
                 f"{hero_tuple.si: <2} "
                 f"{hero_tuple.fi: <2} "
                 f"{hero_tuple.engraving}")
@@ -79,7 +94,7 @@ class HeroInstance(Base):
         "players.discord_id"), primary_key=True)
     signature_level = Column(Integer)
     furniture_level = Column(Integer)
-    ascension_level = Column(Integer)
+    ascension_level = Column(ASCENSION_ENUM)
     engraving_level = Column(Integer)
 
     def __repr__(self) -> str:
