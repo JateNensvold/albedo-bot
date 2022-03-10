@@ -37,7 +37,7 @@ def update_session(new_session: Session):
     Args:
         new_session (Session): _description_
     """
-    global session  # pylint: disable=global-statement
+    global session  # pylint: disable=global-statement, invalid-name
     session = new_session
 
 
@@ -58,11 +58,11 @@ def setup(bot_client: commands.Bot):
 
 
 # Load ErrorHandler after bot to prevent circular import
-from albedo_bot.commands.helpers.errors import ErrorHandler  # noqa
+from albedo_bot.commands.helpers.errors import ErrorHandler  # noqa pylint: disable=wrong-import-position
 
 # Load permissions after initializing database and bot to prevent circular
 # import
-from albedo_bot.commands.helpers.permissions import Permissions  # noqa
+from albedo_bot.commands.helpers.permissions import Permissions  # noqa pylint: disable=wrong-import-position
 
 with open(PERMISSIONS_JSON_PATH, "r", encoding="utf-8") as file:
     PERMISSIONS_DATA = json.load(file)
