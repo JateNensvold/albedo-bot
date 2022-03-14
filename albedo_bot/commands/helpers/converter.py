@@ -101,14 +101,23 @@ class HeroConverter(Converter):
         Returns:
             _type_: _description_
         """
+        print(argument)
         try:
             try:
                 int_argument = int(argument)
                 hero_instance_object = GV.session.query(Hero).filter_by(
                     id=int_argument).first()
-            except ValueError as _:
-                hero_instance_object = GV.session.query(Hero).filter_by(
-                    name=argument).first()
+            except ValueError as exception:
+                hero_instance_objects = GV.session.query(Hero).filter(
+                    Hero.name.ilike(f"{argument}%")).all()
+                if len(hero_instance_objects) == 1:
+                    hero_instance_object = hero_instance_objects[0]
+                elif len(hero_instance_objects) == 0:
+                    hero_instance_object = None
+                else:
+                    raise BadArgument(
+                        f"Invalid hero name `{argument}` too  many `Hero` "
+                        f"matches ({hero_instance_objects})") from exception
             if hero_instance_object is None:
                 raise AssertionError
             return hero_instance_object

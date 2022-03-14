@@ -1,4 +1,5 @@
-from sqlalchemy import Enum
+from typing import NamedTuple
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
 from sqlalchemy.orm import relationship
 
@@ -6,28 +7,45 @@ from albedo_bot.schema.base import Base
 
 
 ascension_tier_values = ("ascended", "legendary")
-ASCENSION_TIER_ENUM = Enum(*ascension_tier_values, name="ascension_tier_enum")
+ASCENSION_TIER_ENUM = SQLEnum(
+    *ascension_tier_values, name="ascension_tier_enum")
 
-faction_values = ("Lightbearer",
-                  "Mauler",
-                  "Wilder",
-                  "Graveborn",
-                  "Celestial",
-                  "Hypogean",
-                  "Dimensional")
-FACTION_ENUM = Enum(*faction_values, name="faction_enum")
+
+class FactionValues(NamedTuple):
+    """_summary_
+
+    Args:
+        NamedTuple (_type_): _description_
+    """
+    lightbearer: str
+    mauler: str
+    wilder: str
+    graveborn: str
+    celestial: str
+    hypogean: str
+    dimensional: str
+
+
+faction_values = FactionValues("Lightbearer",
+                               "Mauler",
+                               "Wilder",
+                               "Graveborn",
+                               "Celestial",
+                               "Hypogean",
+                               "Dimensional")
+FACTION_ENUM = SQLEnum(*faction_values, name="faction_enum")
 
 class_values = ("Warrior",
                 "Tank",
                 "Ranger",
                 "Mage",
                 "Support")
-CLASS_ENUM = Enum(*class_values, name="class_enum")
+CLASS_ENUM = SQLEnum(*class_values, name="class_enum")
 
 hero_type_values = ("Strength",
                     "Intelligence",
                     "Agility")
-HERO_TYPE_ENUM = Enum(*hero_type_values, name="hero_type_enum")
+HERO_TYPE_ENUM = SQLEnum(*hero_type_values, name="hero_type_enum")
 
 
 class Hero(Base):

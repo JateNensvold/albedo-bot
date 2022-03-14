@@ -1,6 +1,5 @@
 from discord.ext.commands.context import Context
-from albedo_bot.commands.helpers.hero import (
-    _add_hero, _remove_hero)
+from albedo_bot.commands.helpers.hero import (_add_hero, _remove_hero)
 from albedo_bot.commands.helpers.permissions import has_permission
 
 from albedo_bot.commands.admin.base import admin
