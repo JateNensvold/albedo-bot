@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any, Dict, List, Union
 
 from sqlalchemy.orm import Session
@@ -13,7 +12,7 @@ import albedo_bot.global_values as GV
 from albedo_bot.database.database import Database
 
 
-def add_and_update(session: Session, object: Any) -> Any:
+def add_and_update(session: Session, sql_object: Any) -> Any:
     """_summary_
 
     Args:
@@ -23,9 +22,9 @@ def add_and_update(session: Session, object: Any) -> Any:
     Returns:
         Any: _description_
     """
-    session.add(object)
+    session.add(sql_object)
     session.flush()
-    session.refresh(object)
+    session.refresh(sql_object)
 
 
 def load_hero_json(file_path: str, database: Database):
