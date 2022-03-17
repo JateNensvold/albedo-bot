@@ -1,5 +1,5 @@
 import re
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Union
 from enum import Enum
 
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
@@ -122,3 +122,34 @@ class HeroInstance(Base):
         return (f"{self.hero_id} {self.ascension_level} "
                 f"{self.signature_level}{self.furniture_level} "
                 f"{self.engraving_level}")
+
+    def update(self, signature_level: Union[int, str],
+               furniture: Union[int, str], ascension: str,
+               engraving: Union[int, str]):
+        """_summary_
+
+        Args:
+            signature_level (int): _description_
+            furniture (int): _description_
+            ascension (str): _description_
+            engraving (int): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        updated = False
+
+        if signature_level > self.signature_level:
+            updated = True
+            self.signature_level = int(signature_level)
+        if furniture > self.furniture_level:
+            updated = True
+            self.furniture_level = int(furniture)
+        if AscensionValues[ascension].value > self.ascension_level.value:
+            updated = True
+            self.ascension_level = AscensionValues[ascension]
+        if engraving > self.engraving_level:
+            updated = True
+            self.engraving_level = int(engraving)
+
+        return updated

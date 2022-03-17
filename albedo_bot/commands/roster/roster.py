@@ -1,13 +1,16 @@
-import json
-from discord.ext.commands.context import Context
+import pprint
+from typing import Dict, List
 
+from discord.ext.commands.context import Context
+from image_processing.processing_client import remote_compute_results
+from image_processing.afk.hero.hero_data import RosterJson
+
+import albedo_bot.global_values as GV
 from albedo_bot.commands.helpers.converter import HeroConverter
+from albedo_bot.schema.hero import HeroInstance, Hero
+from albedo_bot.schema.hero.hero_instance import AscensionValues
 from albedo_bot.commands.helpers.roster import (
-    roster_command, fetch_roster, _add_hero)
-import zmq
-import zmq.asyncio
-import image_processing.globals as IP_GV
-from image_processing.processing_client import check_socket, process_image
+    roster_command, fetch_roster, _add_hero, fetch_heroes)
 
 
 @roster_command.command(name="show", aliases=["list"])
@@ -39,6 +42,21 @@ async def add_hero(ctx: Context, hero: HeroConverter,
                     engraving)
 
 
+async def send_debug_hero(ctx: Context, json_dict: Dict):
+    """_summary_
+
+    Args:
+        ctx (Context): _description_
+        json_dict (Dict): _description_
+    """
+    dict_message = pprint.pformat(json_dict, width=200)
+    start_message = 0
+    print(dict_message)
+    while start_message < len(dict_message):
+        await ctx.send(f"```\n{dict_message[start_message:start_message+1991]}\n```")
+        start_message += 1991
+
+
 @roster_command.command(name="upload")
 async def upload(ctx: Context):
     """_summary_
@@ -47,38 +65,47 @@ async def upload(ctx: Context):
         ctx (Context): _description_
     """
 
-    context = zmq.Context()
-    socket = context.socket(zmq.DEALER)  # pylint: disable=no-member
+    address = "tcp://localhost:5555"
+
+    author_id = ctx.author.id
 
     for attachment in ctx.message.attachments:
-        socket.connect("tcp://localhost:5555")
-        # message = " ".join(sys.argv[1:])
-        print(f"Message: {str(attachment)}")
-        socket.send_string(str(attachment))
-        received = socket.recv()
-        # print(received)
-        json_dict = json.loads(received)
-        # print(json_dict)
-        import pprint
 
-        dict_message = pprint.pformat(json_dict, width=200)
-        start_message = 0
-        print(dict_message)
-        while start_message < len(dict_message):
-            await ctx.send(f"```\n{dict_message[start_message:start_message+1991]}\n```")
-            start_message += 1991
+        json_dict = remote_compute_results(address, 15000, str(attachment))
+        
+        # pprint.pprint(json_dict)
+
+        detected_roster = RosterJson.from_json(json_dict)
+
+        hero_instance_list: List[HeroInstance] = []
+        for detected_index, detected_hero_data in enumerate(detected_roster.hero_data_list):
 
 
-        # print(str(attachment))
-        # socket.connect("tcp://localhost:5555")
-        # print("Connected")
-        # socket.send_string(str(attachment))
-        # print("Sent")
-        # socket_message = await socket.recv()
-        # json_dict = json.loads(socket_message)
+            reference_hero = GV.session.query(Hero).filter(
+                    Hero.name.ilike(f"{detected_hero_data.name}%")).first()
+            if not reference_hero:
+                await ctx.send(
+                    "Unable to find detected hero with name: "
+                    f"{detected_hero_data.name} in position {detected_index}")
+                continue
 
-        # await ctx.send(str(attachment))
+            hero_instance = GV.session.query(HeroInstance).filter_by(
+                player_id=author_id, hero_id=reference_hero.id).first()
 
-        # await ctx.send(str(json_dict))
-    #     attachment_list.append(str(attachment))
-    # await ctx.send("\n".join(attachment_list))
+            hero_update = False
+            if hero_instance is None:
+                hero_instance = HeroInstance(
+                    hero_id=reference_hero.id, player_id=author_id,
+                    signature_level=detected_hero_data.signature_item.label,
+                    furniture_level=detected_hero_data.furniture.label,
+                    ascension_level=AscensionValues[detected_hero_data.ascension.label],
+                    engraving_level=detected_hero_data.engraving.label)
+            else:
+                hero_update = hero_instance.update(
+                    detected_hero_data.signature_item.label,
+                    detected_hero_data.furniture.label,
+                    detected_hero_data.ascension.label,
+                    detected_hero_data.engraving.label)
+
+            hero_instance_list.append(hero_instance)
+        await ctx.send(fetch_heroes(hero_instance_list))
