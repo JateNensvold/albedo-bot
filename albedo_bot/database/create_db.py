@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Dict, List, Union
 
 from sqlalchemy.orm import Session
@@ -54,7 +55,8 @@ def add_hero(hero_dict: Dict[str, Union[str, List]], session: Session):
                     hero_class=hero_dict["class"],
                     hero_type=hero_dict["type"],
                     ascension_tier=hero_dict["tier"],
-                    hero_portrait=hero_dict["portrait"])
+                    hero_portrait=GV.translate_afk_helper_path(
+        hero_dict["portrait"]))
     add_and_update(session, new_hero)
     print(new_hero)
 

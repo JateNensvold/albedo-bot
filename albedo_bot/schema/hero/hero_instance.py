@@ -77,7 +77,7 @@ class HeroList:
                 f"{hero_tuple.fi: <2} "
                 f"{hero_tuple.engraving}")
         message = "\n".join(formated_heroes)
-        output = f"```css\n{message}\n```"
+        output = f"{message}"
         return output
 
     def __str__(self):
@@ -138,6 +138,9 @@ class HeroInstance(Base):
             _type_: _description_
         """
         updated = False
+        signature_level = int(signature_level)
+        furniture = int(furniture)
+        engraving = int(engraving)
 
         if signature_level > self.signature_level:
             updated = True

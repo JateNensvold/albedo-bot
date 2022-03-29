@@ -112,8 +112,10 @@ class HeroConverter(Converter):
                     Hero.name.ilike(f"{argument}%")).all()
                 if len(hero_instance_objects) == 1:
                     hero_instance_object = hero_instance_objects[0]
-                elif len(hero_instance_objects) == 0:
-                    hero_instance_object = None
+                elif len(hero_instance_objects) == 0 and argument in GV.HERO_ALIAS:
+                    hero_database_name = GV.HERO_ALIAS[argument]
+                    hero_instance_object = GV.session.query(Hero).filter_by(
+                        name=hero_database_name).first()
                 else:
                     raise BadArgument(
                         f"Invalid hero name `{argument}` too  many `Hero` "

@@ -11,7 +11,7 @@ from albedo_bot.schema.hero import Hero
 from albedo_bot.commands.helpers.hero import (
     valid_engraving, valid_furniture, valid_signature_item, valid_ascension,
     furniture_range, engraving_range, signature_item_range)
-
+from albedo_bot.commands.helpers.utils import send_css_message
 
 @bot.group(name="roster")
 async def roster_command(ctx: Context):
@@ -53,7 +53,7 @@ async def _add_hero(ctx: Context, player: Member, hero: Hero,
     GV.session.add(hero_instance_object)
 
     hero_message = fetch_heroes([hero_instance_object])
-    await ctx.send(hero_message)
+    await send_css_message(ctx, hero_message)
 
 
 def check_input(ctx: Context, hero: Hero, ascension: Union[str, int],
