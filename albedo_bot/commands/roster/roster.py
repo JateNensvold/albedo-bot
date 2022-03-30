@@ -130,4 +130,4 @@ async def upload(ctx: Context):
             if hero_update:
                 GV.session.add(hero_instance)
                 hero_instance_list.append(hero_instance)
-        await send_css_message(ctx, fetch_heroes(hero_instance_list))
+        await send_css_message(ctx, f"{str(ctx.author)}\n {fetch_heroes(hero_instance_list)}")

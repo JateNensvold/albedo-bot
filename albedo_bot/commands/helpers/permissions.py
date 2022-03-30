@@ -4,6 +4,7 @@ from discord.ext.commands.context import Context
 from discord.ext import commands
 
 from albedo_bot.commands.helpers.errors import DiscordPermissionError
+
 PERMISSIONS_LOOKUP: Dict[int, "Permissions"] = {}
 ROLE_LOOKUP: Dict[str, "Permissions"] = {}
 
@@ -161,7 +162,7 @@ def _check_permission(ctx: Context, raw_expected_permission: int):
 
     for role in ctx.author.roles:
         if role.id in PERMISSIONS_LOOKUP:
-            permission = max(permission, PERMISSIONS_LOOKUP[role].priority)
+            permission = max(permission, PERMISSIONS_LOOKUP[role.id].priority)
 
     if isinstance(raw_expected_permission, str):
         try:
