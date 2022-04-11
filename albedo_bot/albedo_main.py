@@ -1,79 +1,113 @@
-import os
-import json
-from typing import Dict
-from sqlalchemy.orm import Session
-
-# Import commands so bot will register all commands
-import albedo_bot.commands  # pylint: disable=unused-import
-from albedo_bot.global_values import bot
-import albedo_bot.global_values as GV
-
-TOKEN = os.getenv('TOKEN')
-DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DATA: Dict = None
 
 
-class ConfigData:
-    """[summary]
+import argparse
+import asyncio
+import contextlib
+import logging
+from logging.handlers import RotatingFileHandler
+from typing import NamedTuple
+
+
+from albedo_bot.bot import AlbedoBot
+import albedo_bot.config as config
+
+
+class RemoveNoise(logging.Filter):
+    """_summary_
+
+    Args:
+        logging (_type_): _description_
     """
 
-    def __init__(self, file_path: str, skip_file: bool = False):
-        """[summary]
+    def __init__(self):
+        super().__init__(name='discord.state')
 
-        Args:
-            file_path (str): [description]
-        """
-        if skip_file:
-            return
-        self.data = {}
-        self.read_config(file_path)
-        self.file_path = file_path
+    def filter(self, record):
+        if record.levelname == 'WARNING' and 'referencing an unknown' in record.msg:
+            return False
+        return True
 
-    def read_config(self, config_path: str):
-        """[summary]
-        """
 
-        with open(config_path, "r", encoding="utf-8") as file:
-            self.data = json.load(file)
+@contextlib.contextmanager
+def setup_logging():
+    """_summary_
+    """
+    try:
+        # __enter__
+        max_bytes = 32 * 1024 * 1024  # 32 MiB
+        logging.getLogger('discord').setLevel(logging.INFO)
+        logging.getLogger('discord.http').setLevel(logging.WARNING)
+        logging.getLogger('discord.state').addFilter(RemoveNoise())
 
-    def write_config(self):
-        """[summary]
-        """
-        with open(self.file_path, "w", encoding="utf-8") as file:
-            json.dump(self.data, file)
+        log = logging.getLogger()
+        log.setLevel(logging.INFO)
+        handler = RotatingFileHandler(filename='albedo_bot.log',
+                                      encoding='utf-8', mode='w',
+                                      maxBytes=max_bytes, backupCount=5)
+        date_format = '%Y-%m-%d %H:%M:%S'
+        log_format = logging.Formatter(
+            '[{asctime}] [{levelname:<7}] {name}: {message}', date_format, style='{')
+        handler.setFormatter(log_format)
+        log.addHandler(handler)
 
-    def __enter__(self):
-        """
-        """
+        yield
+    finally:
+        # __exit__
+        handlers = log.handlers[:]
+        for handler in handlers:
+            handler.close()
+            log.removeHandler(handler)
 
-        return self
 
-    def __exit__(self,  _exc_type, _exc_value, _traceback):
-        """[summary]
-        """
-        GV.session.flush()
+def run_bot():
+    """_summary_
+    """
+
+    bot = AlbedoBot()
+    bot.run()
+
+
+class LaunchChoices(NamedTuple):
+    """_summary_
+
+    Args:
+        NamedTuple (_type_): _description_
+    """
+    run: str = "run"
+    init: str = "init"
+    drop: str = "drop"
 
 
 def main():
-    """[summary]
-    """
+    """Launches the bot."""
 
-    with ConfigData(GV.GUILD_JSON_PATH, skip_file=True) as data:
-        global CONFIG_DATA  # pylint: disable=global-statement
-        CONFIG_DATA = data
+    launch_choices = LaunchChoices()
 
-        GV.DATABASE.postgres_connect(GV.DATABASE_DATA["user"],
-                                     GV.DATABASE_DATA["password"],
-                                     GV.DATABASE_DATA["address"],
-                                     GV.DATABASE_DATA["name"])
-        if TOKEN is None:
-            raise Exception(
-                "Set 'TOKEN' Environment variable before running bot")
-        print(f"Database tables: {GV.DATABASE.list_tables()}")
-        GV.session = Session(bind=GV.DATABASE.engine, autoflush=True, autocommit=True)
+    parser = argparse.ArgumentParser(
+        description='AFK arena Roster management Bot')
 
-        bot.run(TOKEN)
+    parser.add_argument("mode", type=str, nargs="?", default=launch_choices.run,
+                        choices=launch_choices,
+                        help="Mode to launch Albedo Bot with")
+    parser.add_argument("-v", "--verbose", help="Increase verbosity of output"
+                        "from discord commands", action='count', default=0)
+
+    args = parser.parse_args()
+
+    config.VERBOSE = args.verbose
+    loop = asyncio.get_event_loop()
+    if args.mode == launch_choices.run:
+        with setup_logging():
+            run_bot()
+    elif args.mode == launch_choices.init:
+        database = config.database
+        loop.run_until_complete(database.init_database(
+            config.database_name, raise_error=False))
+
+    elif args.mode == launch_choices.drop:
+        database = config.database
+        loop.run_until_complete(database.drop_database(config.database_name))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

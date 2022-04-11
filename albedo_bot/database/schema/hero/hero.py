@@ -3,7 +3,7 @@ from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
 from sqlalchemy.orm import relationship
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
 ascension_tier_values = ("ascended", "legendary")
@@ -48,7 +48,7 @@ hero_type_values = ("Strength",
 HERO_TYPE_ENUM = SQLEnum(*hero_type_values, name="hero_type_enum")
 
 
-class Hero(Base):
+class Hero(base):
     """[summary]
     """
 
@@ -77,3 +77,8 @@ class Hero(Base):
             str: [description]
         """
         return f"Hero<{self.id}, {self.name}>"
+
+    def full_repr(self):
+        """_summary_
+        """
+        return f"Hero<{self.id}, {self.name}, {self.hero_faction}, {self.hero_class}, {self.hero_type}, {self.ascension_tier}, {self.hero_portrait}>"

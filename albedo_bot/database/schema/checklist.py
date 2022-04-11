@@ -2,10 +2,10 @@
 from sqlalchemy import Column, ForeignKey, String, Integer, BIGINT
 from sqlalchemy.orm import relationship
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
-class Checklist(Base):
+class Checklist(base):
     """[summary]
     """
 
@@ -23,7 +23,7 @@ class Checklist(Base):
         return f"Checklist<{self.name}>"
 
 
-class ChecklistHero(Base):
+class ChecklistHero(base):
     """[summary]
     """
 

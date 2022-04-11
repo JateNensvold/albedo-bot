@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, String, Integer, Text, Sequence
 from sqlalchemy.orm import relationship
 from sqlalchemy import Enum
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
 skill_type_values = ("level",
@@ -13,7 +13,7 @@ skill_type_values = ("level",
 SKILL_TYPE_ENUM = Enum(*skill_type_values, name="skill_type_enum")
 
 
-class HeroSkill(Base):
+class HeroSkill(base):
     """_summary_
 
     Args:
@@ -39,11 +39,11 @@ class HeroSkill(Base):
         return f"HeroSkill<{self.id}, {self.skill_name}>"
 
 
-class HeroSkillUpgrade(Base):
+class HeroSkillUpgrade(base):
     """_summary_
 
     Args:
-        Base (_type_): _description_
+        base (_type_): _description_
     """
     __tablename__ = "hero_skills_upgrade"
     skill_id = Column(Integer, ForeignKey(

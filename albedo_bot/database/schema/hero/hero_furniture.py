@@ -1,13 +1,13 @@
 from sqlalchemy import Column, ForeignKey, String, Integer, Text, null
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
-class HeroFurniture(Base):
+class HeroFurniture(base):
     """_summary_
 
     Args:
-        Base (_type_): _description_
+        base (_type_): _description_
     """
 
     __tablename__ = "hero_furniture"
@@ -25,11 +25,11 @@ class HeroFurniture(Base):
         return f"HeroFurniture<{self.id}, {self.furniture_name}>"
 
 
-class HeroFurnitureUpgrade(Base):
+class HeroFurnitureUpgrade(base):
     """_summary_
 
     Args:
-        Base (_type_): _description_
+        base (_type_): _description_
     """
 
     __tablename__ = "hero_furniture_upgrade"

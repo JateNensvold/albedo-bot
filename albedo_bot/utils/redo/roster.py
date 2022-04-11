@@ -2,6 +2,7 @@ from typing import List, Union
 
 from discord.ext.commands.context import Context
 from discord import Member
+from discord.embeds import Embed
 
 import albedo_bot.global_values as GV
 from albedo_bot.global_values import bot
@@ -11,7 +12,8 @@ from albedo_bot.schema.hero import Hero
 from albedo_bot.commands.helpers.hero import (
     valid_engraving, valid_furniture, valid_signature_item, valid_ascension,
     furniture_range, engraving_range, signature_item_range)
-from albedo_bot.commands.helpers.utils import send_css_message
+from albedo_bot.commands.helpers.utils import send_message
+
 
 @bot.group(name="roster")
 async def roster_command(ctx: Context):
@@ -53,7 +55,7 @@ async def _add_hero(ctx: Context, player: Member, hero: Hero,
     GV.session.add(hero_instance_object)
 
     hero_message = fetch_heroes([hero_instance_object])
-    await send_css_message(ctx, hero_message)
+    await send_message(ctx, hero_message)
 
 
 def check_input(ctx: Context, hero: Hero, ascension: Union[str, int],
@@ -114,6 +116,29 @@ def fetch_heroes(hero_list: List[HeroInstance]):
     heroes_message_object = HeroList(hero_result)
     output = str(heroes_message_object)
     return output
+
+
+def fetch_heroes_embed(hero_list: List[HeroInstance]):
+    """_summary_
+
+    Args:
+        hero_list (List[HeroInstance]): _description_
+    """
+    hero_result = []
+
+    for hero_instance in hero_list:
+        hero_object = GV.session.query(Hero).filter_by(
+            id=hero_instance.hero_id).first()
+        hero_tuple = HeroInstanceTuple(hero_object.name, hero_instance.hero_id,
+                                       hero_instance.signature_level,
+                                       hero_instance.furniture_level,
+                                       hero_instance.ascension_level.name,
+                                       hero_instance.engraving_level)
+        hero_result.append(hero_tuple)
+    heroes_message_object = HeroList(hero_result)
+
+
+    return heroes_message_object.generate_embed()
 
 
 def fetch_roster(discord_id: int):

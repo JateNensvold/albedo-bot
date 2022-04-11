@@ -1,10 +1,10 @@
 from sqlalchemy import Column, ForeignKey, String, BIGINT
 from sqlalchemy.orm import relationship
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
-class Player(Base):
+class Player(base):
     """[summary]
     """
 

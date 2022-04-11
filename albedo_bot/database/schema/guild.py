@@ -2,10 +2,10 @@
 from sqlalchemy import Column, BIGINT, String
 from sqlalchemy.orm import relationship
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
-class Guild(Base):
+class Guild(base):
     """[summary]
     """
 

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, ForeignKey, String, Integer, Text
 
-from albedo_bot.schema.base import Base
+from albedo_bot.database.schema.base import base
 
 
-class HeroSignatureItem(Base):
+class HeroSignatureItem(base):
     """_summary_
 
     Args:
@@ -24,7 +24,7 @@ class HeroSignatureItem(Base):
         return f"HeroSI<{self.id}, {self.si_name}>"
 
 
-class HeroSignatureItemUpgrade(Base):
+class HeroSignatureItemUpgrade(base):
     """_summary_
 
     Args:

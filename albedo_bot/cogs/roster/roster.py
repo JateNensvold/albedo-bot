@@ -10,9 +10,10 @@ from albedo_bot.commands.helpers.converter import HeroConverter
 from albedo_bot.schema.hero import HeroInstance, Hero
 from albedo_bot.schema.hero.hero_instance import AscensionValues
 from albedo_bot.commands.helpers.roster import (
-    roster_command, fetch_roster, _add_hero, fetch_heroes)
+    fetch_heroes_embed, roster_command, fetch_roster, _add_hero, fetch_heroes)
 from albedo_bot.global_values import bot
-from albedo_bot.commands.helpers.utils import send_css_message
+from albedo_bot.commands.helpers.utils import send_message
+
 
 @bot.group(name="ping")
 async def ping_command(ctx: Context):
@@ -38,7 +39,7 @@ async def show(ctx: Context):
     """
 
     heroes_result = fetch_roster(ctx.author.id)
-    await send_css_message(ctx, heroes_result)
+    await send_message(ctx, heroes_result)
 
 
 @roster_command.command(name="add", aliases=["update"])
@@ -129,5 +130,6 @@ async def upload(ctx: Context):
                     detected_hero_data.engraving.label)
             if hero_update:
                 GV.session.add(hero_instance)
-                hero_instance_list.append(hero_instance)
-        await send_css_message(ctx, f"{str(ctx.author)}\n {fetch_heroes(hero_instance_list)}")
+            hero_instance_list.append(hero_instance)
+        await send_message(ctx, f"{str(ctx.author)}\n {fetch_heroes(hero_instance_list)}", css=False)
+        # await ctx.send(embed=fetch_heroes_embed(hero_instance_list))
