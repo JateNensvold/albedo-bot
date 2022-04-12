@@ -1,7 +1,6 @@
 from discord.ext.commands.context import Context
-from albedo_bot.global_values import bot
-import albedo_bot.global_values as GV
-from albedo_bot.schema import Hero
+
+from albedo_bot.database.schema.hero import Hero
 
 
 async def missing_hero_message(ctx: Context, hero_name: str):
@@ -14,6 +13,7 @@ async def missing_hero_message(ctx: Context, hero_name: str):
     await ctx.send(
         f"A hero with the name `{hero_name}` was unable to be found in the "
         "hero database")
+
 
 @bot.group(name="hero")
 async def hero_command(ctx: Context):

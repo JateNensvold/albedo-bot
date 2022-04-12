@@ -1,6 +1,7 @@
 
-from albedo_bot.schema.hero.hero_instance import AscensionValues
+
 from typing import Union
+from albedo_bot.database.schema.hero import AscensionValues
 
 ASCENSION_VALUE_RANGE = [(value.name, value.value)
                          for value in AscensionValues]

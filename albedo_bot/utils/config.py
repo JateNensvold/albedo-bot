@@ -57,7 +57,7 @@ class Config:
         """Retrieves a config entry."""
         return self._db.get(str(key), *args)
 
-    async def put(self, key, value, *args):
+    async def put(self, key, value):
         """Edits a config entry."""
         self._db[str(key)] = value
         await self.save()

@@ -23,7 +23,7 @@ TOKEN = os.getenv('TOKEN')
 initial_extensions = (
     # 'cogs.admin.admin',
     # 'cogs.private.private',
-    # 'cogs.roster.roster',
+    'cogs.roster.roster',
 )
 
 default_bot_prefix = ['%']
@@ -75,6 +75,7 @@ class AlbedoBot(commands.Bot):
                          allowed_mentions=allowed_mentions,
                          enable_debug_events=True)
 
+        self.uptime: datetime = None
         self._prev_events: Deque[Message] = deque(maxlen=10)
 
         # Configured prefixes for each server/guild using the bot
@@ -96,7 +97,6 @@ class AlbedoBot(commands.Bot):
 
         self.database = config.database
         self.database.postgres_connect()
-        self.session = self.database.session
 
         for extension in initial_extensions:
             try:
@@ -104,6 +104,15 @@ class AlbedoBot(commands.Bot):
             except DiscordException as _load_failure:
                 print(f"Failed to load extension {extension}", file=sys.stderr)
                 traceback.print_exc()
+
+    @property
+    def session(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.database.session
 
     async def on_socket_raw_receive(self, msg: Message):
         """
@@ -385,6 +394,7 @@ class AlbedoBot(commands.Bot):
                     try:
                         formated_data = json.dumps(json.loads(data),
                                                    ensure_ascii=True, indent=4)
+                    # pylint: disable=broad-except
                     except Exception as _exception:
                         file_pointer.write(f'{data}\n')
                     else:

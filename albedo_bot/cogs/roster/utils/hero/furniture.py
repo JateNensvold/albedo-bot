@@ -1,6 +1,6 @@
 
-from albedo_bot.schema.hero.hero import faction_values
-from albedo_bot.schema.hero import Hero
+from albedo_bot.database.schema.hero import Hero
+from albedo_bot.database.schema.hero.hero import faction_values
 
 
 FACTION_MAX_FURNITURE = {faction: 36 for faction in faction_values}

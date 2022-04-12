@@ -1,6 +1,7 @@
 
-from albedo_bot.schema.hero.hero import faction_values
-from albedo_bot.schema.hero import Hero
+
+from albedo_bot.database.schema.hero import Hero
+from albedo_bot.database.schema.hero.hero import faction_values
 
 
 FACTION_MAX_ENGRAVING = {faction: 80 for faction in faction_values}

@@ -76,6 +76,7 @@ class LaunchChoices(NamedTuple):
     run: str = "run"
     init: str = "init"
     drop: str = "drop"
+    reset: str = "reset"
 
 
 def main():
@@ -96,17 +97,20 @@ def main():
 
     config.VERBOSE = args.verbose
     loop = asyncio.get_event_loop()
+    database = config.database
+
     if args.mode == launch_choices.run:
         with setup_logging():
             run_bot()
     elif args.mode == launch_choices.init:
-        database = config.database
+        database.select_database("postgres")
         loop.run_until_complete(database.init_database(
             config.database_name, raise_error=False))
-
     elif args.mode == launch_choices.drop:
-        database = config.database
         loop.run_until_complete(database.drop_database(config.database_name))
+    elif args.mode == launch_choices.reset:
+        database.select_database(config.database_name)
+        loop.run_until_complete(database.reset_database())
 
 
 if __name__ == '__main__':

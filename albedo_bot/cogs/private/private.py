@@ -10,6 +10,7 @@ from albedo_bot.commands.helpers.permissions import has_permission
 from albedo_bot.global_values import bot
 import albedo_bot.global_values as GV
 
+
 @commands.group()
 @bot.group(name="private")
 @has_permission("owner")
@@ -24,6 +25,18 @@ async def private(ctx: Context):
     """
     if ctx.invoked_subcommand is None:
         await ctx.send('Private: Invalid sub command passed...')
+
+    @bot.group(name="private")
+    async def ping_command(self, ctx: commands.Context):
+        """[summary]
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+        await ctx.send("pong")
+        # if ctx.invoked_subcommand is None:
+        #     await ctx.send('Invalid sub command passed...')
 
 
 @private.group(name="emoji")
@@ -137,6 +150,7 @@ async def list_datbase_heroes(ctx: Context):
     await send_message(ctx, "\n".join(hero_str))
 
 commands.AutoShardedBot
+
 
 class Admin(commands.Cog):
     """Admin-only commands that make the bot dynamic."""

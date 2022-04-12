@@ -4,10 +4,8 @@ from typing import Any, Dict, List
 
 import sqlalchemy
 from sqlalchemy.engine.cursor import CursorResult
-from sqlalchemy.engine.result import MappingResult
 from sqlalchemy.ext.asyncio import (
     create_async_engine, AsyncEngine, AsyncSession)
-from sqlalchemy.orm import Session
 
 # While importing base, it imports all schema in albedo_bot.database.schema
 #   that need to be imported before calls to create_tables
@@ -35,7 +33,6 @@ class Database:
         self.address = address
         self.database_name = database_name
         self.engine: AsyncEngine = None
-        self.session: Session = None
 
         self.base = base.Base
         self.metadata: sqlalchemy.MetaData = self.base.metadata
@@ -54,6 +51,7 @@ class Database:
             database_config = json.load(config_file)
             database = Database(database_config["user"], database_config["password"],
                                 database_config["address"])
+            database.select_database(database_config["name"])
 
         return database
 
@@ -82,18 +80,55 @@ class Database:
             db_string = (
                 f"postgresql+asyncpg://{self.user}:{self.password}@{self.address}/"
                 f"{self.database_name}")
-        print(db_string)
         self.engine: AsyncEngine = create_async_engine(
             db_string)  # connect to server
 
         self.session = AsyncSession(
             self.engine, autoflush=autoflush)
+        # self.session_factory = sessionmaker(
+        #     self.engine, autoflush=autoflush, class_=AsyncSession)
 
     def session_callback(self, *args, **kwargs):
         """_summary_
         """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._session_callback(*args, **kwargs))
+
+    # @property
+    # def session(self):
+    #     """_summary_
+    #     """
+    #     current_func = asyncio.current_task()
+
+    #     if current_func in self.session_map:
+    #         return self.session_map[current_func]
+    #     else:
+    #         for task in list(self.session_map.keys()):
+    #             if task.done():
+    #                 loop = asyncio.get_event_loop()
+    #                 loop.run_until_complete(self.session_map[task].commit())
+    #                 del self.session_map[task]
+
+    #         scoped_session = async_scoped_session(self.session_factory,
+    #                                               scopefunc=asyncio.current_task)
+    #         some_async_session: AsyncSession = scoped_session()
+    #         self.session_map[current_func] = some_async_session
+    #         return some_async_session
+        # tasks = asyncio.all_tasks()
+        # asyncio.current_task
+        # print(f"session {type(tasks)}, {tasks}")
+
+        # return some_async_session
+        # print(asyncio.current_task())
+        # return self._session
+
+    # def make_session(self):
+    #     """_summary_
+
+    #     Returns:
+    #         _type_: _description_
+    #     """
+    #     return self.session_factory()
 
     async def _session_callback(self, sql_object: Any,
                                 update: bool = True) -> Any:
@@ -106,8 +141,8 @@ class Database:
         Returns:
             Any: _description_
         """
-        async with self.session as session:
-            async with session.begin():
+        async with self.session:
+            async with self.session.begin():
                 self.session.add(sql_object)
             await self.session.flush()
             if update:
@@ -124,7 +159,7 @@ class Database:
             database_name (str): new database name
         """
         if database_name not in await self.list_database():
-            async with self.session as session:
+            async with self.session:
                 await self.session.execute("commit")
                 await self.session.execute(f'CREATE DATABASE "{database_name}"')
 
@@ -136,9 +171,13 @@ class Database:
                     "creating a new one"))
         self.select_database(database_name)
 
-        await self.create_tables()
-
+        await self._init_tables()
+        await self._load_data()
         # Load all hero data into database
+
+    async def _load_data(self):
+        """_summary_
+        """
         hero_data = HeroData.from_json(
             config.HERO_JSON_PATH, self._session_callback)
         await hero_data.build()
@@ -149,13 +188,38 @@ class Database:
         Args:
             database_name (str): _description_
         """
+
         db_string = (
             f"postgresql+asyncpg://{self.user}:{self.password}@{self.address}")
         self.postgres_connect(db_string=db_string)
 
-        async with self.session as session:
+        database_list = await self.list_database()
+        if database_name not in database_list:
+            raise Exception(f"'{database_name}' is not a valid database name, "
+                            f"({database_list})")
+        if not self._confirm_action(f"delete '{database_name}'"):
+            return
+        async with self.session:
             await self.session.execute("commit")
-            await self.session.execute(f"drop database {database_name}")
+            await self.session.execute(f"drop database '{database_name}'")
+        print(f"Database {database_name} dropped.")
+
+    def _confirm_action(self, action_str: str):
+        """_summary_
+
+        Args:
+            action_str (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        print(f"You are about to {action_str}. Press 'Y' to continue "
+              "or any other key to stop")
+        key_input = input()
+        if key_input.lower() == "y":
+            return True
+        print(f"{action_str} aborted.")
+        return False
 
     def select_database(self, database_name: str):
         """[summary]
@@ -163,25 +227,44 @@ class Database:
         Args:
             database_name (str): [description]
         """
-        self.postgres_connect(self.user, self.password,
-                              self.address, database_name)
+        self.postgres_connect(database_name=database_name)
 
-    async def create_tables(self):
+    async def _init_tables(self):
         """
         Creates all the database Tables defined by albedo_bot
         """
         self.base.metadata.bind = self.engine
 
+        print(f"Initializing tables in '{self.database_name}'")
         async with self.engine.begin() as conn:
-            # await conn.run_sync(self.base.metadata.drop_all)
             await conn.run_sync(self.base.metadata.create_all)
-        # self.base.metadata.create_all(self.engine)
+
+    async def _drop_tables(self, check_action: bool = True):
+        """_summary_
+        """
+
+        if check_action and not self._confirm_action(f"drop tables in '{self.database_name}'"):
+            return
+
+        self.base.metadata.bind = self.engine
+
+        async with self.engine.begin() as conn:
+            await conn.run_sync(self.base.metadata.drop_all)
+
+    async def reset_database(self):
+        """_summary_
+        """
+        if not self._confirm_action(f"reset tables in '{self.database_name}'"):
+            return
+        await self._drop_tables(check_action=False)
+        await self._init_tables()
+        await self._load_data()
 
     async def list_database(self):
         """[summary]
         """
 
-        async with self.session as session:
+        async with self.session:
             session_result: CursorResult = await self.session.execute(
                 'SELECT datname FROM pg_database;')
             database_tuples: List[Dict[str, str]
