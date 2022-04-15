@@ -1,19 +1,17 @@
 from typing import Union
-from discord.ext.commands import Converter, Context, BadArgument
-from discord import Role, Member
-from discord.utils import get
-import albedo_bot.global_values as GV
-from albedo_bot.schema.hero import Hero
 
+import discord
+from discord.ext import commands
+from discord import Role
 
-class GuildConverter(Converter):
+class GuildConverter(commands.Converter):
     """_summary_
 
     Args:
         Converter (_type_): _description_
     """
 
-    async def convert(self, ctx: Context, argument: Union[str, int]):
+    async def convert(self, ctx:commands.Context, argument: Union[str, int]):
         """_summary_
 
         Args:
@@ -33,11 +31,11 @@ class GuildConverter(Converter):
                 return role
             else:
                 argument = int(argument)
-                guild_role = get(ctx.guild.roles, id=argument)
+                guild_role = discord.utils.get(ctx.guild.roles, id=argument)
                 return guild_role
         except AssertionError as exception:
-            raise BadArgument(
+            raise commands.BadArgument(
                 f"Invalid guild mention `{argument}`") from exception
         except Exception as exception:
-            raise BadArgument(
+            raise commands.BadArgument(
                 f"Invalid guild name or id `{argument}`") from exception

@@ -20,4 +20,4 @@ class Player(base):
         Returns:
             str: [description]
         """
-        return f"{self.discord_id}, {self.name}"
+        return f"Player<discord_id={self.discord_id}, name={self.name}>"

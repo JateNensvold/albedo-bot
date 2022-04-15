@@ -6,14 +6,14 @@ import traceback
 
 from collections import Counter, deque
 from datetime import datetime
-from typing import Any, Deque, Iterable, List, Union
+from typing import Any, Deque, Dict, Iterable, List, Union
 
 # Import commands so bot will register all commands
 # import albedo_bot.commands  # pylint: disable=unused-import
 # # from albedo_bot.global_values import bot
 import discord
 from discord.ext import commands
-from discord import Guild, Member, Message
+from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
@@ -21,9 +21,13 @@ import albedo_bot.config as config
 TOKEN = os.getenv('TOKEN')
 
 initial_extensions = (
+    'cogs.player.player',
+    'cogs.guild.guild',
+    'cogs.roster.roster',
+    'cogs.owner.owner'
     # 'cogs.admin.admin',
     # 'cogs.private.private',
-    'cogs.roster.roster',
+    # 'cogs.roster.roster',
 )
 
 default_bot_prefix = ['%']
@@ -76,6 +80,7 @@ class AlbedoBot(commands.Bot):
                          enable_debug_events=True)
 
         self.uptime: datetime = None
+        self._emoji_cache: Dict[str, Emoji] = {}
         self._prev_events: Deque[Message] = deque(maxlen=10)
 
         # Configured prefixes for each server/guild using the bot
@@ -90,7 +95,8 @@ class AlbedoBot(commands.Bot):
             10, 12.0, commands.BucketType.user)
 
         # A counter to auto-ban frequent spammers
-        # Triggering the rate limit 5 times in a row will auto-ban the user from the bot.
+        # Triggering the rate limit 5 times in a row will auto-ban the user
+        #   from the bot.
         self._auto_spam_count = Counter()
 
         self.permissions = config.permissions
@@ -104,6 +110,18 @@ class AlbedoBot(commands.Bot):
             except DiscordException as _load_failure:
                 print(f"Failed to load extension {extension}", file=sys.stderr)
                 traceback.print_exc()
+
+    @property
+    def emoji_cache(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        if len(self._emoji_cache) == 0:
+            for emoji in self.emojis:
+                self._emoji_cache[emoji.name] = emoji
+        return self._emoji_cache
 
     @property
     def session(self):
@@ -300,7 +318,7 @@ class AlbedoBot(commands.Bot):
     async def on_ready(self):
         """_summary_
         """
-        if not hasattr(self, 'uptime'):
+        if not self.uptime:
             self.uptime: datetime = datetime.now()
 
         print(f'Ready: {self.user} (ID: {self.user.id}) (Time: {self.uptime})')
@@ -328,7 +346,6 @@ class AlbedoBot(commands.Bot):
 
     async def process_commands(self, message: Message):
         ctx: commands.Context = await self.get_context(message)
-
         if ctx.command is None:
             return
 
@@ -358,8 +375,8 @@ class AlbedoBot(commands.Bot):
         try:
             await self.invoke(ctx)
         finally:
-            # Just in case we have any outstanding DB connections
-            await ctx.release()
+            # Commit any changes to database to disk
+            await self.session.commit()
 
     async def on_message(self, message: Message):
         """_summary_

@@ -1,6 +1,5 @@
 
-from albedo_bot.schema.hero.hero import faction_values
-from albedo_bot.schema.hero import Hero
+from albedo_bot.database.schema.hero.hero import faction_values, Hero
 
 
 FACTION_MAX_SI = {faction: 30 for faction in faction_values}
@@ -9,7 +8,7 @@ FACTION_MAX_SI[faction_values.hypogean] = 40
 FACTION_MAX_SI[faction_values.dimensional] = 40
 
 
-def valid_signature_item(hero: Hero, signature_item:int):
+def valid_signature_item(hero: Hero, signature_item: int):
     """_summary_
 
     Args:

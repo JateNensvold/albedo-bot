@@ -145,13 +145,13 @@ class Permissions:
     def unload_permission(self):
         """_summary_
         """
-        for role_name in self.permission_name_lookup:
+        for role_name in list(self.permission_name_lookup.keys()):
             del self.permission_name_lookup[role_name]
 
-        for user_id in self.user_lookup:
+        for user_id in list(self.user_lookup.keys()):
             del self.user_lookup[user_id]
 
-        for role_id in self.role_lookup:
+        for role_id in list(self.role_lookup.keys()):
             del self.role_lookup[role_id]
 
     def reload_permission(self,  permission_config: Dict[str, Dict]):

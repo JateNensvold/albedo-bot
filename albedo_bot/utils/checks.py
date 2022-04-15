@@ -2,26 +2,27 @@
 
 from discord.ext import commands
 
-from albedo_bot.commands.utils.permissions import Permissions
-
-import albedo_bot.global_values as GV
+import albedo_bot.config as config
 
 
-def _check_permission(ctx: commands.Context, config_role_name: str,
-                      permissions: Permissions):
+def _check_permission(ctx: commands.Context, config_role_name: str):
     """
-    Decorator helper that performs permissions checks and accepts the
-    parameters that will get passed to the decorated function
+    Lookup if the author of a message has equal or higher permissions than the
+        permissions assigned to 'config_role_name'
 
     Args:
-        ctx (Context): invocation context containing information on how
+        ctx (commands.Context): invocation context containing information on how
             a discord event/command was invoked
+        config_role_name (str): name of role in permissions config file
+
+    Returns:
+        bool: True if the author has the required permissions level,
+            False otherwise
     """
+    required_permission = config.permissions.permission_name_lookup[
+        config_role_name.lower()]
 
-    required_permission = permissions.permission_name_lookup(
-        config_role_name.lower())
-
-    return permissions.lookup(ctx.author) >= required_permission
+    return config.permissions.lookup(ctx.author) >= required_permission
 
 
 def check_config_permission(config_role_name: str):
@@ -40,5 +41,5 @@ def check_config_permission(config_role_name: str):
         Returns:
             _type_: _description_
         """
-        return _check_permission(ctx, config_role_name, GV.PERMISSIONS_DATA)
+        return _check_permission(ctx, config_role_name)
     return commands.check(pred)

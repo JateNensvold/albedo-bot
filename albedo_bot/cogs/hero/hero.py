@@ -3,6 +3,8 @@ from discord.ext.commands.context import Context
 from albedo_bot.database.schema.hero import Hero
 
 
+
+
 async def missing_hero_message(ctx: Context, hero_name: str):
     """_summary_
 

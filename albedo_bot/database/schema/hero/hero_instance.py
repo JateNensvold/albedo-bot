@@ -3,18 +3,19 @@ import re
 from typing import List, NamedTuple, Union, TYPE_CHECKING
 from enum import Enum
 
-
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
 from sqlalchemy import Enum as SQLEnum
-from discord.embeds import Embed
 
+from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
+from albedo_bot.cogs.utils.mixins.emoji_mixin import EmojiMixin
 from albedo_bot.database.schema.base import base
-from albedo_bot.cogs.utils.emoji import get_emoji
-from albedo_bot.database.schema.hero.hero import Hero
+from albedo_bot.database.schema.hero import Hero
+
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
-ascension_values = {"E": 1,
+ascension_values = {"None": 0,
+                    "E": 1,
                     "E+": 2,
                     "L": 3,
                     "L+": 4,
@@ -41,13 +42,13 @@ class HeroInstanceTuple(NamedTuple):
     """
     hero_name: str
     hero_id: int
-    si: int
-    fi: int
-    ascension: AscensionValues
-    engraving: int
+    signature_level: int
+    furniture_level: int
+    ascension_level: AscensionValues
+    engraving_level: int
 
 
-class HeroList:
+class HeroList(DatabaseMixin, EmojiMixin):
     """_summary_
     """
 
@@ -62,7 +63,7 @@ class HeroList:
             max((*[hero.hero_name for hero in heroes], ""), key=len))
         self.heroes = heroes
 
-    def format_heroes(self):
+    async def format_heroes(self):
         """_summary_
 
          Returns:
@@ -70,70 +71,76 @@ class HeroList:
         """
         formated_heroes = []
 
-        formated_heroes.append(
-            f"{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING")
-        header_string = formated_heroes[0]
+        emoji_space = "      "
 
-        dashed_string = re.sub(r"\S", "-", header_string)
-        formated_heroes.append(dashed_string)
+        formated_heroes.append(
+            f"{emoji_space} `{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING`")
+        # header_string = formated_heroes[0]
+        # dashed_string = re.sub(r"\S", "-", header_string)
+        # formated_heroes.append(f"`{dashed_string}`")
         for hero_tuple in self.heroes:
 
-            hero_object: Hero = self.bot.session.query(Hero).filter_by(
-                id=hero_tuple.hero_id).first()
-            portrait_name, _portrait_ext = os.path.splitext(
-                os.path.basename(hero_object.hero_portrait))
+            hero_select = self.select(Hero).where(
+                Hero.id == hero_tuple.hero_id)
+            hero_result = await self.execute(hero_select).first()
 
+            portrait_name, _portrait_extension = os.path.splitext(
+                os.path.basename(hero_result.hero_portrait))
             formated_heroes.append(
-                f"{str(get_emoji(portrait_name))} "
+                f"{str(self.get_emoji(portrait_name))} "
                 f"`{hero_tuple.hero_name: <{self.longest_name}} "
-                f"{hero_tuple.ascension: <{3}} "
-                f"{hero_tuple.si: <2} "
-                f"{hero_tuple.fi: <2} "
-                f"{hero_tuple.engraving}`")
+                f"{hero_tuple.ascension_level.name: <{3}} "
+                f"{hero_tuple.signature_level: <2} "
+                f"{hero_tuple.furniture_level: <2} "
+                f"{hero_tuple.engraving_level}`")
         message = "\n".join(formated_heroes)
         output = f"{message}"
         return output
 
-    def generate_embed(self):
-        """_summary_
+    # def generate_embed(self):
+    #     """_summary_
 
-        Returns:
-            _type_: _description_
-        """
-        blank_field = "\u200b"
+    #     Returns:
+    #         _type_: _description_
+    #     """
+    #     blank_field = "\u200b"
 
-        embed_object = Embed(
-            title="Title", description="Description", color=0xffbf00)
-        # embed_object.add_field(name="Heroes", value=blank_field, inline=True)
-        header_string = f"{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING"
-        embed_object.add_field(
-            name=header_string, value=blank_field,  inline=False)
+    #     embed_object = Embed(
+    #         title="Title", description="Description", color=0xffbf00)
+    #     # embed_object.add_field(name="Heroes", value=blank_field, inline=True)
+    #     header_string = f"{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING"
+    #     embed_object.add_field(
+    #         name=header_string, value=blank_field,  inline=False)
 
-        print(header_string)
+    #     for hero_tuple in self.heroes:
+    #         hero_object: Hero = GV.session.query(Hero).filter_by(
+    #             id=hero_tuple.hero_id).first()
+    #         portrait_name, _portrait_ext = os.path.splitext(
+    #             os.path.basename(hero_object.hero_portrait))
+    #         hero_string = (f"{str(get_emoji(portrait_name))} "
+    #                        f"`{hero_tuple.hero_name: <{self.longest_name}} "
+    #                        f"{hero_tuple.ascension: <{3}} "
+    #                        f"{hero_tuple.si: <2} "
+    #                        f"{hero_tuple.fi: <2} "
+    #                        f"{hero_tuple.engraving}`")
+    #         # hero_string.replace(" ", "\u1CBC\u1CBC")
+    #         # hero_string = re.sub(r"\S", "\u1CBC", hero_string)
+    #         print(hero_string)
+    #         embed_object.add_field(
+    #             name=hero_string, value=hero_string, inline=False)
 
-        for hero_tuple in self.heroes:
-            hero_object: Hero = GV.session.query(Hero).filter_by(
-                id=hero_tuple.hero_id).first()
-            portrait_name, _portrait_ext = os.path.splitext(
-                os.path.basename(hero_object.hero_portrait))
-            hero_string = (f"{str(get_emoji(portrait_name))} "
-                           f"`{hero_tuple.hero_name: <{self.longest_name}} "
-                           f"{hero_tuple.ascension: <{3}} "
-                           f"{hero_tuple.si: <2} "
-                           f"{hero_tuple.fi: <2} "
-                           f"{hero_tuple.engraving}`")
-            # hero_string.replace(" ", "\u1CBC\u1CBC")
-            # hero_string = re.sub(r"\S", "\u1CBC", hero_string)
-            print(hero_string)
-            embed_object.add_field(
-                name=hero_string, value=hero_string, inline=False)
-
-        return embed_object
+    #     return embed_object
 
     def __str__(self):
         """_summary_
         """
-        return self.format_heroes()
+        return f"HeroList<{len(self.heroes)} heroes long>"
+
+    async def async_str(self):
+        """_summary_
+        """
+        output = await self.format_heroes()
+        return output
 
 
 class HeroInstance(base):
@@ -155,13 +162,23 @@ class HeroInstance(base):
     ascension_level = Column(SQLEnum(AscensionValues, name="ascension_enum"))
     engraving_level = Column(Integer)
 
+    def __init__(self, hero_id, player_id, signature_level=0,
+                 furniture_level=0, ascension_level=AscensionValues(0),
+                 engraving_level=0):
+        self.hero_id = hero_id
+        self.player_id = player_id
+        self.signature_level = int(signature_level)
+        self.furniture_level = int(furniture_level)
+        self.ascension_level = ascension_level
+        self.engraving_level = int(engraving_level)
+
     def __repr__(self) -> str:
         """[summary]
 
         Returns:
             str: [description]
         """
-        return f"HeroInstance<{self.hero_id}, {self.player_id}>"
+        return f"HeroInstance<hero_id={self.hero_id}, player_id={self.player_id}>"
 
     def __str__(self) -> str:
         """_summary_

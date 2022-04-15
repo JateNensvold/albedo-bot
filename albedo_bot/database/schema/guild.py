@@ -20,4 +20,4 @@ class Guild(base):
         Returns:
             str: [description]
         """
-        return f"<{self.discord_id}, {self.name}>"
+        return f"Guild<discord_id={self.discord_id}, name='{self.name}'>"
