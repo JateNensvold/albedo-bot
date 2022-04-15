@@ -201,7 +201,7 @@ class Database:
             return
         async with self.session:
             await self.session.execute("commit")
-            await self.session.execute(f"drop database '{database_name}'")
+            await self.session.execute(f"drop database {database_name}")
         print(f"Database {database_name} dropped.")
 
     def _confirm_action(self, action_str: str):
@@ -213,10 +213,10 @@ class Database:
         Returns:
             _type_: _description_
         """
-        print(f"You are about to {action_str}. Press 'Y' to continue "
+        print(f"You are about to {action_str}. Enter 'Yes' to continue "
               "or any other key to stop")
         key_input = input()
-        if key_input.lower() == "y":
+        if key_input.lower() == "yes":
             return True
         print(f"{action_str} aborted.")
         return False

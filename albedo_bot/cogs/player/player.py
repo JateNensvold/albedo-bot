@@ -48,7 +48,7 @@ class PlayerCog(BasePlayerCog):
             guild_select = self.select(Guild).where(
                 Guild.discord_id.in_([role.id for role in roles]))
 
-            guild_result = self.execute(guild_select).all()
+            guild_result = await self.execute(guild_select).all()
 
             if len(guild_result) == 0:
                 await ctx.send(f"'{author_name}' needs to be in a guild before "
