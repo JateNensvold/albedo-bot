@@ -124,14 +124,13 @@ class RosterCog(BaseRosterCog):
             command_list = [str(attachment)]
             if config.VERBOSE:
                 command_list.append("-v")
-            json_dict = remote_compute_results(
+            roster_json = remote_compute_results(
                 address, 15000, command_list)
             if config.VERBOSE:
-                pprint.pprint(json_dict)
+                pprint.pprint(roster_json.json_dict())
 
-            detected_roster = RosterJson.from_json(json_dict)
             hero_tuple_list: List[HeroInstanceTuple] = []
-            for detected_index, detected_hero_data in enumerate(detected_roster.hero_data_list):
+            for detected_index, detected_hero_data in enumerate(roster_json.hero_data_list):
 
                 if detected_hero_data.name in self.hero_alias:
 
