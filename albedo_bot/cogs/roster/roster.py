@@ -184,8 +184,7 @@ class RosterCog(BaseRosterCog):
             #     self.bot.session.add(hero_instance_result)
             await send_message(
                 ctx,
-                (f"{str(ctx.author)}\n"
-                 f"{await self.fetch_heroes(hero_tuple_list)}"),
+                await self.fetch_heroes(hero_tuple_list),
                 css=False)
             # await ctx.send(embed=fetch_heroes_embed(hero_instance_list))
 
