@@ -1,10 +1,16 @@
 
+from cachetools import TTLCache, cached
 
 from discord.ext import commands
 
 import albedo_bot.config as config
 
 
+CACHE_SIZE = 10000
+TTL = 3600
+
+
+@cached(TTLCache(CACHE_SIZE, TTL))
 def _check_permission(ctx: commands.Context, config_role_name: str):
     """
     Lookup if the author of a message has equal or higher permissions than the
@@ -14,6 +20,7 @@ def _check_permission(ctx: commands.Context, config_role_name: str):
         ctx (commands.Context): invocation context containing information on how
             a discord event/command was invoked
         config_role_name (str): name of role in permissions config file
+        ttl_hash (str)
 
     Returns:
         bool: True if the author has the required permissions level,

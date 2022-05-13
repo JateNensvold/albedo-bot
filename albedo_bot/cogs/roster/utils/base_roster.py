@@ -5,7 +5,7 @@ from discord import Member
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.hero import (
     Hero, HeroInstance, HeroInstanceTuple, HeroList)
-from albedo_bot.cogs.utils.message import send_message
+from albedo_bot.utils.message import send_message
 
 
 from albedo_bot.cogs.hero.utils.ascension import valid_ascension
@@ -56,7 +56,7 @@ class BaseRosterCog(BaseCog):
         self.bot.session.add(hero_instance_result)
 
         hero_message = self.fetch_heroes([hero_instance_result])
-        await send_message(ctx, hero_message)
+        await send_message(ctx, hero_message, css=True)
 
     def check_input(self, ctx: commands.Context, hero: Hero, ascension: Union[str, int],
                     signature_item: int, furniture: int, engraving: int):
@@ -107,7 +107,7 @@ class BaseRosterCog(BaseCog):
 
         roster_results = await self.execute(hero_instance_select).all()
 
-        return self.fetch_heroes(roster_results)
+        return await self.fetch_heroes(roster_results)
 
     async def fetch_heroes(self, hero_list: List[HeroInstanceTuple]):
         """_summary_

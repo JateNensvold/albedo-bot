@@ -2,16 +2,18 @@ from albedo_bot.bot import AlbedoBot
 
 from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
+from albedo_bot.utils.message import send_embed
+from click import pass_context
 from discord.ext.commands.context import Context
 from discord.ext import commands
-from discord import Emoji
+from discord import Emoji, Embed
 
 import albedo_bot.config as config
 
 
 # @commands.group()
 # @bot.group(name="private")
-# @has_permission("owner")
+# @check_config_permission("owner")
 # async def private(ctx: Context):
 #     """
 #     Group of commands for all tasks that require some higher level of permissions.
@@ -151,14 +153,13 @@ import albedo_bot.config as config
 class OwnerCog(BaseOwnerCog):
     """Admin-only commands that make the bot dynamic."""
 
-
-    def __init__(self, bot: "AlbedoBot"):
+    def __init__(self, bot: "AlbedoBot", **kwargs):
         """_summary_
 
         Args:
             bot (AlbedoBot): _description_
         """
-        super().__init__(bot)
+        super().__init__(bot, **kwargs)
         self.permissions = config.permissions
 
     @commands.group(name="owner")
@@ -174,7 +175,7 @@ class OwnerCog(BaseOwnerCog):
         #     await ctx.send('Invalid sub command passed...')
 
     @owner.command(hidden=True)
-    async def load(self, ctx, *, module):
+    async def load(self, ctx: Context, *, module):
         """Loads a module."""
         try:
             self.bot.load_extension(module)
@@ -184,7 +185,7 @@ class OwnerCog(BaseOwnerCog):
             await ctx.send('\N{OK HAND SIGN}')
 
     @owner.command(hidden=True)
-    async def unload(self, ctx, *, module):
+    async def unload(self, ctx: Context, *, module):
         """Unloads a module."""
         try:
             self.bot.unload_extension(module)
@@ -194,7 +195,7 @@ class OwnerCog(BaseOwnerCog):
             await ctx.send('\N{OK HAND SIGN}')
 
     @owner.command(name='reload', hidden=True, invoke_without_command=True)
-    async def _reload(self, ctx, *, module):
+    async def _reload(self, ctx: Context, *, module):
         """Reloads a module."""
         try:
             self.bot.reload_extension(module)
@@ -203,6 +204,19 @@ class OwnerCog(BaseOwnerCog):
         else:
             await ctx.send('\N{OK HAND SIGN}')
 
+    @owner.command(pass_context=True)
+    async def debug_emoji(self, ctx: Context, emoji: Emoji):
+        """_summary_
+
+        Args:
+            emoji (Emoji): _description_
+        """
+        embed = Embed(description=f"emoji: {emoji}", title=f"emoji: {emoji}")
+        embed.add_field(name="id", value=repr(emoji.id))
+        embed.add_field(name="name", value=repr(emoji.name))
+
+        await send_embed(ctx, embed=embed)
+
 
 def setup(bot: commands.bot.Bot):
     """_summary_
@@ -210,4 +224,4 @@ def setup(bot: commands.bot.Bot):
     Args:
         bot (commands.bot.Bot): _description_
     """
-    bot.add_cog(OwnerCog(bot))
+    bot.add_cog(OwnerCog(bot, require_registration=False))

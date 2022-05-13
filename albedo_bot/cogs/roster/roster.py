@@ -10,7 +10,7 @@ from image_processing.afk.hero.hero_data import DetectedHeroData, RosterJson
 import albedo_bot.config as config
 from albedo_bot.cogs.roster.utils.roster_converters import HeroConverter
 from albedo_bot.database.schema.hero import HeroInstance, Hero, AscensionValues
-from albedo_bot.cogs.utils.message import send_message
+from albedo_bot.utils.message import send_message
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 
 
@@ -76,8 +76,8 @@ class RosterCog(BaseRosterCog):
             name (str): [description]
         """
 
-        heroes_result = self.fetch_roster(ctx.author.id)
-        await send_message(ctx, heroes_result)
+        heroes_result = await self.fetch_roster(ctx.author.id)
+        await send_message(ctx, heroes_result, css=True)
 
     @roster.command(name="add", aliases=["update"])
     async def _add(self, ctx: commands.Context, hero: HeroConverter,
@@ -182,10 +182,9 @@ class RosterCog(BaseRosterCog):
             #         detected_hero_data.engraving.label)
             # if hero_update:
             #     self.bot.session.add(hero_instance_result)
-            await send_message(
-                ctx,
-                await self.fetch_heroes(hero_tuple_list),
-                css=False)
+            await send_message(ctx,
+                               await self.fetch_heroes(hero_tuple_list),
+                               css=False)
             # await ctx.send(embed=fetch_heroes_embed(hero_instance_list))
 
 

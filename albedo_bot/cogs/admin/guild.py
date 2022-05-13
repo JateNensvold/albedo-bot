@@ -1,4 +1,4 @@
-from albedo_bot.commands.helpers.permissions import has_permission
+from albedo_bot.utils.checks import check_config_permission
 from discord.ext.commands.context import Context
 
 import albedo_bot.global_values as GV
@@ -20,7 +20,7 @@ async def guild_command(ctx: Context):
 
 
 @guild_command.command(name="add")
-@has_permission("manager")
+@check_config_permission("manager")
 async def _add(ctx: Context, guild_id: GuildConverter):
     """[summary]
 
@@ -34,8 +34,8 @@ async def _add(ctx: Context, guild_id: GuildConverter):
     await ctx.send(f"Successfully added {new_guild}")
 
 
-@guild_command.command(name="remove", alias=["delete"])
-@has_permission("manager")
+@guild_command.command(name="remove", aliases=["delete"])
+@check_config_permission("manager")
 async def remove(ctx: Context, guild_role: GuildConverter):
     """[summary]
 
@@ -55,7 +55,7 @@ async def remove(ctx: Context, guild_role: GuildConverter):
 
 
 @guild_command.command(name="list")
-@has_permission("guild_manager")
+@check_config_permission("guild_manager")
 async def _list(ctx: Context):
     """[summary]
 

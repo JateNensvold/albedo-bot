@@ -1,7 +1,7 @@
 from discord.ext.commands.context import Context
 from albedo_bot.commands.admin.base import admin
 
-from albedo_bot.commands.helpers.permissions import has_permission
+from albedo_bot.utils.checks import check_config_permission
 from albedo_bot.commands.helpers.checklist import (
     _add_hero, _remove_hero, _add_checklist, _remove_checklist)
 
@@ -31,7 +31,7 @@ async def checklist_command(ctx: Context):
 
 
 @checklist_command.command(name="add", aliases=["update"])
-@has_permission("guild_manager")
+@check_config_permission("guild_manager")
 async def add_hero(ctx: Context, checklist_name: str, hero_name: str,
                    ascension: int,  signature: int, furniture: int,
                    engraving: int):
@@ -51,7 +51,7 @@ async def add_hero(ctx: Context, checklist_name: str, hero_name: str,
 
 
 @checklist_command.command(name="remove")
-@has_permission("guild_manager")
+@check_config_permission("guild_manager")
 async def remove_hero(ctx: Context, checklist_name: str, hero_name: str):
     """_summary_
 
@@ -64,7 +64,7 @@ async def remove_hero(ctx: Context, checklist_name: str, hero_name: str):
 
 
 @checklist_command.command(name="create", aliases=["register"])
-@has_permission("guild_manager")
+@check_config_permission("guild_manager")
 async def add_checklist(ctx: Context, checklist_name: str, description: str):
     """_summary_
 
@@ -76,7 +76,7 @@ async def add_checklist(ctx: Context, checklist_name: str, description: str):
 
 
 @checklist_command.command(name="delete")
-@has_permission("guild_manager")
+@check_config_permission("guild_manager")
 async def remove_checklist(ctx: Context, checklist_name: str):
     """_summary_
 

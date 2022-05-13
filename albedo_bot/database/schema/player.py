@@ -11,8 +11,14 @@ class Player(base):
     __tablename__ = "players"
     discord_id = Column(BIGINT, primary_key=True)
     name = Column(String)
-    guild_id = Column(BIGINT, ForeignKey("guilds.discord_id"))
+    guild_id = Column(BIGINT, ForeignKey("guilds.discord_id",
+                      ondelete="RESTRICT"), nullable=False)
     hero_instances = relationship("HeroInstance")
+
+    def mention(self):
+        """_summary_
+        """
+        return f"<@{self.discord_id}>"
 
     def __repr__(self) -> str:
         """[summary]

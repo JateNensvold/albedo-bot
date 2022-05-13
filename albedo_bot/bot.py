@@ -6,17 +6,16 @@ import traceback
 
 from collections import Counter, deque
 from datetime import datetime
-from typing import Any, Deque, Dict, Iterable, List, Union
+from typing import Deque, Dict, Iterable, List, Union
+from albedo_bot.utils.message import send_embed, send_embed_exception, send_message
 
-# Import commands so bot will register all commands
-# import albedo_bot.commands  # pylint: disable=unused-import
-# # from albedo_bot.global_values import bot
 import discord
 from discord.ext import commands
 from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
+from albedo_bot.utils.errors import MessageError
 
 TOKEN = os.getenv('TOKEN')
 
@@ -143,7 +142,7 @@ class AlbedoBot(commands.Bot):
         """
         self._prev_events.append(msg)
 
-    async def on_command_error(self, context: commands.Context, exception: Any):
+    async def on_command_error(self, context: commands.Context, exception: Exception):
         """_summary_
 
         Args:
@@ -163,6 +162,14 @@ class AlbedoBot(commands.Bot):
                       file=sys.stderr)
         elif isinstance(exception, commands.ArgumentParsingError):
             await context.send(exception)
+        elif isinstance(exception, MessageError):
+            await send_embed_exception(context, exception)
+        else:
+            traceback.print_exception(
+                type(exception),
+                exception,
+                exception.__traceback__)
+            await send_embed_exception(context, exception)
 
     def get_guild_prefixes(self, guild, *, local_inject=bot_prefix_callable):
         """_summary_

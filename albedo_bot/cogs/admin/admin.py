@@ -1,6 +1,6 @@
 
 from discord.ext import commands
-from albedo_bot.commands.utils.checks import check_config_permission
+from albedo_bot.utils.checks import check_config_permission
 
 
 class AdminCog(commands.Cog):
@@ -22,4 +22,3 @@ class AdminCog(commands.Cog):
         # if ctx.invoked_subcommand is None:
         #     ctx.message
         #     await ctx.send('Invalid sub command passed...')
-

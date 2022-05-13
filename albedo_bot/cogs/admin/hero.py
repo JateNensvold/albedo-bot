@@ -1,6 +1,6 @@
 # from discord.ext.commands.context import Context
 # from albedo_bot.commands.helpers.hero import (_add_hero, _remove_hero)
-# from albedo_bot.commands.helpers.permissions import has_permission
+# from albedo_bot.utils.checks import check_config_permission
 
 # from albedo_bot.commands.admin.base import admin
 
@@ -18,7 +18,7 @@
 
 
 # @hero_command.command(name="register", aliases=["add"])
-# @has_permission("guild_manager")
+# @check_config_permission("guild_manager")
 # async def register(ctx: Context, hero_name: str):
 #     """[summary]
 
@@ -31,7 +31,7 @@
 
 
 # @hero_command.command(name="remove", aliases=["delete"])
-# @has_permission("guild_manager")
+# @check_config_permission("guild_manager")
 # async def remove(ctx: Context, hero_name: str):
 #     """[summary]
 

@@ -14,10 +14,24 @@ class Guild(base):
     name = Column(String)
     players = relationship("Player")
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         """[summary]
 
         Returns:
             str: [description]
         """
         return f"Guild<discord_id={self.discord_id}, name='{self.name}'>"
+
+    def __str__(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.guild_mention_no_ping
+
+    @property
+    def guild_mention_no_ping(self):
+        """_summary_
+        """
+        return f"<@&{self.discord_id}>"

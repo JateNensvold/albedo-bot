@@ -1,22 +1,22 @@
 
 from typing import TYPE_CHECKING
-from albedo_bot.cogs.utils.message import send_message
 
 from discord.ext import commands
 from discord import Role
 
+
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
-
-from sqlalchemy import select
-
+from albedo_bot.utils.message import EmbedField, send_embed, send_message
+from albedo_bot.utils.errors import CogCommandError
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
 class GuildCog(BaseGuildCog):
-    """_summary_
+    """
+    testing
     """
 
     @commands.group(name="guild")
@@ -30,7 +30,7 @@ class GuildCog(BaseGuildCog):
         # if ctx.invoked_subcommand is None:
         #     await ctx.send('Invalid sub command passed...')
 
-    @guild.command(name="add")
+    @guild.command(name="add", aliases=["register"])
     async def _add(self, ctx: commands.Context, guild_role: Role):
         """[summary]
 
@@ -39,20 +39,27 @@ class GuildCog(BaseGuildCog):
                 a discord event/command was invoked
             guild_id (Role): [description]
         """
-        guild_select = select(Guild).where(Guild.discord_id == guild_role.id)
 
-        select_result = await self.bot.session.execute(guild_select)
-        guild_result = select_result.scalars().first()
-        if not guild_result:
+        guild_select = self.select(Guild).where(
+            Guild.discord_id == guild_role.id)
+
+        guild_object = await self.execute(guild_select).first()
+
+        if not guild_object:
             new_guild = Guild(discord_id=guild_role.id, name=guild_role.name)
 
             self.bot.session.add(new_guild)
-            await ctx.send(f"Successfully added {new_guild}")
+            embed_field = EmbedField(
+                value=f"Successfully added guild {new_guild}")
+            await send_embed(ctx, embed_field_list=[embed_field])
         else:
-            await ctx.send(f"{guild_result} is already registered")
+            embed_field = EmbedField(
+                "Guild Error",
+                f"{guild_object} is already a registered guild")
+            raise CogCommandError(embed_field_list=[embed_field])
 
-    @guild.command(name="remove", alias=["delete"])
-    async def remove(self, ctx: commands.Context, guild_role: Role):
+    @guild.command(name="delete", aliases=["remove"])
+    async def delete(self, ctx: commands.Context, guild_role: Role):
         """[summary]
 
         Args:
@@ -61,15 +68,20 @@ class GuildCog(BaseGuildCog):
             guild_id (Role): [description]
         """
 
-        guild_select = select(Guild).where(Guild.discord_id == guild_role.id)
+        guild_select = self.select(Guild).where(
+            Guild.discord_id == guild_role.id)
 
-        select_result = await self.bot.session.execute(guild_select)
-        guild_result = select_result.scalars().first()
-        if guild_result is None:
-            await ctx.send(f"{guild_role} has not been registered as a guild")
-            return
-        await self.bot.session.delete(guild_result)
-        await ctx.send(f"Successfully removed {guild_result}")
+        guild_object = await self.execute(guild_select).first()
+        if guild_object is None:
+            embed_field = EmbedField(
+                "Guild Error",
+                f"{guild_role.mention} has not been registered as a guild")
+            raise CogCommandError(embed_field_list=[embed_field])
+
+        await self.bot.session.delete(guild_object)
+        embed_field = EmbedField(
+            value=f"Successfully removed guild {guild_object}")
+        await send_embed(ctx, embed_field_list=[embed_field])
 
     @guild.command(name="list")
     async def _list(self, ctx: commands.Context):
@@ -82,9 +94,16 @@ class GuildCog(BaseGuildCog):
 
         guilds_select = self.select(Guild)
         guilds_result = await self.execute(guilds_select).all()
-        guilds_str = "\n".join([str(guild) for guild in guilds_result])
+        guilds_str = "\n".join(
+            [f"{guild} - `{repr(guild)}`" for guild in guilds_result])
 
-        await send_message(ctx, guilds_str)
+        if guilds_str == "":
+            guilds_str = "No guilds found"
+
+        embed_field = EmbedField(
+            name="Guild List",
+            value=guilds_str)
+        await send_embed(ctx, embed_field_list=[embed_field])
 
 
 def setup(bot: "AlbedoBot"):
@@ -93,4 +112,4 @@ def setup(bot: "AlbedoBot"):
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(GuildCog(bot))
+    bot.add_cog(GuildCog(bot, False))
