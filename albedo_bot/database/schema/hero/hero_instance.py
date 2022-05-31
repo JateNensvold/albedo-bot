@@ -1,5 +1,4 @@
 import os
-import re
 from typing import List, NamedTuple, Union, TYPE_CHECKING
 from enum import Enum
 
@@ -47,6 +46,39 @@ class HeroInstanceTuple(NamedTuple):
     ascension_level: AscensionValues
     engraving_level: int
 
+    @classmethod
+    async def from_hero_instance(cls, db_handle: DatabaseMixin,
+                                 hero_instances: list["HeroInstance"]):
+        """_summary_
+
+        Args:
+            hero_instance (HeroInstance): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        hero_instance_tuple_list: list[HeroInstanceTuple] = []
+
+        # Convert hero_instances into a list if only a single hero_instance
+        #   was provided
+        if not isinstance(hero_instances, list):
+            hero_instances = [hero_instances]
+
+        for hero_instance in hero_instances:
+            hero_select = db_handle.db_select(Hero).where(
+                Hero.id == hero_instance.hero_id)
+
+            hero_object = await db_handle.db_execute(hero_select).first()
+            hero_instance_tuple_list.append(
+                HeroInstanceTuple(hero_object.name, hero_instance.hero_id,
+                                  hero_instance.signature_level,
+                                  hero_instance.furniture_level,
+                                  hero_instance.ascension_level,
+                                  hero_instance.engraving_level))
+
+        return hero_instance_tuple_list
+
 
 class HeroList(DatabaseMixin, EmojiMixin):
     """_summary_
@@ -58,6 +90,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
         Args:
             heroes (List[HeroInstanceTuple]): _description_
         """
+        # Set self.bot for DatabaseMixin
         self.bot = bot
         self.longest_name = len(
             max((*[hero.hero_name for hero in heroes], ""), key=len))
@@ -80,9 +113,9 @@ class HeroList(DatabaseMixin, EmojiMixin):
         # formated_heroes.append(f"`{dashed_string}`")
         for hero_tuple in self.heroes:
 
-            hero_select = self.select(Hero).where(
+            hero_select = self.db_select(Hero).where(
                 Hero.id == hero_tuple.hero_id)
-            hero_result = await self.execute(hero_select).first()
+            hero_result = await self.db_execute(hero_select).first()
 
             portrait_name, _portrait_extension = os.path.splitext(
                 os.path.basename(hero_result.hero_portrait))

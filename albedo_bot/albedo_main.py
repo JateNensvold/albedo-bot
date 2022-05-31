@@ -112,6 +112,5 @@ def main():
         database.select_database(config.database_name)
         loop.run_until_complete(database.reset_database())
 
-
 if __name__ == '__main__':
     main()

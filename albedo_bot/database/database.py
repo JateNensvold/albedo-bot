@@ -1,14 +1,17 @@
 import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 import sqlalchemy
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.ext.asyncio import (
-    create_async_engine, AsyncEngine, AsyncSession)
+    create_async_engine, AsyncEngine, AsyncSession, async_scoped_session)
+from sqlalchemy.orm import sessionmaker
+
 
 # While importing base, it imports all schema in albedo_bot.database.schema
-#   that need to be imported before calls to create_tables
+#   that need to be imported before calls to create_tables ensuring that all
+#   database schema are created
 from albedo_bot.database.schema import base
 from albedo_bot.config.hero_data import HeroData
 import albedo_bot.config as config
@@ -36,6 +39,9 @@ class Database:
 
         self.base = base.Base
         self.metadata: sqlalchemy.MetaData = self.base.metadata
+
+        self.session_factory = None
+        self.session_producer = None
 
         self.postgres_connect()
 
@@ -83,52 +89,47 @@ class Database:
         self.engine: AsyncEngine = create_async_engine(
             db_string)  # connect to server
 
-        self.session = AsyncSession(
-            self.engine, autoflush=autoflush)
-        # self.session_factory = sessionmaker(
-        #     self.engine, autoflush=autoflush, class_=AsyncSession)
+        self.session_factory = sessionmaker(
+            self.engine, autoflush=autoflush, class_=AsyncSession)
+
+        self.session_producer = async_scoped_session(
+            self.session_factory, self.startup_scope)
+
+    def startup_scope(self):
+        """_summary_
+
+        Raises:
+            Exception: _description_
+            Exception: _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.engine.url
+
+    @property
+    def session(self) -> AsyncSession:
+        """_summary_
+T
+        Returns:
+            : _description_
+        """
+        return self.session_producer()
+
+    def update_scoped_session(self, scope_func: Callable):
+        """_summary_
+
+        Args:
+            scope_func (Callable): _description_
+        """
+        self.session_producer = async_scoped_session(
+            self.session_factory, scope_func)
 
     def session_callback(self, *args, **kwargs):
         """_summary_
         """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._session_callback(*args, **kwargs))
-
-    # @property
-    # def session(self):
-    #     """_summary_
-    #     """
-    #     current_func = asyncio.current_task()
-
-    #     if current_func in self.session_map:
-    #         return self.session_map[current_func]
-    #     else:
-    #         for task in list(self.session_map.keys()):
-    #             if task.done():
-    #                 loop = asyncio.get_event_loop()
-    #                 loop.run_until_complete(self.session_map[task].commit())
-    #                 del self.session_map[task]
-
-    #         scoped_session = async_scoped_session(self.session_factory,
-    #                                               scopefunc=asyncio.current_task)
-    #         some_async_session: AsyncSession = scoped_session()
-    #         self.session_map[current_func] = some_async_session
-    #         return some_async_session
-        # tasks = asyncio.all_tasks()
-        # asyncio.current_task
-        # print(f"session {type(tasks)}, {tasks}")
-
-        # return some_async_session
-        # print(asyncio.current_task())
-        # return self._session
-
-    # def make_session(self):
-    #     """_summary_
-
-    #     Returns:
-    #         _type_: _description_
-    #     """
-    #     return self.session_factory()
 
     async def _session_callback(self, sql_object: Any,
                                 update: bool = True) -> Any:

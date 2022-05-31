@@ -3,6 +3,7 @@
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import faction_values
 
+from discord.ext import commands
 
 FACTION_MAX_ENGRAVING = {faction: 80 for faction in faction_values}
 FACTION_MAX_ENGRAVING[faction_values.celestial] = 100
@@ -10,7 +11,7 @@ FACTION_MAX_ENGRAVING[faction_values.hypogean] = 100
 FACTION_MAX_ENGRAVING[faction_values.dimensional] = 100
 
 
-def valid_engraving(hero: Hero, engraving: int):
+def check_engraving(hero: Hero, engraving: int):
     """_summary_
 
     Args:
@@ -21,8 +22,10 @@ def valid_engraving(hero: Hero, engraving: int):
         _type_: _description_
     """
     if engraving < 0 or engraving > FACTION_MAX_ENGRAVING[hero.hero_faction]:
-        return False
-    return True
+        raise commands.BadArgument(
+            f"Invalid engraving value given `{engraving}` for {hero.name}, "
+            "enter a value in the following range "
+            f"`{engraving_range(hero)}`")
 
 
 def engraving_range(hero: Hero):

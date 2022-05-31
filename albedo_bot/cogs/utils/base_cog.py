@@ -19,6 +19,14 @@ class BaseCog(commands.Cog, DatabaseMixin):
         DatabaseMixin (_type_): _description_
     """
 
+    async def send_help(self, ctx: commands.context):
+        """_summary_
+
+        Args:
+            ctx (commands.context): _description_
+        """
+        await ctx.send_help(ctx.command)
+
     def __init__(self, bot: "AlbedoBot", require_registration: bool = True):
         """_summary_
 
@@ -35,9 +43,9 @@ class BaseCog(commands.Cog, DatabaseMixin):
         Args:
             author (User): _description_
         """
-        player_select = self.select(Player).where(
+        player_select = self.db_select(Player).where(
             Player.discord_id == user.id)
-        player_result = await self.execute(player_select).first()
+        player_result = await self.db_execute(player_select).first()
 
         if player_result is None:
             raise UnregisteredUserError(

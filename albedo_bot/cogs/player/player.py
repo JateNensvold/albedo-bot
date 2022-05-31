@@ -10,8 +10,6 @@ from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
 from albedo_bot.utils.message import EmbedField, send_embed
 from albedo_bot.utils.checks import check_config_permission
 
-# from albedo_bot.utils.checks import check_config_permission
-
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -50,10 +48,10 @@ class PlayerCog(BasePlayerCog):
             guild_role = guild
         else:
             roles = ctx.author.roles
-            guild_select = self.select(Guild).where(
+            guild_select = self.db_select(Guild).where(
                 Guild.discord_id.in_([role.id for role in roles]))
 
-            guild_result = await self.execute(guild_select).all()
+            guild_result = await self.db_execute(guild_select).all()
 
             if len(guild_result) == 0:
                 embed_field = EmbedField(
@@ -112,16 +110,16 @@ class PlayerCog(BasePlayerCog):
             value=players_str)
         await send_embed(ctx, embed_field_list=[embed_field])
 
-    # @player_command.command(name="add", aliases=["register"])
+    # @player.command(name="add for", aliases=["register for"])
     # @check_config_permission("manager")
-    # async def add(self, ctx: commands.Context,  guild_member: MemberConverter, guild_role: Role):
+    # async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
     #     """[summary]
 
     #     Args:
     #         ctx (Context): invocation context containing information on how
     #             a discord event/command was invoked
     #     """
-    #     await register_player(ctx, guild_member, guild_role)
+    #     await self.register_player(ctx, guild_member, guild_role)
 
 
 def setup(bot: "AlbedoBot"):

@@ -1,13 +1,13 @@
 
 from typing import TYPE_CHECKING
 
+
 from discord.ext import commands
 from discord import Role
 
-
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
-from albedo_bot.utils.message import EmbedField, send_embed, send_message
+from albedo_bot.utils.message import EmbedField, send_embed
 from albedo_bot.utils.errors import CogCommandError
 
 if TYPE_CHECKING:
@@ -40,10 +40,10 @@ class GuildCog(BaseGuildCog):
             guild_id (Role): [description]
         """
 
-        guild_select = self.select(Guild).where(
+        guild_select = self.db_select(Guild).where(
             Guild.discord_id == guild_role.id)
 
-        guild_object = await self.execute(guild_select).first()
+        guild_object = await self.db_execute(guild_select).first()
 
         if not guild_object:
             new_guild = Guild(discord_id=guild_role.id, name=guild_role.name)
@@ -68,17 +68,17 @@ class GuildCog(BaseGuildCog):
             guild_id (Role): [description]
         """
 
-        guild_select = self.select(Guild).where(
+        guild_select = self.db_select(Guild).where(
             Guild.discord_id == guild_role.id)
 
-        guild_object = await self.execute(guild_select).first()
+        guild_object = await self.db_execute(guild_select).first()
         if guild_object is None:
             embed_field = EmbedField(
                 "Guild Error",
                 f"{guild_role.mention} has not been registered as a guild")
             raise CogCommandError(embed_field_list=[embed_field])
 
-        await self.bot.session.delete(guild_object)
+        await self.db_delete(guild_object)
         embed_field = EmbedField(
             value=f"Successfully removed guild {guild_object}")
         await send_embed(ctx, embed_field_list=[embed_field])
@@ -92,8 +92,8 @@ class GuildCog(BaseGuildCog):
                 a discord event/command was invoked
         """
 
-        guilds_select = self.select(Guild)
-        guilds_result = await self.execute(guilds_select).all()
+        guilds_select = self.db_select(Guild)
+        guilds_result = await self.db_execute(guilds_select).all()
         guilds_str = "\n".join(
             [f"{guild} - `{repr(guild)}`" for guild in guilds_result])
 

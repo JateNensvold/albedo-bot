@@ -1,6 +1,6 @@
 
 from albedo_bot.database.schema.hero.hero import faction_values, Hero
-
+from discord.ext import commands
 
 FACTION_MAX_SI = {faction: 30 for faction in faction_values}
 FACTION_MAX_SI[faction_values.celestial] = 40
@@ -8,7 +8,7 @@ FACTION_MAX_SI[faction_values.hypogean] = 40
 FACTION_MAX_SI[faction_values.dimensional] = 40
 
 
-def valid_signature_item(hero: Hero, signature_item: int):
+def check_signature_item(hero: Hero, signature_item: int):
     """_summary_
 
     Args:
@@ -19,8 +19,10 @@ def valid_signature_item(hero: Hero, signature_item: int):
         _type_: _description_
     """
     if signature_item < 0 or signature_item > FACTION_MAX_SI[hero.hero_faction]:
-        return False
-    return True
+        raise commands.BadArgument(
+            f"Invalid SI value value given `{signature_item}` for {hero.name}, "
+            "enter a value in the following range "
+            f"`{signature_item_range(hero)}`")
 
 
 def signature_item_range(hero: Hero):

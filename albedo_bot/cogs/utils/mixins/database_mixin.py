@@ -1,9 +1,14 @@
 
 import functools
-from typing import TYPE_CHECKING, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
+
 from sqlalchemy import select
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.engine.result import ChunkedIteratorResult
+
+
+from albedo_bot.utils.message import EmbedField
+from albedo_bot.utils.errors import DatabaseSessionError
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -127,7 +132,7 @@ class DatabaseMixin:
     # def __init__(self):
     bot: "AlbedoBot"
 
-    def select(self, schema: S) -> SelectWrapper[S]:
+    def db_select(self, schema: S) -> SelectWrapper[S]:
         """
         Create a SelectWrapper that wraps the select statement created from
             sqlalchemy.select, this allows for type checking/hinting to be kept
@@ -142,7 +147,41 @@ class DatabaseMixin:
 
         return SelectWrapper(schema)
 
-    def execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
+    def db_add(self, database_object: Any):
+        """_summary_
+
+        Args:
+            database_object (Any): _description_
+        """
+
+        self.bot.session.add(database_object)
+
+    async def db_delete(self, database_object: Any):
+        """_summary_
+
+        Args:
+            database_object (Any): _description_
+        """
+        # Commit any changes before deleting
+        # self.bot.session.commit()
+
+        try:
+            await self.bot.session.delete(database_object)
+            print(repr(database_object))
+
+            # Commit to check if any  exceptions, errors or constraints were raised
+            await self.bot.session.commit()
+        except Exception as exception:
+            await self.bot.session.rollback()
+            await self.bot.session.refresh(database_object)
+
+            embed_field = EmbedField(
+                value=f"Unable to delete {database_object} due to \n ```{exception}```")
+
+            raise DatabaseSessionError(
+                embed_field_list=[embed_field]) from exception
+
+    def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """
         Create a ScalarWrapper that wraps the execution result of a
             'selectWrapper', this allows for type checking/hinting to be kept

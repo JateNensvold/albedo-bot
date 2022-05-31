@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
+from sqlalchemy.exc import SQLAlchemyError
+
 if TYPE_CHECKING:
     from albedo_bot.utils.message import EmbedField
 
@@ -47,4 +49,28 @@ class CogCommandError(MessageError):
 
     Args:
         MessageError (_type_): _description_
+    """
+
+
+class ConversionError(MessageError):
+    """_summary_
+
+    Args:
+        MessageError (_type_): _description_
+    """
+
+
+class DatabaseError(MessageError):
+    """_summary_
+
+    Args:
+        SQLAlchemyError (_type_): _description_
+    """
+
+
+class DatabaseSessionError(DatabaseError):
+    """_summary_
+
+    Args:
+        DatabaseError (_type_): _description_
     """

@@ -24,9 +24,9 @@ class BasePlayerCog(BaseCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
-        guild_select = self.select(Guild).where(
+        guild_select = self.db_select(Guild).where(
             Guild.discord_id == guild_role.id)
-        guild_result = await self.execute(guild_select).first()
+        guild_result = await self.db_execute(guild_select).first()
 
         if guild_result is None:
             embed_field = EmbedField(
@@ -35,16 +35,18 @@ class BasePlayerCog(BaseCog):
                 "is a registered guild before adding a player to it")
             raise CogCommandError(embed_field_list=[embed_field])
 
-        player_select = self.select(Player).where(
+        player_select = self.db_select(Player).where(
             Player.discord_id == discord_member.id)
-        player_result = await self.execute(player_select).first()
+        player_result = await self.db_execute(player_select).first()
 
         if player_result is not None:
-            guild_select = self.select(Guild).where(
+            guild_select = self.db_select(Guild).where(
                 Guild.discord_id == player_result.guild_id)
 
-            guild_object = await self.execute(guild_select).first()
+            guild_object = await self.db_execute(guild_select).first()
             if guild_object is None:
+                # Should be impossible state to get into with protected deletes
+                #   in self.delete
                 embed_field = EmbedField(
                     "Player Error",
                     f"{discord_member.mention} is registered with guild that no"
@@ -74,20 +76,20 @@ class BasePlayerCog(BaseCog):
                 a discord event/command was invoked
             player_id (int): [description]
         """
-        select_player = self.select(Player).where(
+        select_player = self.db_select(Player).where(
             Player.discord_id == author.id)
-        player_object = await self.execute(select_player).first()
+        player_object = await self.db_execute(select_player).first()
         if player_object is None:
             embed_field = EmbedField(
                 "Player Error",
                 f"Player {author.mention} is not registered")
             raise CogCommandError(embed_field_list=[embed_field])
 
-        await self.bot.session.delete(player_object)
+        await self.db_delete(player_object)
 
-        select_guild = self.select(Guild).where(
+        select_guild = self.db_select(Guild).where(
             Guild.discord_id == player_object.guild_id)
-        guild_object = await self.execute(select_guild).first()
+        guild_object = await self.db_execute(select_guild).first()
 
         embed_field = EmbedField(
             "Success",
@@ -102,7 +104,7 @@ class BasePlayerCog(BaseCog):
             ctx (commands.Context): _description_
         """
 
-        players_select = self.select(Player)
+        players_select = self.db_select(Player)
 
-        players_result = await self.execute(players_select).all()
+        players_result = await self.db_execute(players_select).all()
         return players_result

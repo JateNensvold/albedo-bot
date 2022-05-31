@@ -1,12 +1,12 @@
 
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import faction_values
-
+from discord.ext import commands
 
 FACTION_MAX_FURNITURE = {faction: 36 for faction in faction_values}
 
 
-def valid_furniture(hero: Hero, furniture: int):
+def check_furniture(hero: Hero, furniture: int):
     """_summary_
 
     Args:
@@ -17,8 +17,10 @@ def valid_furniture(hero: Hero, furniture: int):
         _type_: _description_
     """
     if furniture < 0 or furniture > FACTION_MAX_FURNITURE[hero.hero_faction]:
-        return False
-    return True
+        raise commands.BadArgument(
+            f"Invalid furniture value given `{furniture}` for {hero.name}, "
+            "enter a value in the following range "
+            f"`{furniture_range(hero)}`")
 
 
 def furniture_range(hero: Hero):

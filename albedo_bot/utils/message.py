@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 from discord.ext.commands.context import Context
 from discord import Embed
@@ -71,8 +71,10 @@ def wrap_message(message: str, wrapper: str = "", header: str = ""):
     return message_list
 
 
-async def send_message(ctx: Context, message: str, header: str = None,
-                       css: bool = False, wrapper: str = ""):
+async def send_message(ctx: Context, message: str, header: str = "",
+                       css: bool = False, wrapper: str = "",
+                       reply: bool = True,
+                       mention_author: bool = False):
     """_summary_
 
     Args:
@@ -84,17 +86,22 @@ async def send_message(ctx: Context, message: str, header: str = None,
     """
     css_wrapper = "```css\n{}\n```"
 
-    if header is None:
-        header = f"{ctx.author.mention}\n"
+    if header is None or header == "":
+        header = f"{white_check_mark}\n"
 
     if css:
         wrapper = css_wrapper
     message_list = wrap_message(message, wrapper, header)
     for message_instance in message_list:
-        await ctx.send(message_instance)
+        if reply:
+            await ctx.reply(message_instance, mention_author=mention_author)
+        else:
+            await ctx.send(message_instance)
 
 
-async def send_embed(ctx: Context, embed_field_list: list[EmbedField] = None,
+async def send_embed(ctx: Context,
+                     embed_field_list: Union[list[EmbedField],
+                                             EmbedField] = None,
                      embed: Embed = None,
                      reply: bool = True, mention_author: bool = False,
                      embed_color: str = "green",
@@ -108,13 +115,18 @@ async def send_embed(ctx: Context, embed_field_list: list[EmbedField] = None,
     if not embed:
         color = MplColorHelper().get_unicode(embed_color)
         embed = Embed(color=color)
+        if not isinstance(embed_field_list, list):
+            embed_field_list = [embed_field_list]
         for embed_field in embed_field_list:
             embed_name = embed_field.name
             if embed_name == "" or embed_name is None:
-                embed_name = emoji
-            else:
+                embed_name = f"{emoji} Success"
+            elif emoji:
                 embed_name = f"{emoji} {embed_name}"
-            embed.add_field(name=embed_name, value=embed_field.value)
+
+            embed.title = embed_name
+            embed.description = embed_field.value
+            # embed.add_field(name=embed_name, value=embed_field.value)
     if reply:
         await ctx.reply(embed=embed, mention_author=mention_author)
     else:

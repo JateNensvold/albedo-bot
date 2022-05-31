@@ -1,17 +1,15 @@
 import pprint
 from typing import List, TYPE_CHECKING
-from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
 
 from discord.ext import commands
 
 from image_processing.processing_client import remote_compute_results
-from image_processing.afk.hero.hero_data import DetectedHeroData, RosterJson
 
 import albedo_bot.config as config
-from albedo_bot.cogs.roster.utils.roster_converters import HeroConverter
-from albedo_bot.database.schema.hero import HeroInstance, Hero, AscensionValues
-from albedo_bot.utils.message import send_message
+from albedo_bot.database.schema.hero import Hero, AscensionValues
+from albedo_bot.utils.message import EmbedField, send_embed, send_message
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
+from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
 
 
 if TYPE_CHECKING:
@@ -19,7 +17,8 @@ if TYPE_CHECKING:
 
 
 class RosterCog(BaseRosterCog):
-    """_summary_
+    """
+    [summary]
 
     Args:
         commands (_type_): _description_
@@ -42,6 +41,7 @@ class RosterCog(BaseRosterCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
+        await self.send_help(ctx)
         # if ctx.invoked_subcommand is None:
         #     await ctx.send('Invalid sub command passed...')
 
@@ -77,10 +77,10 @@ class RosterCog(BaseRosterCog):
         """
 
         heroes_result = await self.fetch_roster(ctx.author.id)
-        await send_message(ctx, heroes_result, css=True)
+        await send_embed(ctx, embed_field_list=EmbedField(value=heroes_result))
 
     @roster.command(name="add", aliases=["update"])
-    async def _add(self, ctx: commands.Context, hero: HeroConverter,
+    async def _add(self, ctx: commands.Context, hero: Hero,
                    ascension: str, signature_item: int, furniture: int,
                    engraving: int):
         """[summary]
@@ -137,15 +137,15 @@ class RosterCog(BaseRosterCog):
                     hero_database_name = self.hero_alias.get(
                         detected_hero_data.name)
 
-                    hero_select = self.select(Hero).where(
+                    hero_select = self.db_select(Hero).where(
                         Hero.name == hero_database_name)
 
-                    hero_result = await self.execute(hero_select).first()
+                    hero_result = await self.db_execute(hero_select).first()
 
                 else:
-                    hero_select = self.select(Hero).where(
+                    hero_select = self.db_select(Hero).where(
                         Hero.name.ilike(f"{detected_hero_data.name}%"))
-                    hero_result = await self.execute(hero_select).first()
+                    hero_result = await self.db_execute(hero_select).first()
                 if not hero_result:
                     await ctx.send(
                         "Unable to find detected hero with name: "
@@ -161,10 +161,10 @@ class RosterCog(BaseRosterCog):
                     engraving_level=detected_hero_data.engraving.label)
                 hero_tuple_list.append(hero_tuple)
 
-                # hero_instance_select = self.select(HeroInstance).where(
+                # hero_instance_select = self.db_select(HeroInstance).where(
                 #     HeroInstance.player_id == author_id, HeroInstance.hero_id == hero_result.id)
 
-                # hero_instance_result = await self.execute(hero_instance_select).first()
+                # hero_instance_result = await self.db_execute(hero_instance_select).first()
 
             # hero_update = True
             # if hero_instance_result is None:
@@ -182,8 +182,11 @@ class RosterCog(BaseRosterCog):
             #         detected_hero_data.engraving.label)
             # if hero_update:
             #     self.bot.session.add(hero_instance_result)
+            heroes_result = await self.fetch_heroes(hero_tuple_list)
+            await send_embed(ctx, embed_field_list=[EmbedField(value=heroes_result)])
+
             await send_message(ctx,
-                               await self.fetch_heroes(hero_tuple_list),
+                               heroes_result,
                                css=False)
             # await ctx.send(embed=fetch_heroes_embed(hero_instance_list))
 

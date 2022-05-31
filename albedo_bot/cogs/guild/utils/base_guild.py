@@ -9,4 +9,3 @@ class BaseGuildCog(BaseCog):
     def guild_pass(self):
         """_summary_
         """
-        pass

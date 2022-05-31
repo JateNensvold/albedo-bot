@@ -7,14 +7,8 @@ from albedo_bot.database.schema.hero import (
     Hero, HeroInstance, HeroInstanceTuple, HeroList)
 from albedo_bot.utils.message import send_message
 
-
-from albedo_bot.cogs.hero.utils.ascension import valid_ascension
-from albedo_bot.cogs.hero.utils.engraving import (
-    valid_engraving, engraving_range)
-from albedo_bot.cogs.hero.utils.furniture import (
-    valid_furniture, furniture_range)
-from albedo_bot.cogs.hero.utils.signature_item import (
-    valid_signature_item, signature_item_range)
+from albedo_bot.cogs.hero.utils import (
+    check_ascension, check_signature_item, check_furniture, check_engraving)
 
 
 class BaseRosterCog(BaseCog):
@@ -34,66 +28,34 @@ class BaseRosterCog(BaseCog):
                 a discord event/command was invoked
             name (str): [description]
         """
+        hero_ascension = check_ascension(ascension)
+        check_signature_item(hero, signature_item)
+        check_furniture(hero, furniture)
+        check_engraving(hero, engraving)
 
-        if not self.check_input(ctx, hero, ascension, signature_item,
-                                furniture, engraving):
-            return
-
-        hero_instance_select = self.select(HeroInstance).where(
+        hero_instance_select = self.db_select(HeroInstance).where(
             HeroInstance.hero_id == hero.id, HeroInstance.player_id == player.id)
-        hero_instance_result = await self.execute(hero_instance_select).first()
+        hero_instance_result = await self.db_execute(hero_instance_select).first()
 
         if hero_instance_result is None:
             hero_instance_result = HeroInstance(
-                hero.id, player.id, None, None, None, None)
-            hero_instance_result.player_id = player.id
-            hero_instance_result.hero_id = hero.id
-        hero_instance_result.ascension_level = ascension
-        hero_instance_result.signature_level = signature_item
-        hero_instance_result.furniture_level = furniture
-        hero_instance_result.engraving_level = engraving
+                hero.id, player.id, signature_item, furniture, hero_ascension, engraving)
+        else:
+            hero_instance_result.ascension_level = hero_ascension
+            hero_instance_result.signature_level = signature_item
+            hero_instance_result.furniture_level = furniture
+            hero_instance_result.engraving_level = engraving
 
-        self.bot.session.add(hero_instance_result)
+        self.db_add(hero_instance_result)
 
-        hero_message = self.fetch_heroes([hero_instance_result])
-        await send_message(ctx, hero_message, css=True)
+        hero_instance_tuples = await HeroInstanceTuple.from_hero_instance(
+            self, hero_instance_result)
 
-    def check_input(self, ctx: commands.Context, hero: Hero, ascension: Union[str, int],
-                    signature_item: int, furniture: int, engraving: int):
-        """_summary_
+        await send_message(ctx,
+                           await self.fetch_heroes(hero_instance_tuples))
 
-        Args:
-            ctx (Context): _description_
-            hero (Hero): _description_
-            ascension (Union[str, int]): _description_
-            signature_item (int): _description_
-            furniture (int): _description_
-            engraving (int): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        if not valid_ascension(ascension):
-            ctx.send(
-                f"The provided ascension value({ascension}) is not valid, "
-                f"valid ascension values are ({signature_item_range(hero)}")
-            return False
-        if not valid_signature_item(hero, signature_item):
-            ctx.send(
-                f"The provided SI value({furniture}) is not valid for {hero.name}"
-                f"({signature_item_range(hero)}")
-            return False
-        if not valid_furniture(hero, furniture):
-            ctx.send(
-                f"The provided furniture value({furniture}) is not valid for "
-                f"{hero.name}({furniture_range(hero)}")
-            return False
-        if not valid_engraving(hero, engraving):
-            ctx.send(
-                f"The provided engraving value({furniture}) is not valid for "
-                f"{hero.name}({engraving_range(hero)}")
-            return False
-        return True
+        # hero_message = await self.fetch_heroes([hero_instance_tuple])
+        # await send_message(ctx, hero_message, css=True)
 
     async def fetch_roster(self, discord_id: int):
         """_summary_
@@ -102,12 +64,15 @@ class BaseRosterCog(BaseCog):
             discord_id (int): _description_
         """
 
-        hero_instance_select = self.select(HeroInstance).where(
+        hero_instance_select = self.db_select(HeroInstance).where(
             HeroInstance.player_id == discord_id)
 
-        roster_results = await self.execute(hero_instance_select).all()
+        roster_results = await self.db_execute(hero_instance_select).all()
 
-        return await self.fetch_heroes(roster_results)
+        hero_instance_tuples = await HeroInstanceTuple.from_hero_instance(
+            self, roster_results)
+
+        return await self.fetch_heroes(hero_instance_tuples)
 
     async def fetch_heroes(self, hero_list: List[HeroInstanceTuple]):
         """_summary_
@@ -118,9 +83,9 @@ class BaseRosterCog(BaseCog):
         # hero_result_list = []
         # for hero_instance in hero_list:
         #     print(hero_instance, type(hero_instance))
-        #     hero_select = self.select(Hero).where(
+        #     hero_select = self.db_select(Hero).where(
         #         Hero.id == hero_instance.hero_id)
-        #     hero_result = await self.execute(hero_select).first()
+        #     hero_result = await self.db_execute(hero_select).first()
         #     hero_tuple = HeroInstanceTuple(hero_result.name, hero_instance.hero_id,
         #                                    hero_instance.signature_level,
         #                                    hero_instance.furniture_level,
@@ -128,5 +93,8 @@ class BaseRosterCog(BaseCog):
         #                                    hero_instance.engraving_level)
         #     hero_result_list.append(hero_tuple)
         heroes_message_object = HeroList(self.bot, hero_list)
+        print("hero list")
         output = await heroes_message_object.async_str()
+        print("async str")
+        
         return output

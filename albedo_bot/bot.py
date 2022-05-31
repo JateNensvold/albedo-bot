@@ -1,13 +1,13 @@
 import json
 import logging
-import os
+import re
 import sys
 import traceback
 
 from collections import Counter, deque
 from datetime import datetime
 from typing import Deque, Dict, Iterable, List, Union
-from albedo_bot.utils.message import send_embed, send_embed_exception, send_message
+from asyncio import current_task
 
 import discord
 from discord.ext import commands
@@ -16,8 +16,9 @@ from discord.errors import DiscordException
 
 import albedo_bot.config as config
 from albedo_bot.utils.errors import MessageError
+from albedo_bot.utils.message import send_embed_exception
+from albedo_bot.cogs.help.help_cog import HelpCog
 
-TOKEN = os.getenv('TOKEN')
 
 initial_extensions = (
     'cogs.player.player',
@@ -72,11 +73,12 @@ class AlbedoBot(commands.Bot):
             messages=True)
         allowed_mentions = discord.AllowedMentions(
             roles=False, everyone=False, users=True)
+
         super().__init__(command_prefix=bot_prefix_callable,
                          description=self.description,
                          intents=intents,
                          allowed_mentions=allowed_mentions,
-                         enable_debug_events=True)
+                         enable_debug_events=True, help_command=HelpCog())
 
         self.uptime: datetime = None
         self._emoji_cache: Dict[str, Emoji] = {}
@@ -97,11 +99,16 @@ class AlbedoBot(commands.Bot):
         # Triggering the rate limit 5 times in a row will auto-ban the user
         #   from the bot.
         self._auto_spam_count = Counter()
+        # Cache that stores a mapping of cog names without the word "cog" in them
+        self._cog_cache: dict[str, str] = {}
 
         self.permissions = config.permissions
 
         self.database = config.database
         self.database.postgres_connect()
+        self.database.update_scoped_session(self.get_current_scope)
+
+        self.task_cache = {}
 
         for extension in initial_extensions:
             try:
@@ -130,6 +137,79 @@ class AlbedoBot(commands.Bot):
             _type_: _description_
         """
         return self.database.session
+
+    @property
+    def session_producer(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.database.session_producer
+
+    @property
+    def cog_cache(self):
+        """_summary_
+        """
+
+        if len(self._cog_cache) == 0:
+            for cog_name, _cog_object in self.cogs.items():
+                cog_name_lower = cog_name.lower()
+                if "cog" in cog_name_lower:
+                    new_cog_name = re.sub(r"cog",
+                                          "", cog_name, flags=re.IGNORECASE)
+                    self._cog_cache[new_cog_name] = cog_name
+        return self._cog_cache
+
+    def get_cog(self, name: str):
+        """_summary_
+
+        Args:
+            name (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        if name in self.cog_cache:
+            name = self.cog_cache.get(name)
+
+        return super().get_cog(name)
+
+    def get_current_scope(self):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+            time (int): _description_
+
+        Raises:
+            CogCommandError: _description_
+
+        """
+
+        # if task not in self.task_cache:
+        #     print(f"Adding new task to cache: {task}")
+        #     self.task_cache.add(task)
+        #     print(self.task_cache)
+        task = current_task()
+        # if task in self.task_cache:
+        #     print(f"returning {self.task_cache[task]}")
+        #     return task
+
+        # for index, frame in enumerate(current_task().get_stack()):
+        #     # print(index, frame)
+        #     if "args" in frame.f_locals:
+        #         args = frame.f_locals['args']
+        #         if isinstance(args, tuple):
+        #             for arg in args:
+        #                 if isinstance(arg, Message):
+        #                     print(f"Message ID: {arg.id}")
+        #                     self.task_cache[task] = arg
+        return task
+
+        # raise DatabaseSessionError(
+        #     "Unable to find message ID to tie to scope for current request")
 
     async def on_socket_raw_receive(self, msg: Message):
         """
@@ -306,19 +386,22 @@ class AlbedoBot(commands.Bot):
 
         total_need_resolution = len(needs_resolution)
         if total_need_resolution == 1:
-            members: List[Member] = await guild.query_members(limit=1, user_ids=needs_resolution, cache=True)
+            members: List[Member] = await guild.query_members(
+                limit=1, user_ids=needs_resolution, cache=True)
             if members:
                 yield members[0]
         elif total_need_resolution <= 100:
             # Only a single resolution call needed here
-            resolved: List[Member] = await guild.query_members(limit=100, user_ids=needs_resolution, cache=True)
+            resolved: List[Member] = await guild.query_members(
+                limit=100, user_ids=needs_resolution, cache=True)
             for member in resolved:
                 yield member
         else:
             # We need to chunk these in bits of 100...
             for index in range(0, total_need_resolution, 100):
                 to_resolve = needs_resolution[index: index + 100]
-                members: List[Member] = await guild.query_members(limit=100, user_ids=to_resolve, cache=True)
+                members: List[Member] = await guild.query_members(
+                    limit=100, user_ids=to_resolve, cache=True)
                 for member in members:
                     yield member
 
@@ -383,7 +466,11 @@ class AlbedoBot(commands.Bot):
             await self.invoke(ctx)
         finally:
             # Commit any changes to database to disk
-            await self.session.commit()
+            await self.session_producer.commit()
+            # closes currently scoped session before disposing of it
+            #   i.e.(cleans up session database resources for command currently
+            #   being processed)
+            await self.session_producer.remove()
 
     async def on_message(self, message: Message):
         """_summary_
