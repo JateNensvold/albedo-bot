@@ -15,9 +15,16 @@ if TYPE_CHECKING:
 
 
 class GuildCog(BaseGuildCog):
+    """_summary_
+
+    Args:
+        BaseGuildCog (_type_): _description_
+
+    Raises:
+        CogCommandError: _description_
+        CogCommandError: _description_
     """
-    testing
-    """
+    _summary_ = "A collections of commands for managing afk arena guilds"
 
     @commands.group(name="guild")
     async def guild(self, ctx: commands.Context):
@@ -32,12 +39,13 @@ class GuildCog(BaseGuildCog):
 
     @guild.command(name="add", aliases=["register"])
     async def _add(self, ctx: commands.Context, guild_role: Role):
-        """[summary]
+        """
+        Add/register a new guild
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            guild_id (Role): [description]
+            guild_id (Role): a discord role, role mention or role ID
         """
 
         guild_select = self.db_select(Guild).where(

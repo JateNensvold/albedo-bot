@@ -41,7 +41,7 @@ class RosterCog(BaseRosterCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
-        await self.send_help(ctx)
+        # await self.send_help(ctx)
         # if ctx.invoked_subcommand is None:
         #     await ctx.send('Invalid sub command passed...')
 

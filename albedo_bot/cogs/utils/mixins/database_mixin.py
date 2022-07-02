@@ -1,6 +1,6 @@
 
 import functools
-from typing import TYPE_CHECKING, Any, Generic, List, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 
 from sqlalchemy import select
 from sqlalchemy.sql.expression import Select
@@ -103,7 +103,7 @@ class ScalarWrapper(Generic[S]):
         return self.execution_result.scalars().all()
 
     @_execution_decorator()
-    async def first(self) -> S:
+    async def first(self) -> Union[S, None]:
         """_summary_
 
         Returns:

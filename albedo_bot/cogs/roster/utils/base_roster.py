@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List
 from discord.ext import commands
 from discord import Member
 
@@ -96,5 +96,5 @@ class BaseRosterCog(BaseCog):
         print("hero list")
         output = await heroes_message_object.async_str()
         print("async str")
-        
+
         return output

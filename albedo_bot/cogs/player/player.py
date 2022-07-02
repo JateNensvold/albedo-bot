@@ -1,4 +1,5 @@
 from typing import TYPE_CHECKING
+from albedo_bot.database.schema.player import Player
 from albedo_bot.utils.errors import CogCommandError
 
 import discord
@@ -44,8 +45,23 @@ class PlayerCog(BasePlayerCog):
 
         member_object: Member = ctx.author
 
+        player_select = self.db_select(Player).where(
+            Player.discord_id == member_object.id)
+        output = await self.db_execute(player_select).first()
+        if output is not None:
+            roles = ctx.author.roles
+            guild_select = self.db_select(Guild).where(
+                Guild.discord_id.in_([role.id for role in roles]))
+
+            guild_result = await self.db_execute(guild_select).first()
+
+            embed_field = EmbedField(
+                "Player Already Registered",
+                (f"{member_object.mention} is already registered with "
+                    f"guild {guild_result}"))
+            raise CogCommandError(embed_field_list=[embed_field])
         if guild:
-            guild_role = guild
+            guild_role = guild 
         else:
             roles = ctx.author.roles
             guild_select = self.db_select(Guild).where(

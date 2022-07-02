@@ -65,6 +65,13 @@ class AlbedoBot(commands.Bot):
 
     description = "AFK Arena Roster Management Bot Written by Tosh"
 
+    help_description = \
+        """
+        To get started using the bot use the command `player register`
+        To register your roster check out the roster commands with `help roster`
+        To view more commands check out the categories below.
+        """
+
     def __init__(self):
         intents = discord.Intents(
             guilds=True,
@@ -116,6 +123,21 @@ class AlbedoBot(commands.Bot):
             except DiscordException as _load_failure:
                 print(f"Failed to load extension {extension}", file=sys.stderr)
                 traceback.print_exc()
+
+    @property
+    def mention(self):
+        """_summary_
+
+        Raises:
+            RuntimeError: _description_
+
+        Returns:
+            _type_: _description_
+
+        Yields:
+            _type_: _description_
+        """
+        return f"<@!{self.user.id}>"
 
     @property
     def emoji_cache(self):
@@ -437,6 +459,9 @@ class AlbedoBot(commands.Bot):
     async def process_commands(self, message: Message):
         ctx: commands.Context = await self.get_context(message)
         if ctx.command is None:
+            self.help_command.color = "red"
+            self.help_command.context = ctx
+            await self.help_command.send_bot_help(None)
             return
 
         if ctx.author.id in self.blacklist:
@@ -503,10 +528,10 @@ class AlbedoBot(commands.Bot):
             with open('prev_events.log', 'w', encoding='utf-8') as file_pointer:
                 for data in self._prev_events:
                     try:
-                        formated_data = json.dumps(json.loads(data),
-                                                   ensure_ascii=True, indent=4)
+                        formatted_data = json.dumps(json.loads(data),
+                                                    ensure_ascii=True, indent=4)
                     # pylint: disable=broad-except
                     except Exception as _exception:
                         file_pointer.write(f'{data}\n')
                     else:
-                        file_pointer.write(f'{formated_data}\n')
+                        file_pointer.write(f'{formatted_data}\n')
