@@ -2,7 +2,7 @@ from albedo_bot.bot import AlbedoBot
 
 from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
-from albedo_bot.utils.message import send_embed
+from albedo_bot.utils.message import EmbedField, send_embed
 from click import pass_context
 from discord.ext.commands.context import Context
 from discord.ext import commands
@@ -183,6 +183,20 @@ class OwnerCog(BaseOwnerCog):
             await ctx.send(f'{e.__class__.__name__}: {e}')
         else:
             await ctx.send('\N{OK HAND SIGN}')
+
+    @owner.command(hidden=True)
+    async def list(self, ctx: Context):
+        """
+        List all loaded modules
+        """
+
+        module_list = "\n".join(
+            f"`{key}`: {lib}"for key, lib in self.bot._BotBase__extensions.items())
+
+        embed_field = EmbedField(
+            name="Loaded Modules",
+            value=module_list)
+        await send_embed(ctx, embed_field_list=[embed_field])
 
     @owner.command(hidden=True)
     async def unload(self, ctx: Context, *, module):

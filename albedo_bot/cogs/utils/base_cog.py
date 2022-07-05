@@ -25,8 +25,8 @@ class BaseCog(commands.Cog, DatabaseMixin):
         Args:
             ctx (commands.Context): _description_
         """
-        if not ctx.invoked_subcommand:
-            await self.send_help(ctx)
+        # if not ctx.invoked_subcommand:
+        #     await self.send_help(ctx)
 
     async def send_help(self, ctx: commands.Context):
         """_summary_

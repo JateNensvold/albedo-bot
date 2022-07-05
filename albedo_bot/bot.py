@@ -3,10 +3,11 @@ import logging
 import re
 import sys
 import traceback
+import inspect
 
 from collections import Counter, deque
 from datetime import datetime
-from typing import Deque, Dict, Iterable, List, Union
+from typing import Callable, Deque, Dict, Iterable, List, Union
 from asyncio import current_task
 
 import discord
@@ -15,8 +16,8 @@ from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
-from albedo_bot.utils.errors import MessageError
-from albedo_bot.utils.message import send_embed_exception
+from albedo_bot.utils.errors import CogCommandError, MessageError
+from albedo_bot.utils.message import EmbedField, send_embed_exception
 from albedo_bot.cogs.help.help_cog import HelpCog
 
 
@@ -62,8 +63,11 @@ class AlbedoBot(commands.Bot):
     Args:
         commands (_type_): _description_
     """
+    # Owner Id for tosh
+    tosh_id = "tosh#8118"
 
-    description = "AFK Arena Roster Management Bot Written by Tosh"
+    description = ("AFK Arena Roster Management Bot Written by "
+                   f"`{tosh_id}`")
 
     help_description = \
         """
@@ -81,11 +85,14 @@ class AlbedoBot(commands.Bot):
         allowed_mentions = discord.AllowedMentions(
             roles=False, everyone=False, users=True)
 
+        self.default_prefix = default_bot_prefix[0]
+
         super().__init__(command_prefix=bot_prefix_callable,
                          description=self.description,
                          intents=intents,
                          allowed_mentions=allowed_mentions,
-                         enable_debug_events=True, help_command=HelpCog())
+                         enable_debug_events=True,
+                         help_command=HelpCog())
 
         self.uptime: datetime = None
         self._emoji_cache: Dict[str, Emoji] = {}
@@ -210,28 +217,8 @@ class AlbedoBot(commands.Bot):
 
         """
 
-        # if task not in self.task_cache:
-        #     print(f"Adding new task to cache: {task}")
-        #     self.task_cache.add(task)
-        #     print(self.task_cache)
         task = current_task()
-        # if task in self.task_cache:
-        #     print(f"returning {self.task_cache[task]}")
-        #     return task
-
-        # for index, frame in enumerate(current_task().get_stack()):
-        #     # print(index, frame)
-        #     if "args" in frame.f_locals:
-        #         args = frame.f_locals['args']
-        #         if isinstance(args, tuple):
-        #             for arg in args:
-        #                 if isinstance(arg, Message):
-        #                     print(f"Message ID: {arg.id}")
-        #                     self.task_cache[task] = arg
         return task
-
-        # raise DatabaseSessionError(
-        #     "Unable to find message ID to tie to scope for current request")
 
     async def on_socket_raw_receive(self, msg: Message):
         """
@@ -258,14 +245,14 @@ class AlbedoBot(commands.Bot):
         elif isinstance(exception, commands.CommandInvokeError):
             original = exception.original
             if not isinstance(original, discord.HTTPException):
-                print(f'In {context.command.qualified_name}:', file=sys.stderr)
+                print(f'In {context.command.qualified_name}:',
+                      file=sys.stderr)
                 traceback.print_tb(original.__traceback__)
                 print(f'{original.__class__.__name__}: {original}',
                       file=sys.stderr)
+            await send_embed_exception(context, exception)
         elif isinstance(exception, commands.ArgumentParsingError):
             await context.send(exception)
-        elif isinstance(exception, MessageError):
-            await send_embed_exception(context, exception)
         else:
             traceback.print_exception(
                 type(exception),
@@ -273,7 +260,7 @@ class AlbedoBot(commands.Bot):
                 exception.__traceback__)
             await send_embed_exception(context, exception)
 
-    def get_guild_prefixes(self, guild, *, local_inject=bot_prefix_callable):
+    def get_guild_prefixes(self, guild, *, local_inject: Callable = bot_prefix_callable):
         """_summary_
 
         Args:
@@ -461,7 +448,14 @@ class AlbedoBot(commands.Bot):
         if ctx.command is None:
             self.help_command.color = "red"
             self.help_command.context = ctx
-            await self.help_command.send_bot_help(None)
+            # await self.help_command.send_bot_help(None)
+            embed_field = EmbedField(
+                "Invalid command",
+                (f"`{message.content}` is an invalid command. Use "
+                 f"`{self.default_prefix}help` to learn more about the valid "
+                 "commands available"))
+            await send_embed_exception(
+                message, CogCommandError(embed_field_list=[embed_field]))
             return
 
         if ctx.author.id in self.blacklist:

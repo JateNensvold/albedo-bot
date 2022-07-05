@@ -28,7 +28,8 @@ class GuildCog(BaseGuildCog):
 
     @commands.group(name="guild")
     async def guild(self, ctx: commands.Context):
-        """[summary]
+        """
+        A group of commands that deal with managing afk guilds through the bot
 
         Args:
             ctx (Context): invocation context containing information on how

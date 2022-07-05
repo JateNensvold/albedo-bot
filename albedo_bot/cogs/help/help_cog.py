@@ -1,7 +1,7 @@
 
 import itertools
 import re
-from typing import NamedTuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union
 
 from discord.ext import commands
 
@@ -84,13 +84,14 @@ class HelpCog(commands.MinimalHelpCommand):
                             remove_help_line) - len(remove_help_line.lstrip())
                         help_line_index = remove_help_line_index
 
-                    help_line_index += 1
+                    if lead_space_count == new_lead_space_count:
+                        help_line_index -= 1
                     break_remove = True
                 else:
                     valid_help_lines.append(help_line)
-                    help_line_index += 1
                 if break_remove:
                     break
+            help_line_index += 1
         return "\n".join(valid_help_lines)
 
     def add_command_formatting(self, command: Union[commands.core.Group, commands.core.Command]):
@@ -114,16 +115,8 @@ class HelpCog(commands.MinimalHelpCommand):
 
         if command.help:
 
-            # print(f"|{self.parse_command_help(command.help)}|")
-
             try:
-
                 new_command_help = self.parse_command_help(command.help)
-                # print("-" * 30)
-                # print(new_command_help)
-                # print("-" * 30)
-                # print(command.help)
-                # print("-" * 30)
                 self.paginator.add_line(new_command_help, empty=True)
             except RuntimeError:
                 for line in command.help.splitlines():
