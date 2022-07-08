@@ -7,7 +7,7 @@ from discord import Role
 
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
-from albedo_bot.utils.message import EmbedField, send_embed
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class GuildCog(BaseGuildCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            guild_id (Role): a discord role, role mention or role ID
+            guild_role (Role): a discord role, role mention, or role ID
         """
 
         guild_select = self.db_select(Guild).where(
@@ -58,9 +58,8 @@ class GuildCog(BaseGuildCog):
             new_guild = Guild(discord_id=guild_role.id, name=guild_role.name)
 
             self.bot.session.add(new_guild)
-            embed_field = EmbedField(
-                value=f"Successfully added guild {new_guild}")
-            await send_embed(ctx, embed_field_list=[embed_field])
+            await send_embed(ctx, embed_wrapper=EmbedWrapper(
+                description=f"Successfully added guild {new_guild}"))
         else:
             embed_field = EmbedField(
                 "Guild Error",
@@ -69,12 +68,13 @@ class GuildCog(BaseGuildCog):
 
     @guild.command(name="delete", aliases=["remove"])
     async def delete(self, ctx: commands.Context, guild_role: Role):
-        """[summary]
+        """
+        Delete/Remove an existing guild registered with the bot
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            guild_id (Role): [description]
+            guild_role (Role): a discord role, role mention, or role ID
         """
 
         guild_select = self.db_select(Guild).where(
@@ -88,13 +88,13 @@ class GuildCog(BaseGuildCog):
             raise CogCommandError(embed_field_list=[embed_field])
 
         await self.db_delete(guild_object)
-        embed_field = EmbedField(
-            value=f"Successfully removed guild {guild_object}")
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=f"Successfully removed guild {guild_object}"))
 
     @guild.command(name="list")
     async def _list(self, ctx: commands.Context):
-        """[summary]
+        """
+        List all guilds registered with the bot
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -109,10 +109,8 @@ class GuildCog(BaseGuildCog):
         if guilds_str == "":
             guilds_str = "No guilds found"
 
-        embed_field = EmbedField(
-            name="Guild List",
-            value=guilds_str)
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title="Guild List", description=guilds_str))
 
 
 def setup(bot: "AlbedoBot"):

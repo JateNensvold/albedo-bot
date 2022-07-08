@@ -1,11 +1,12 @@
 
+from dataclasses import dataclass
 import itertools
 import re
 from typing import TYPE_CHECKING, Union
 
 from discord.ext import commands
 
-from albedo_bot.utils.message import EmbedField, send_embed
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from albedo_bot.utils.emoji import page_with_curl
 
 if TYPE_CHECKING:
@@ -60,15 +61,27 @@ class HelpCog(commands.MinimalHelpCommand):
             command_help (_type_): _description_
         """
 
-        valid_help_lines = []
+        valid_help_lines = ValidHelpLines(ignore_whitespace=False)
 
         help_lines = command_help.splitlines()
 
         help_line_index = 0
+        args_start_line = None
+
         while help_line_index < len(help_lines):
             help_line = help_lines[help_line_index]
             stripped_help_line = help_line.strip().lower()
 
+            if "args:" in stripped_help_line and args_start_line is None:
+                args_start_line = help_line_index
+                valid_help_lines.add_line(help_line)
+                help_line_index += 1
+                valid_help_lines.add_highlighting = True
+                valid_help_lines.ignore_whitespace = True
+                continue
+            elif len(stripped_help_line) == 0 and valid_help_lines.add_highlighting:
+                valid_help_lines.add_highlighting = False
+                valid_help_lines.ignore_whitespace = False
             for remove_command in remove_commands:
                 break_remove = False
                 if stripped_help_line.startswith(remove_command):
@@ -88,11 +101,11 @@ class HelpCog(commands.MinimalHelpCommand):
                         help_line_index -= 1
                     break_remove = True
                 else:
-                    valid_help_lines.append(help_line)
+                    valid_help_lines.add_line(help_line)
                 if break_remove:
                     break
             help_line_index += 1
-        return "\n".join(valid_help_lines)
+        return valid_help_lines.join("\n")
 
     def add_command_formatting(self, command: Union[commands.core.Group, commands.core.Command]):
         """A utility function to format commands and groups.
@@ -170,8 +183,71 @@ class HelpCog(commands.MinimalHelpCommand):
 
             await send_embed(
                 self.context,
-                embed_field_list=EmbedField(name=page_with_curl,
-                                            value=page),
+                embed_wrapper=EmbedWrapper(title=page_with_curl,
+                                           description=page),
                 emoji=None,
                 embed_color=embed_color)
         self.embed_color = None
+
+
+class ValidHelpLines:
+    """
+    Util class for keeping track of help text in function signatures
+    """
+
+    def __init__(self, ignore_whitespace: bool = True):
+        """
+        Set the initial value for `ignore_whitespace`
+
+        Args:
+            ignore_whitespace (bool, optional): Ignore all whitespace lines
+                added to a ValidHelpLines Object while this is set to True.
+                Defaults to True.
+        """
+        self.add_highlighting = False
+        self.ignore_whitespace = ignore_whitespace
+        self.valid_help_lines: list[str] = []
+
+    def add_line(self, new_line: str, ignore_whitespace: bool = None):
+        """
+        Replaces all backtick(`) with a single quote('), also allow for
+            customizing lines that are added to `valid_help_lines`
+
+        Args:
+            new_line (str): line getting added to `valid_help_lines`
+            ignore_whitespace (bool, optional): Override for
+                self.ignore_whitespace, that will supersedes whatever setting
+                was set during initialization. Defaults to None.
+        """
+
+        new_line = new_line.replace("`", "'")
+
+        if self.add_highlighting:
+            whitespace_len = len(new_line) - len(new_line.lstrip())
+            colon_index = new_line.find(":")
+            new_line = (f"{new_line[:whitespace_len]}"
+                        f"`{new_line[whitespace_len:colon_index]}`"
+                        f"{new_line[colon_index:]}")
+
+        stripped_new_line = new_line.strip()
+        if len(stripped_new_line) == 0:
+            if ignore_whitespace is not None and ignore_whitespace:
+                return
+            elif self.ignore_whitespace:
+                return
+
+        self.valid_help_lines.append(new_line)
+
+    def join(self, joining_delimiter: str):
+        """
+        Join together `valid_help_lines` into a single string
+
+        Args:
+            joining_delimiter (str): separator between each item in
+                `valid_help_lines`
+
+        Returns:
+            str: Concatenation of valid_help_lines
+        """
+
+        return joining_delimiter.join(self.valid_help_lines)

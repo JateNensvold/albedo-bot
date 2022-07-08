@@ -1,4 +1,4 @@
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 from discord.ext.commands.context import Context
 from discord import Embed
@@ -7,6 +7,26 @@ from image_processing.utils.color_helper import MplColorHelper
 
 from albedo_bot.utils.errors import MessageError
 from albedo_bot.utils.emoji import red_x, white_check_mark
+
+
+class EmbedWrapper:
+    """_summary_
+    """
+
+    def __init__(self, title: str = None, embed_fields: list['EmbedField'] = None, description: str = ""):
+        """_summary_
+
+        Args:
+            title (str, optional): _description_. Defaults to None.
+            embed_fields (list[&#39;EmbedField&#39;], optional): _description_. Defaults to None.
+            description (str, optional): _description_. Defaults to "".
+        """
+        self.title = title
+        if embed_fields is None:
+            self.embed_fields = []
+        else:
+            self.embed_fields = embed_fields
+        self.description = description
 
 
 class EmbedField(NamedTuple("EmbedField", [("name", str),
@@ -21,7 +41,8 @@ class EmbedField(NamedTuple("EmbedField", [("name", str),
     #   __new__ construction
     # pylint: disable=super-init-not-called
     def __init__(self, name: str = None, value: str = None):
-        """_summary_
+        """
+        Set name and value for `Discord embed_field`
 
         Args:
             name (str, optional): _description_. Defaults to None.
@@ -100,8 +121,7 @@ async def send_message(ctx: Context, message: str, header: str = "",
 
 
 async def send_embed(ctx: Context,
-                     embed_field_list: Union[list[EmbedField],
-                                             EmbedField] = None,
+                     embed_wrapper: EmbedWrapper = None,
                      embed: Embed = None,
                      reply: bool = True, mention_author: bool = False,
                      embed_color: str = "green",
@@ -115,18 +135,18 @@ async def send_embed(ctx: Context,
     if not embed:
         color = MplColorHelper().get_unicode(embed_color)
         embed = Embed(color=color)
-        if not isinstance(embed_field_list, list):
-            embed_field_list = [embed_field_list]
-        for embed_field in embed_field_list:
-            embed_name = embed_field.name
-            if embed_name == "" or embed_name is None:
-                embed_name = f"{emoji} Success"
-            elif emoji:
-                embed_name = f"{emoji} {embed_name}"
 
-            embed.title = embed_name
-            embed.description = embed_field.value
-            # embed.add_field(name=embed_name, value=embed_field.value)
+        if embed_wrapper.title == "" or embed_wrapper.title is None:
+            embed.title = f"{emoji} Success"
+        elif emoji:
+            embed.title = f"{emoji} {embed_wrapper.title}"
+        else:
+            embed.title = embed_wrapper.title
+        embed.description = embed_wrapper.description
+
+        for embed_field in embed_wrapper.embed_fields:
+            embed.add_field(name=embed_field.name, value=embed_field.value)
+
     if reply:
         await ctx.reply(embed=embed, mention_author=mention_author)
     else:
@@ -140,23 +160,19 @@ async def send_embed_exception(ctx: Context, exception: MessageError, **kwargs):
         ctx (Context): _description_
         exception (MessageError): _description_
     """
-    embed_fields = []
+    embed_wrapper = None
 
     if isinstance(exception, MessageError):
-        exception_embed_fields = exception.embed_fields
+        embed_wrapper = exception.embed_wrapper
 
-        for exception_embed_field in exception_embed_fields:
-            if exception_embed_field.name is None:
-                embed_fields.append(
-                    EmbedField(exception.__class__.__name__,
-                               exception_embed_field.value))
-            else:
-                embed_fields.append(exception_embed_field)
+        # for exception_embed_field in exception_embed_fields:
+        #     if exception_embed_field.name is None:
+        if not embed_wrapper.title:
+            embed_wrapper.title = exception.__class__.__name__
     else:
-        embed_fields.append(
-            EmbedField(exception.__class__.__name__,
-                       str(exception)))
+        embed_wrapper = EmbedWrapper(title=exception.__class__.__name__,
+                                     description=str(exception))
     kwargs["embed_color"] = kwargs.get("embed_color", "red")
     kwargs["emoji"] = kwargs.get("emoji", red_x)
 
-    await send_embed(ctx, embed_field_list=embed_fields, **kwargs)
+    await send_embed(ctx, embed_wrapper=embed_wrapper, **kwargs)

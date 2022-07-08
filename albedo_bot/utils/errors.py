@@ -1,12 +1,7 @@
 
-from typing import TYPE_CHECKING
+from albedo_bot.utils.message import EmbedWrapper
 
 from discord.ext import commands
-
-from sqlalchemy.exc import SQLAlchemyError
-
-if TYPE_CHECKING:
-    from albedo_bot.utils.message import EmbedField
 
 
 class DiscordPermissionError(commands.CheckFailure):
@@ -33,14 +28,14 @@ class MessageError(commands.CommandError):
     """
 
     #pylint: disable=keyword-arg-before-vararg
-    def __init__(self, message=None, *args, embed_field_list: list["EmbedField"] = None):
+    def __init__(self, message=None, *args, embed_wrapper: EmbedWrapper = None):
         """_summary_
 
         Args:
             message (_type_, optional): _description_. Defaults to None.
             embed (Embed, optional): _description_. Defaults to None.
         """
-        self.embed_fields = embed_field_list
+        self.embed_wrapper = embed_wrapper
         super().__init__(message, *args)
 
 

@@ -2,11 +2,11 @@ from albedo_bot.bot import AlbedoBot
 
 from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
-from albedo_bot.utils.message import EmbedField, send_embed
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from click import pass_context
 from discord.ext.commands.context import Context
 from discord.ext import commands
-from discord import Emoji, Embed
+from discord import Emoji, Embed, PartialEmoji
 
 import albedo_bot.config as config
 
@@ -193,10 +193,8 @@ class OwnerCog(BaseOwnerCog):
         module_list = "\n".join(
             f"`{key}`: {lib}"for key, lib in self.bot._BotBase__extensions.items())
 
-        embed_field = EmbedField(
-            name="Loaded Modules",
-            value=module_list)
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, EmbedWrapper(
+            title="Loaded Modules", description=module_list))
 
     @owner.command(hidden=True)
     async def unload(self, ctx: Context, *, module):
@@ -218,18 +216,25 @@ class OwnerCog(BaseOwnerCog):
         else:
             await ctx.send('\N{OK HAND SIGN}')
 
-    @owner.command(pass_context=True)
-    async def debug_emoji(self, ctx: Context, emoji: Emoji):
-        """_summary_
+    @owner.command(name="debug_emoji")
+    async def debug_emoji(self, ctx: Context, emoji: PartialEmoji):
+        """
+        Send Debug information about an emoji like its `Emoji ID` and `Name`
 
         Args:
-            emoji (Emoji): _description_
+            emoji (PartialEmoji): emoji to debug
         """
-        embed = Embed(description=f"emoji: {emoji}", title=f"emoji: {emoji}")
-        embed.add_field(name="id", value=repr(emoji.id))
-        embed.add_field(name="name", value=repr(emoji.name))
 
-        await send_embed(ctx, embed=embed)
+        embed_field1 = EmbedField(
+            name="Id",
+            value=repr(emoji.id))
+
+        embed_field2 = EmbedField(
+            name="Name",
+            value=repr(emoji.name))
+
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title=f"`{emoji}`", embed_fields=[embed_field1, embed_field2]))
 
 
 def setup(bot: commands.bot.Bot):

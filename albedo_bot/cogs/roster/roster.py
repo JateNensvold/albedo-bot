@@ -7,7 +7,7 @@ from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
 from albedo_bot.database.schema.hero import Hero, AscensionValues
-from albedo_bot.utils.message import EmbedField, send_embed, send_message
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed, send_message
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
 
@@ -77,7 +77,8 @@ class RosterCog(BaseRosterCog):
         """
 
         heroes_result = await self.fetch_roster(ctx.author.id)
-        await send_embed(ctx, embed_field_list=EmbedField(value=heroes_result))
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=heroes_result))
 
     @roster.command(name="add", aliases=["update"])
     async def _add(self, ctx: commands.Context, hero: Hero,
@@ -183,7 +184,8 @@ class RosterCog(BaseRosterCog):
             # if hero_update:
             #     self.bot.session.add(hero_instance_result)
             heroes_result = await self.fetch_heroes(hero_tuple_list)
-            await send_embed(ctx, embed_field_list=[EmbedField(value=heroes_result)])
+            await send_embed(ctx, embedWrapper=EmbedWrapper(
+                description=heroes_result))
 
             await send_message(ctx,
                                heroes_result,

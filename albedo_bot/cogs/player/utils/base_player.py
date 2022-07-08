@@ -5,7 +5,7 @@ from discord import Role, Member
 
 from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
-from albedo_bot.utils.message import EmbedField, send_embed
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
 
 
@@ -62,11 +62,9 @@ class BasePlayerCog(BaseCog):
         new_player = Player(discord_id=discord_member.id,
                             name=discord_member.name, guild_id=guild_role.id)
         self.bot.session.add(new_player)
-        embed_field = EmbedField(
-            "Success",
-            (f"{discord_member.mention} registered with "
-             f"{guild_result}"))
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=(f"{discord_member.mention} registered "
+                         f"with {guild_result}")))
 
     async def delete_player(self, ctx: commands.Context, author: Member):
         """[summary]
@@ -91,11 +89,9 @@ class BasePlayerCog(BaseCog):
             Guild.discord_id == player_object.guild_id)
         guild_object = await self.db_execute(select_guild).first()
 
-        embed_field = EmbedField(
-            "Success",
-            (f"Player {author.mention} was removed from guild "
-             f"{guild_object.guild_mention_no_ping}"))
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=(f"Player {author.mention} was removed from guild "
+                         f"{guild_object.guild_mention_no_ping}")))
 
     async def list_players(self):
         """_summary_

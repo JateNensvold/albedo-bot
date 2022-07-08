@@ -8,7 +8,7 @@ from discord import Role, Member
 
 from albedo_bot.database.schema.guild import Guild
 from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
-from albedo_bot.utils.message import EmbedField, send_embed
+from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from albedo_bot.utils.checks import check_config_permission
 
 
@@ -61,7 +61,7 @@ class PlayerCog(BasePlayerCog):
                     f"guild {guild_result}"))
             raise CogCommandError(embed_field_list=[embed_field])
         if guild:
-            guild_role = guild 
+            guild_role = guild
         else:
             roles = ctx.author.roles
             guild_select = self.db_select(Guild).where(
@@ -121,10 +121,8 @@ class PlayerCog(BasePlayerCog):
         if players_str == "":
             players_str = "No players found"
 
-        embed_field = EmbedField(
-            name="Player List",
-            value=players_str)
-        await send_embed(ctx, embed_field_list=[embed_field])
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title="Player List", description=players_str))
 
     # @player.command(name="add for", aliases=["register for"])
     # @check_config_permission("manager")
