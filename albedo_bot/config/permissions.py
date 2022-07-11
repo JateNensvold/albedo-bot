@@ -1,7 +1,7 @@
 
 import collections
 import json
-from typing import Any, Dict, List, NamedTuple, Tuple
+from typing import Any, Dict, List, NamedTuple
 from discord import Member, Role
 
 
@@ -97,13 +97,13 @@ class Permissions:
                 permission config/JSON
         """
         for permission_name, permission_data in permission_config.items():
-            users_with_permission: List[Tuple(
-                int, str)] = permission_data["users"]
-            roles_with_permission: List[Tuple(
-                int, str)] = permission_data["roles"]
+            users_with_permission: list[
+                tuple[int, str]] = permission_data["users"]
+            roles_with_permission: list[
+                tuple[int, str]] = permission_data["roles"]
             permission_level = permission_data["priority"]
-            self.permission_name_lookup[permission_name.lower(
-            )] = permission_level
+            self.permission_name_lookup[
+                permission_name.lower()] = permission_level
 
             for user_info in users_with_permission:
                 user_instance = UserPermission(user_info[0], user_info[1],

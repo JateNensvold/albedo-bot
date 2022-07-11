@@ -93,8 +93,6 @@ class BaseRosterCog(BaseCog):
         #                                    hero_instance.engraving_level)
         #     hero_result_list.append(hero_tuple)
         heroes_message_object = HeroList(self.bot, hero_list)
-        print("hero list")
         output = await heroes_message_object.async_str()
-        print("async str")
 
         return output

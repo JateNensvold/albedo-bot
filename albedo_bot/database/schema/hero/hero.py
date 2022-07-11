@@ -94,17 +94,20 @@ class Hero(base, commands.Converter, DatabaseMixin):
                 f"{self.hero_portrait}>")
 
     async def convert(self, ctx: commands.Context, argument: Union[str, int]):
-        """_summary_
+        """
+        Convert a hero Name or id into a database Hero object
 
         Args:
             ctx (Context): _description_
             argument (Union[str, int]): _description_
 
         Raises:
-            BadArgument: _description_
+            BadArgument: Occurs when a string or integer that is not
+                associated with a hero is provided
 
         Returns:
-            _type_: _description_
+            Hero: returns the hero associated with the conversion argument that
+                was provided
         """
         hero_alias = config.hero_alias
 

@@ -47,7 +47,8 @@ class BaseCog(commands.Cog, DatabaseMixin):
         self.require_registration = require_registration
 
     async def is_registered(self, user: User):
-        """_summary_
+        """
+        Check if a player is already registered with the bot
 
         Args:
             author (User): _description_

@@ -1,14 +1,17 @@
-from albedo_bot.bot import AlbedoBot
+from typing import TYPE_CHECKING
+
+from discord.ext.commands.context import Context
+from discord.ext import commands
+from discord import PartialEmoji
 
 from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
 from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
-from click import pass_context
-from discord.ext.commands.context import Context
-from discord.ext import commands
-from discord import Emoji, Embed, PartialEmoji
 
 import albedo_bot.config as config
+
+if TYPE_CHECKING:
+    from albedo_bot.bot import AlbedoBot
 
 
 # @commands.group()
@@ -151,7 +154,9 @@ import albedo_bot.config as config
 
 
 class OwnerCog(BaseOwnerCog):
-    """Admin-only commands that make the bot dynamic."""
+    """
+    Admin-only utility commands and commands that make the bot dynamic
+    """
 
     def __init__(self, bot: "AlbedoBot", **kwargs):
         """_summary_
@@ -165,7 +170,8 @@ class OwnerCog(BaseOwnerCog):
     @commands.group(name="owner")
     @check_config_permission("owner")
     async def owner(self, ctx: commands.Context):
-        """[summary]
+        """
+        Admin-only utility commands and commands that make the bot dynamic
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -174,9 +180,9 @@ class OwnerCog(BaseOwnerCog):
         # if ctx.invoked_subcommand is None:
         #     await ctx.send('Invalid sub command passed...')
 
-    @owner.command(hidden=True)
+    @owner.command()
     async def load(self, ctx: Context, *, module):
-        """Loads a module."""
+        """Loads a module/cog"""
         try:
             self.bot.load_extension(module)
         except commands.ExtensionError as e:
@@ -184,19 +190,20 @@ class OwnerCog(BaseOwnerCog):
         else:
             await ctx.send('\N{OK HAND SIGN}')
 
-    @owner.command(hidden=True)
+    @owner.command()
     async def list(self, ctx: Context):
         """
-        List all loaded modules
+        List all loaded modules/cogs
         """
 
+        # pylint: disable=protected-access
         module_list = "\n".join(
             f"`{key}`: {lib}"for key, lib in self.bot._BotBase__extensions.items())
 
         await send_embed(ctx, EmbedWrapper(
             title="Loaded Modules", description=module_list))
 
-    @owner.command(hidden=True)
+    @owner.command()
     async def unload(self, ctx: Context, *, module):
         """Unloads a module."""
         try:
@@ -208,7 +215,7 @@ class OwnerCog(BaseOwnerCog):
 
     @owner.command(name='reload', hidden=True, invoke_without_command=True)
     async def _reload(self, ctx: Context, *, module):
-        """Reloads a module."""
+        """Reloads a module/cog"""
         try:
             self.bot.reload_extension(module)
         except commands.ExtensionError as e:
@@ -222,7 +229,7 @@ class OwnerCog(BaseOwnerCog):
         Send Debug information about an emoji like its `Emoji ID` and `Name`
 
         Args:
-            emoji (PartialEmoji): emoji to debug
+            emoji (PartialEmoji): discord emoji, or emoji ID
         """
 
         embed_field1 = EmbedField(

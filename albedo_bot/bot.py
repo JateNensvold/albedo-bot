@@ -3,7 +3,6 @@ import logging
 import re
 import sys
 import traceback
-import inspect
 
 from collections import Counter, deque
 from datetime import datetime
@@ -16,8 +15,8 @@ from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
-from albedo_bot.utils.errors import CogCommandError, MessageError
-from albedo_bot.utils.message import EmbedField, send_embed_exception
+from albedo_bot.utils.errors import CogCommandError
+from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
 from albedo_bot.cogs.help.help_cog import HelpCog
 
 
@@ -449,13 +448,14 @@ class AlbedoBot(commands.Bot):
             self.help_command.color = "red"
             self.help_command.context = ctx
             # await self.help_command.send_bot_help(None)
-            embed_field = EmbedField(
-                "Invalid command",
-                (f"`{message.content}` is an invalid command. Use "
-                 f"`{self.default_prefix}help` to learn more about the valid "
-                 "commands available"))
+            embed_wrapper = EmbedWrapper(
+                title="Invalid command",
+                description=(
+                    f"`{message.content}` is an invalid command. Use "
+                    f"`{self.default_prefix}help` to learn more about the valid "
+                    "commands available"))
             await send_embed_exception(
-                message, CogCommandError(embed_field_list=[embed_field]))
+                message, CogCommandError(embed_wrapper=embed_wrapper))
             return
 
         if ctx.author.id in self.blacklist:

@@ -1,13 +1,14 @@
 import pprint
 from typing import List, TYPE_CHECKING
 
+from discord import User
 from discord.ext import commands
 
 from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
 from albedo_bot.database.schema.hero import Hero, AscensionValues
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed, send_message
+from albedo_bot.utils.message import EmbedWrapper, send_embed, send_message
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
 
@@ -18,10 +19,7 @@ if TYPE_CHECKING:
 
 class RosterCog(BaseRosterCog):
     """
-    [summary]
-
-    Args:
-        commands (_type_): _description_
+    A group of commands used to manager a players AFK Arena roster
     """
 
     def __init__(self, bot: "AlbedoBot"):
@@ -35,7 +33,8 @@ class RosterCog(BaseRosterCog):
 
     @commands.group(name="roster")
     async def roster(self, ctx: commands.Context):
-        """[summary]
+        """
+        A group of commands used to manager a players AFK Arena roster
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -67,16 +66,23 @@ class RosterCog(BaseRosterCog):
     #     return heroes_message_object.generate_embed()
 
     @roster.command(name="show", aliases=["list"])
-    async def show(self, ctx: commands.Context):
-        """[summary]
+    async def show(self, ctx: commands.Context, guild_member: User = None):
+        """
+        Shows a players roster
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            name (str): [description]
+            guild_member (User, optional): User name, user mention, or user ID to show
+                the roster of . Defaults to showing the roster of whoever
+                invoked the command when no user is provided.
         """
 
-        heroes_result = await self.fetch_roster(ctx.author.id)
+        user_id = ctx.author.id
+        if guild_member:
+            guild_member.id
+
+        heroes_result = await self.fetch_roster(guild_member)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=heroes_result))
 
@@ -84,12 +90,18 @@ class RosterCog(BaseRosterCog):
     async def _add(self, ctx: commands.Context, hero: Hero,
                    ascension: str, signature_item: int, furniture: int,
                    engraving: int):
-        """[summary]
+        """
+        Add a AFK Arena hero to your roster
 
         Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-            name (str): [description]
+            ctx (commands.Context): ctx (Context): invocation context
+                containing information on how a discord event/command was
+                invoked
+            hero (Hero): Name or hero ID of hero to add
+            ascension (str): Ascension level of hero
+            signature_item (int): SI level of hero
+            furniture (int): Furniture level of hero
+            engraving (int): Engraving level of hero
         """
         await self.add_hero(ctx, ctx.author, hero, ascension, signature_item, furniture,
                             engraving)
@@ -110,10 +122,14 @@ class RosterCog(BaseRosterCog):
 
     @roster.command(name="upload")
     async def upload(self, ctx: commands.Context):
-        """_summary_
+        """
+        Automatically detects the investment levels for all heroes in
+        roster screenshots attached to this command
 
         Args:
-            ctx (Context): _description_
+            ctx (commands.Context): ctx (Context): invocation context
+                containing information on how a discord event/command was
+                invoked       
         """
 
         address = "tcp://localhost:5555"
@@ -184,7 +200,7 @@ class RosterCog(BaseRosterCog):
             # if hero_update:
             #     self.bot.session.add(hero_instance_result)
             heroes_result = await self.fetch_heroes(hero_tuple_list)
-            await send_embed(ctx, embedWrapper=EmbedWrapper(
+            await send_embed(ctx, embed_wrapper=EmbedWrapper(
                 description=heroes_result))
 
             await send_message(ctx,

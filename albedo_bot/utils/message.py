@@ -13,7 +13,8 @@ class EmbedWrapper:
     """_summary_
     """
 
-    def __init__(self, title: str = None, embed_fields: list['EmbedField'] = None, description: str = ""):
+    def __init__(self, title: str = None, description: str = "",
+                 embed_fields: list['EmbedField'] = None):
         """_summary_
 
         Args:
@@ -23,7 +24,7 @@ class EmbedWrapper:
         """
         self.title = title
         if embed_fields is None:
-            self.embed_fields = []
+            self.embed_fields: list['EmbedField'] = []
         else:
             self.embed_fields = embed_fields
         self.description = description

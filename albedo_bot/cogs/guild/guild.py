@@ -7,7 +7,7 @@ from discord import Role
 
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
+from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
 
 if TYPE_CHECKING:
@@ -61,10 +61,10 @@ class GuildCog(BaseGuildCog):
             await send_embed(ctx, embed_wrapper=EmbedWrapper(
                 description=f"Successfully added guild {new_guild}"))
         else:
-            embed_field = EmbedField(
-                "Guild Error",
-                f"{guild_object} is already a registered guild")
-            raise CogCommandError(embed_field_list=[embed_field])
+            embed_wrapper = EmbedWrapper(
+                title="Guild Error",
+                description=f"{guild_object} is already a registered guild")
+            raise CogCommandError(embed_wrapper=embed_wrapper)
 
     @guild.command(name="delete", aliases=["remove"])
     async def delete(self, ctx: commands.Context, guild_role: Role):
@@ -82,10 +82,11 @@ class GuildCog(BaseGuildCog):
 
         guild_object = await self.db_execute(guild_select).first()
         if guild_object is None:
-            embed_field = EmbedField(
-                "Guild Error",
-                f"{guild_role.mention} has not been registered as a guild")
-            raise CogCommandError(embed_field_list=[embed_field])
+            embed_wrapper = EmbedWrapper(
+                title="Guild Error",
+                description=(
+                    f"{guild_role.mention} has not been registered as a guild"))
+            raise CogCommandError(embed_wrapper=embed_wrapper)
 
         await self.db_delete(guild_object)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(

@@ -1,15 +1,9 @@
-
-from albedo_bot.utils.message import EmbedWrapper
+from typing import TYPE_CHECKING
 
 from discord.ext import commands
 
-
-class DiscordPermissionError(commands.CheckFailure):
-    """_summary_
-
-    Args:
-        commands (_type_): _description_
-    """
+if TYPE_CHECKING:
+    from albedo_bot.utils.message import EmbedWrapper
 
 
 class UnregisteredUserError(commands.CheckFailure):
@@ -28,7 +22,7 @@ class MessageError(commands.CommandError):
     """
 
     #pylint: disable=keyword-arg-before-vararg
-    def __init__(self, message=None, *args, embed_wrapper: EmbedWrapper = None):
+    def __init__(self, message=None, *args, embed_wrapper: "EmbedWrapper" = None):
         """_summary_
 
         Args:
@@ -37,6 +31,14 @@ class MessageError(commands.CommandError):
         """
         self.embed_wrapper = embed_wrapper
         super().__init__(message, *args)
+
+
+class DiscordPermissionError(MessageError, commands.CheckFailure):
+    """_summary_
+
+    Args:
+        commands (_type_): _description_
+    """
 
 
 class CogCommandError(MessageError):

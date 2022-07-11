@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
-from albedo_bot.database.schema.player import Player
-from albedo_bot.utils.errors import CogCommandError
 
 import discord
 from discord.ext import commands
 from discord import Role, Member
 
 from albedo_bot.database.schema.guild import Guild
+from albedo_bot.database.schema.player import Player
+from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
+from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.checks import check_config_permission
 
 
@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 
 
 class PlayerCog(BasePlayerCog):
-    """_summary_
+    """
+    A group of commands for managing players in an AFK guild
+
 
     Args:
         commands (_type_): _description_
@@ -25,7 +27,8 @@ class PlayerCog(BasePlayerCog):
 
     @commands.group(name="player")
     async def player(self, ctx: commands.Context):
-        """[summary]
+        """
+        A group of commands for managing players in an AFK guild
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -36,11 +39,22 @@ class PlayerCog(BasePlayerCog):
 
     @player.command(name="register", aliases=["add"])
     async def register(self, ctx: commands.Context, guild: Role = None):
-        """[summary]
+        """
+        Registers a player with the bot, guild can be specified or left blank
+            to allow for automatic detection
 
         Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
+            ctx (commands.Context): invocation context containing information on
+                how a discord event/command was invoked
+            guild (Role, optional): A discord Role, Role ID or Role Mention.
+                Defaults to None.
+
+        Raises:
+            CogCommandError: Player is already registered
+            CogCommandError: Auto detection failed because player does not
+                have a guild associated with them on discord
+            CogCommandError: Auto detection failed because player is in too
+                many discord guilds
         """
 
         member_object: Member = ctx.author
@@ -55,11 +69,12 @@ class PlayerCog(BasePlayerCog):
 
             guild_result = await self.db_execute(guild_select).first()
 
-            embed_field = EmbedField(
-                "Player Already Registered",
-                (f"{member_object.mention} is already registered with "
+            embed_wrapper = EmbedWrapper(
+                title="Player Already Registered",
+                description=(
+                    f"{member_object.mention} is already registered with "
                     f"guild {guild_result}"))
-            raise CogCommandError(embed_field_list=[embed_field])
+            raise CogCommandError(embed_wrapper=embed_wrapper)
         if guild:
             guild_role = guild
         else:
@@ -70,22 +85,24 @@ class PlayerCog(BasePlayerCog):
             guild_result = await self.db_execute(guild_select).all()
 
             if len(guild_result) == 0:
-                embed_field = EmbedField(
-                    "Player Error",
-                    (f"{member_object.mention} needs to be in a guild before "
-                     "they can register"))
-                raise CogCommandError(embed_field_list=[embed_field])
+                embed_wrapper = EmbedWrapper(
+                    title="Player Error",
+                    description=(
+                        f"{member_object.mention} needs to be in a guild before "
+                        "they can register"))
+                raise CogCommandError(embed_wrapper=embed_wrapper)
             elif len(guild_result) > 1:
                 member_guilds = ','.join(
                     [f'{guild_object}' for guild_object in guild_result])
-                embed_field = EmbedField(
-                    "Player Error",
-                    (f"Cannot detect guild for user {member_object.mention}. "
-                     "To allow for automatic guild detection player must have "
-                     f"only one of the following roles ({member_guilds}) "
-                     "or should specify the <@guild-id> they are registering "
-                     "with"))
-                raise CogCommandError(embed_field_list=[embed_field])
+                embed_wrapper = EmbedWrapper(
+                    title="Player Error",
+                    description=(
+                        f"Cannot detect guild for user {member_object.mention}. "
+                        "To allow for automatic guild detection player must have "
+                        f"only one of the following roles ({member_guilds}) "
+                        "or should specify the <@guild-id> they are registering "
+                        "with"))
+                raise CogCommandError(embed_wrapper=embed_wrapper)
 
             guild_role = discord.utils.get(
                 ctx.guild.roles, id=guild_result[0].discord_id)
@@ -95,18 +112,21 @@ class PlayerCog(BasePlayerCog):
     @player.command(name="delete", aliases=["remove"])
     @check_config_permission("manager")
     async def delete(self, ctx: commands.Context, guild_member: Member):
-        """[summary]
+        """
+        Remove an already registered player from a discord guild
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+            guild_member (Member): discord users name, user mention, or user ID
         """
         await self.delete_player(ctx, guild_member)
 
     @player.command(name="list")
     @check_config_permission("guild_manager")
     async def list(self, ctx: commands.Context):
-        """[summary]
+        """
+        List all players registered with the bot
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -114,11 +134,20 @@ class PlayerCog(BasePlayerCog):
         """
 
         player_list = await self.list_players()
-        players_str = "\n".join(
-            [f"{player.mention()} - `{repr(player)}`"
-                for player in player_list])
 
-        if players_str == "":
+        player_strings: list[str] = []
+
+        for player in player_list:
+            guild_select = self.db_select(Guild).where(
+                Guild.discord_id == player.guild_id)
+            guild_result = await self.db_execute(guild_select).first()
+
+            player_strings.append(
+                f"{player.mention()} - `{repr(player)}` - {guild_result}")
+
+        if len(player_strings):
+            players_str = "\n".join(player_strings)
+        else:
             players_str = "No players found"
 
         await send_embed(ctx, embed_wrapper=EmbedWrapper(

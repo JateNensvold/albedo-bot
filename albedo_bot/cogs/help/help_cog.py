@@ -1,19 +1,18 @@
-
-from dataclasses import dataclass
 import itertools
 import re
 from typing import TYPE_CHECKING, Union
+from albedo_bot.utils.errors import DiscordPermissionError
 
-from discord.ext import commands
+from discord.ext import commands as command_module
 
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
+from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.emoji import page_with_curl
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-class HelpCog(commands.MinimalHelpCommand):
+class HelpCog(command_module.MinimalHelpCommand):
     """_summary_
 
     Args:
@@ -27,7 +26,17 @@ class HelpCog(commands.MinimalHelpCommand):
 
         self.embed_color = None
 
-    def get_command_signature(self, command: commands.Command):
+    @property
+    def bot(self) -> "AlbedoBot":
+        """
+        Get the currently running bot
+
+        Returns:
+            _type_: _description_
+        """
+        return self.context.bot
+
+    def get_command_signature(self, command: command_module.Command):
         """_summary_
 
         Args:
@@ -37,7 +46,7 @@ class HelpCog(commands.MinimalHelpCommand):
         return f"{self.clean_prefix}{command.qualified_name} {command.signature}"
 
     # pylint: disable=unused-argument
-    def get_category(self, command: commands.core.Group, *args):
+    def get_category(self, command: command_module.core.Group, *args):
         """_summary_
 
         Args:
@@ -46,7 +55,7 @@ class HelpCog(commands.MinimalHelpCommand):
         Returns:
             _type_: _description_
         """
-        cog: commands.Cog = command.cog
+        cog: command_module.Cog = command.cog
         if cog is not None:
             matches = re.split(r"Cog", cog.qualified_name)
             return matches[0]
@@ -107,7 +116,9 @@ class HelpCog(commands.MinimalHelpCommand):
             help_line_index += 1
         return valid_help_lines.join("\n")
 
-    def add_command_formatting(self, command: Union[commands.core.Group, commands.core.Command]):
+    def add_command_formatting(self,
+                               command: Union[command_module.core.Group,
+                                              command_module.core.Command]):
         """A utility function to format commands and groups.
 
         Parameters
@@ -136,15 +147,27 @@ class HelpCog(commands.MinimalHelpCommand):
                     self.paginator.add_line(line)
                 self.paginator.add_line()
 
-    async def send_bot_help(self, mapping: Union[dict[
-            commands.Cog, list[commands.core.Group]], None]):
+    async def send_group_help(self, group: command_module.Group):
+        can_run = await group.can_run(self.context)
+        if not can_run:
+            embed_wrapper = EmbedWrapper(
+                title="Permissions Error",
+                description=(
+                    "If you believe you should have access to this command "
+                    f"please contact the bot owner {self.bot.owner_id}"))
+            raise DiscordPermissionError(embed_wrapper=embed_wrapper)
+
+        return await super().send_group_help(group)
+
+    async def send_bot_help(self, mapping: Union[
+            dict[command_module.Cog, list[command_module.core.Group]], None]):
         """_summary_
 
         Args:
             mapping (_type_): _description_
         """
 
-        ctx: commands.Context = self.context
+        ctx: command_module.Context = self.context
         bot: "AlbedoBot" = ctx.bot
 
         if bot.description:
@@ -225,9 +248,10 @@ class ValidHelpLines:
         if self.add_highlighting:
             whitespace_len = len(new_line) - len(new_line.lstrip())
             colon_index = new_line.find(":")
-            new_line = (f"{new_line[:whitespace_len]}"
-                        f"`{new_line[whitespace_len:colon_index]}`"
-                        f"{new_line[colon_index:]}")
+            if colon_index != -1:
+                new_line = (f"{new_line[:whitespace_len]}"
+                            f"`{new_line[whitespace_len:colon_index]}`"
+                            f"{new_line[colon_index:]}")
 
         stripped_new_line = new_line.strip()
         if len(stripped_new_line) == 0:

@@ -17,8 +17,8 @@ def check_ascension(argument: int) -> AscensionValues:
     argument (Union[str, int]): _description_
     """
 
-    excpetion_string = (f"Invalid Ascension value given `{argument}`, use one of the "
-                        f"following values `{ascension_range()}`")
+    excpetion_string = (f"Invalid Ascension value given `{argument}`, "
+                        "use one of the following values `{ascension_range()}`")
 
     try:
         ascension_value = int(argument)

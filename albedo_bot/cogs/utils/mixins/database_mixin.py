@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import Select
 from sqlalchemy.engine.result import ChunkedIteratorResult
 
 
-from albedo_bot.utils.message import EmbedField
+from albedo_bot.utils.message import EmbedWrapper
 from albedo_bot.utils.errors import DatabaseSessionError
 
 if TYPE_CHECKING:
@@ -167,7 +167,6 @@ class DatabaseMixin:
 
         try:
             await self.bot.session.delete(database_object)
-            print(repr(database_object))
 
             # Commit to check if any  exceptions, errors or constraints were raised
             await self.bot.session.commit()
@@ -175,11 +174,10 @@ class DatabaseMixin:
             await self.bot.session.rollback()
             await self.bot.session.refresh(database_object)
 
-            embed_field = EmbedField(
-                value=f"Unable to delete {database_object} due to \n ```{exception}```")
+            embed_wrapper = EmbedWrapper(
+                description=f"Unable to delete {database_object} due to \n ```{exception}```")
 
-            raise DatabaseSessionError(
-                embed_field_list=[embed_field]) from exception
+            raise DatabaseSessionError(embed_wrapper) from exception
 
     def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """
