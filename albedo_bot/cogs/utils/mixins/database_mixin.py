@@ -104,10 +104,11 @@ class ScalarWrapper(Generic[S]):
 
     @_execution_decorator()
     async def first(self) -> Union[S, None]:
-        """_summary_
+        """
+        Return the first result found
 
         Returns:
-            S: _description_
+            S: Result object when result is found, None otherwise
         """
         return self.execution_result.scalars().first()
 

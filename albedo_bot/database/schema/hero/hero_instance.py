@@ -9,6 +9,7 @@ from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.cogs.utils.mixins.emoji_mixin import EmojiMixin
 from albedo_bot.database.schema.base import base
 from albedo_bot.database.schema.hero import Hero
+from albedo_bot.utils.emoji import busts_in_silhouette
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -104,13 +105,9 @@ class HeroList(DatabaseMixin, EmojiMixin):
         """
         formated_heroes = []
 
-        emoji_space = "      "
-
         formated_heroes.append(
-            f"{emoji_space} `{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING`")
-        # header_string = formated_heroes[0]
-        # dashed_string = re.sub(r"\S", "-", header_string)
-        # formated_heroes.append(f"`{dashed_string}`")
+            f"{busts_in_silhouette} `{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING`")
+
         for hero_tuple in self.heroes:
 
             hero_select = self.db_select(Hero).where(

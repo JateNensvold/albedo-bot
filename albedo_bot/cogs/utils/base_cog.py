@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
-from albedo_bot.utils.errors import UnregisteredUserError
+from albedo_bot.utils.errors import CogCommandError, UnregisteredUserError
+from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
 
 from discord.ext import commands
 from discord import User
@@ -25,8 +26,9 @@ class BaseCog(commands.Cog, DatabaseMixin):
         Args:
             ctx (commands.Context): _description_
         """
-        # if not ctx.invoked_subcommand:
-        #     await self.send_help(ctx)
+
+        if not ctx.invoked_subcommand and len(ctx.invoked_parents) == 0:
+            await self.send_help(ctx)
 
     async def send_help(self, ctx: commands.Context):
         """_summary_
@@ -34,7 +36,14 @@ class BaseCog(commands.Cog, DatabaseMixin):
         Args:
             ctx (commands.context): _description_
         """
-        await ctx.send_help(ctx.command)
+        embed_wrapper = EmbedWrapper(
+            title="Invalid command",
+            description=(
+                f"`{ctx.message.content}` is an invalid command. Use "
+                f"`{self.bot.default_prefix}help {ctx.command}` to learn more about the valid "
+                "commands available"))
+        await send_embed_exception(
+            ctx, CogCommandError(embed_wrapper=embed_wrapper))
 
     def __init__(self, bot: "AlbedoBot", require_registration: bool = True):
         """_summary_

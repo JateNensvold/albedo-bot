@@ -8,66 +8,9 @@ from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
 from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 
-import albedo_bot.config as config
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
-
-
-# @commands.group()
-# @bot.group(name="private")
-# @check_config_permission("owner")
-# async def private(ctx: Context):
-#     """
-#     Group of commands for all tasks that require some higher level of permissions.
-#     All commands require either' guild manager', 'manager' or 'admin' and higher to run
-
-#     Args:
-#         ctx (Context): invocation context containing information on how
-#             a discord event/command was invoked
-#     """
-#     if ctx.invoked_subcommand is None:
-#         await ctx.send('Private: Invalid sub command passed...')
-
-#     @bot.group(name="private")
-#     async def ping_command(self, ctx: commands.Context):
-#         """[summary]
-
-#         Args:
-#             ctx (Context): invocation context containing information on how
-#                 a discord event/command was invoked
-#         """
-#         await ctx.send("pong")
-#         # if ctx.invoked_subcommand is None:
-#         #     await ctx.send('Invalid sub command passed...')
-
-
-# @private.group(name="emoji")
-# async def emoji(ctx: Context):
-#     """
-#     Group of commands for all tasks that require some higher level of permissions.
-#     All commands require either' guild manager', 'manager' or 'admin' and higher to run
-
-#     Args:
-#         ctx (Context): invocation context containing information on how
-#             a discord event/command was invoked
-#     """
-#     if ctx.invoked_subcommand is None:
-#         await ctx.send('Emoji: Invalid sub command passed...')
-
-
-# @private.group(name="hero")
-# async def hero(ctx: Context):
-#     """
-#     Group of commands for all tasks that require some higher level of permissions.
-#     All commands require either' guild manager', 'manager' or 'admin' and higher to run
-
-#     Args:
-#         ctx (Context): invocation context containing information on how
-#             a discord event/command was invoked
-#     """
-#     if ctx.invoked_subcommand is None:
-#         await ctx.send('Hero: Invalid sub command passed...')
 
 
 # @hero.group(name="upload")
@@ -139,33 +82,18 @@ if TYPE_CHECKING:
 #     await send_message(ctx, _list_emoji(emoji_list), css=False)
 
 
-# @hero.group(name="list")
-# async def list_datbase_heroes(ctx: Context):
-#     """_summary_
-
-#     Args:
-#         ctx (Context): _description_
-#     """
-
-#     hero_objects: List[Hero] = GV.session.query(Hero).all()
-
-#     hero_str = [hero.full_repr() for hero in hero_objects]
-#     await send_message(ctx, "\n".join(hero_str))
-
-
 class OwnerCog(BaseOwnerCog):
     """
     Admin-only utility commands and commands that make the bot dynamic
     """
 
-    def __init__(self, bot: "AlbedoBot", **kwargs):
+    def __init__(self, bot: "AlbedoBot", require_registration: bool):
         """_summary_
 
         Args:
             bot (AlbedoBot): _description_
         """
-        super().__init__(bot, **kwargs)
-        self.permissions = config.permissions
+        super().__init__(bot, require_registration=require_registration)
 
     @commands.group(name="owner")
     @check_config_permission("owner")

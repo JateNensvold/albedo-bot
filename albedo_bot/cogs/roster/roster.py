@@ -1,14 +1,15 @@
 import pprint
 from typing import List, TYPE_CHECKING
+from time import time
 
 from discord import User
 from discord.ext import commands
 
-from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
+from image_processing.processing_client import remote_compute_results
 from albedo_bot.database.schema.hero import Hero, AscensionValues
-from albedo_bot.utils.message import EmbedWrapper, send_embed, send_message
+from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
 
@@ -40,30 +41,6 @@ class RosterCog(BaseRosterCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
-        # await self.send_help(ctx)
-        # if ctx.invoked_subcommand is None:
-        #     await ctx.send('Invalid sub command passed...')
-
-    # def fetch_heroes_embed(self, hero_list: List[HeroInstance]):
-    #     """_summary_
-
-    #     Args:
-    #         hero_list (List[HeroInstance]): _description_
-    #     """
-    #     hero_result = []
-
-    #     for hero_instance in hero_list:
-    #         hero_object = GV.session.query(Hero).filter_by(
-    #             id=hero_instance.hero_id).first()
-    #         hero_tuple = HeroInstanceTuple(hero_object.name, hero_instance.hero_id,
-    #                                        hero_instance.signature_level,
-    #                                        hero_instance.furniture_level,
-    #                                        hero_instance.ascension_level.name,
-    #                                        hero_instance.engraving_level)
-    #         hero_result.append(hero_tuple)
-    #     heroes_message_object = HeroList(hero_result)
-
-    #     return heroes_message_object.generate_embed()
 
     @roster.command(name="show", aliases=["list"])
     async def show(self, ctx: commands.Context, guild_member: User = None):
@@ -80,9 +57,9 @@ class RosterCog(BaseRosterCog):
 
         user_id = ctx.author.id
         if guild_member:
-            guild_member.id
+            user_id = guild_member.id
 
-        heroes_result = await self.fetch_roster(guild_member)
+        heroes_result = await self.fetch_roster(user_id)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=heroes_result))
 
@@ -106,20 +83,6 @@ class RosterCog(BaseRosterCog):
         await self.add_hero(ctx, ctx.author, hero, ascension, signature_item, furniture,
                             engraving)
 
-    # async def send_debug_hero(self, ctx: commands.Context, json_dict: Dict):
-    #     """_summary_
-
-    #     Args:
-    #         ctx (Context): _description_
-    #         json_dict (Dict): _description_
-    #     """
-    #     dict_message = pprint.pformat(json_dict, width=200)
-    #     start_message = 0
-    #     print(dict_message)
-    #     while start_message < len(dict_message):
-    #         await ctx.send(f"```\n{dict_message[start_message:start_message+1991]}\n```")
-    #         start_message += 1991
-
     @roster.command(name="upload")
     async def upload(self, ctx: commands.Context):
         """
@@ -129,10 +92,8 @@ class RosterCog(BaseRosterCog):
         Args:
             ctx (commands.Context): ctx (Context): invocation context
                 containing information on how a discord event/command was
-                invoked       
+                invoked
         """
-
-        address = "tcp://localhost:5555"
 
         author_id = ctx.author.id
 
@@ -142,7 +103,7 @@ class RosterCog(BaseRosterCog):
             if config.VERBOSE:
                 command_list.append("-v")
             roster_json = remote_compute_results(
-                address, 15000, command_list)
+                config.processing_server_address, 15000, command_list)
             if config.VERBOSE:
                 pprint.pprint(roster_json.json_dict())
 
@@ -203,10 +164,9 @@ class RosterCog(BaseRosterCog):
             await send_embed(ctx, embed_wrapper=EmbedWrapper(
                 description=heroes_result))
 
-            await send_message(ctx,
-                               heroes_result,
-                               css=False)
-            # await ctx.send(embed=fetch_heroes_embed(hero_instance_list))
+            # await send_message(ctx,
+            #                    heroes_result,
+            #                    css=False)
 
 
 def setup(bot: "AlbedoBot"):

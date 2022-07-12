@@ -54,9 +54,6 @@ class BaseRosterCog(BaseCog):
         await send_message(ctx,
                            await self.fetch_heroes(hero_instance_tuples))
 
-        # hero_message = await self.fetch_heroes([hero_instance_tuple])
-        # await send_message(ctx, hero_message, css=True)
-
     async def fetch_roster(self, discord_id: int):
         """_summary_
 
@@ -80,18 +77,6 @@ class BaseRosterCog(BaseCog):
         Args:
             hero_list (List[HeroInstance]): _description_
         """
-        # hero_result_list = []
-        # for hero_instance in hero_list:
-        #     print(hero_instance, type(hero_instance))
-        #     hero_select = self.db_select(Hero).where(
-        #         Hero.id == hero_instance.hero_id)
-        #     hero_result = await self.db_execute(hero_select).first()
-        #     hero_tuple = HeroInstanceTuple(hero_result.name, hero_instance.hero_id,
-        #                                    hero_instance.signature_level,
-        #                                    hero_instance.furniture_level,
-        #                                    hero_instance.ascension_level.name,
-        #                                    hero_instance.engraving_level)
-        #     hero_result_list.append(hero_tuple)
         heroes_message_object = HeroList(self.bot, hero_list)
         output = await heroes_message_object.async_str()
 

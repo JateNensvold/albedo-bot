@@ -1,7 +1,9 @@
 import json
 import logging
 import re
+from socket import CAN_BCM_TX_COUNTEVT
 import sys
+import time
 import traceback
 
 from collections import Counter, deque
@@ -15,8 +17,7 @@ from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
-from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
+from albedo_bot.utils.message import send_embed_exception
 from albedo_bot.cogs.help.help_cog import HelpCog
 
 
@@ -24,10 +25,9 @@ initial_extensions = (
     'cogs.player.player',
     'cogs.guild.guild',
     'cogs.roster.roster',
-    'cogs.owner.owner'
+    'cogs.owner.owner',
+    'cogs.hero.hero'
     # 'cogs.admin.admin',
-    # 'cogs.private.private',
-    # 'cogs.roster.roster',
 )
 
 default_bot_prefix = ['%']
@@ -253,6 +253,8 @@ class AlbedoBot(commands.Bot):
         elif isinstance(exception, commands.ArgumentParsingError):
             await context.send(exception)
         else:
+
+            # No traceback available so just print the exception
             traceback.print_exception(
                 type(exception),
                 exception,
@@ -444,19 +446,6 @@ class AlbedoBot(commands.Bot):
 
     async def process_commands(self, message: Message):
         ctx: commands.Context = await self.get_context(message)
-        if ctx.command is None:
-            self.help_command.color = "red"
-            self.help_command.context = ctx
-            # await self.help_command.send_bot_help(None)
-            embed_wrapper = EmbedWrapper(
-                title="Invalid command",
-                description=(
-                    f"`{message.content}` is an invalid command. Use "
-                    f"`{self.default_prefix}help` to learn more about the valid "
-                    "commands available"))
-            await send_embed_exception(
-                message, CogCommandError(embed_wrapper=embed_wrapper))
-            return
 
         if ctx.author.id in self.blacklist:
             return
@@ -482,6 +471,7 @@ class AlbedoBot(commands.Bot):
             self._auto_spam_count.pop(author_id, None)
 
         try:
+            ctx.start_time = time.time()
             await self.invoke(ctx)
         finally:
             # Commit any changes to database to disk

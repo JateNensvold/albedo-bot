@@ -86,6 +86,10 @@ class Hero(base, commands.Converter, DatabaseMixin):
         """
         return f"Hero<{self.id}, {self.name}>"
 
+    def __str__(self):
+        return (f"{self.id} {self.name} - ({self.hero_faction}, "
+                f"{self.hero_class}, {self.hero_type}, {self.ascension_tier})")
+
     def full_repr(self):
         """_summary_
         """

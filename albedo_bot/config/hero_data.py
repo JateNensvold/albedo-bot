@@ -151,7 +151,6 @@ class HeroData:
             file_path (str): path to json containing information about
                 hero skills
         """
-        print(json_path)
         with open(json_path, "r", encoding="utf-8") as file:
             hero_data = json.load(file)
 

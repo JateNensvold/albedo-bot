@@ -1,12 +1,12 @@
 import itertools
 import re
 from typing import TYPE_CHECKING, Union
-from albedo_bot.utils.errors import DiscordPermissionError
 
 from discord.ext import commands as command_module
 
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.emoji import page_with_curl
+from albedo_bot.utils.errors import DiscordPermissionError
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot

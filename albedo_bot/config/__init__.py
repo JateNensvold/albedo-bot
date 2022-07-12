@@ -14,7 +14,9 @@ if "config.py" not in os.listdir(cur_dir):
     shutil.copyfile(os.path.join(cur_dir, "default_config.py"),
                     os.path.join(cur_dir, "config.py"))
 # autopep8: off
-from .config import token, database_name, VERBOSE # pylint: disable=wrong-import-position
+from .config import (
+    token, database_name,
+    VERBOSE, processing_server_address) # pylint: disable=wrong-import-position
 
 if token == "":
     if token is None or len(token) == 0:
