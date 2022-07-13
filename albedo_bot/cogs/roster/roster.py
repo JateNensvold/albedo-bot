@@ -1,6 +1,5 @@
 import pprint
-from typing import List, TYPE_CHECKING
-from time import time
+from typing import TYPE_CHECKING
 
 from discord import User
 from discord.ext import commands
@@ -9,9 +8,10 @@ from discord.ext import commands
 import albedo_bot.config as config
 from image_processing.processing_client import remote_compute_results
 from albedo_bot.database.schema.hero import Hero, AscensionValues
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.errors import CogCommandError
+from albedo_bot.utils.message import EmbedWrapper, send_embed, send_embed_exception
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
-from albedo_bot.database.schema.hero.hero_instance import HeroInstanceTuple
+from albedo_bot.database.schema.hero.hero_instance import HeroInstance, HeroInstanceData, HeroUpdateStatus
 
 
 if TYPE_CHECKING:
@@ -95,9 +95,12 @@ class RosterCog(BaseRosterCog):
                 invoked
         """
 
-        author_id = ctx.author.id
+        author_id: int = ctx.author.id
 
-        for attachment in ctx.message.attachments:
+        detected_hero_dict: dict[str, int] = {}
+        detected_hero_list: list[HeroInstanceData] = []
+
+        for image_number, attachment in enumerate(ctx.message.attachments):
 
             command_list = [str(attachment)]
             if config.VERBOSE:
@@ -107,66 +110,76 @@ class RosterCog(BaseRosterCog):
             if config.VERBOSE:
                 pprint.pprint(roster_json.json_dict())
 
-            hero_tuple_list: List[HeroInstanceTuple] = []
-            for detected_index, detected_hero_data in enumerate(roster_json.hero_data_list):
+            for detected_index, detected_hero_data in enumerate(
+                    roster_json.hero_data_list):
 
                 if detected_hero_data.name in self.hero_alias:
-
                     hero_database_name = self.hero_alias.get(
                         detected_hero_data.name)
-
                     hero_select = self.db_select(Hero).where(
                         Hero.name == hero_database_name)
-
                     hero_result = await self.db_execute(hero_select).first()
-
                 else:
                     hero_select = self.db_select(Hero).where(
                         Hero.name.ilike(f"{detected_hero_data.name}%"))
                     hero_result = await self.db_execute(hero_select).first()
+
                 if not hero_result:
-                    await ctx.send(
-                        "Unable to find detected hero with name: "
-                        f"'{detected_hero_data.name}' in position {detected_index}")
+                    await send_embed_exception(
+                        ctx, CogCommandError(embed_wrapper=EmbedWrapper(
+                            title="Unknown Hero Detected",
+                            description=(
+                                "Unable to find detected hero with "
+                                f"name: '{detected_hero_data.name}' in image "
+                                f"{image_number}, position {detected_index}"))))
                     continue
 
-                hero_tuple = HeroInstanceTuple(
+                hero_tuple = HeroInstanceData(
                     hero_name=hero_result.name,
                     hero_id=hero_result.id,
                     signature_level=detected_hero_data.signature_item.label,
                     furniture_level=detected_hero_data.furniture.label,
                     ascension_level=AscensionValues[detected_hero_data.ascension.label],
                     engraving_level=detected_hero_data.engraving.label)
-                hero_tuple_list.append(hero_tuple)
 
-                # hero_instance_select = self.db_select(HeroInstance).where(
-                #     HeroInstance.player_id == author_id, HeroInstance.hero_id == hero_result.id)
+                hero_name = hero_tuple.hero_name
+                if hero_name in detected_hero_dict:
+                    hero_index = detected_hero_dict[hero_name]
+                    detected_hero_list[hero_index] = max(
+                        hero_tuple, detected_hero_list[hero_index])
+                else:
+                    detected_hero_dict[hero_name] = len(detected_hero_list)
+                    detected_hero_list.append(hero_tuple)
 
-                # hero_instance_result = await self.db_execute(hero_instance_select).first()
+        updated_hero_list: list[HeroInstanceData] = []
 
-            # hero_update = True
-            # if hero_instance_result is None:
-            #     hero_instance_result = HeroInstance(
-            #         hero_id=hero_result.id, player_id=author_id,
-            #         signature_level=detected_hero_data.signature_item.label,
-            #         furniture_level=detected_hero_data.furniture.label,
-            #         ascension_level=AscensionValues[detected_hero_data.ascension.label],
-            #         engraving_level=detected_hero_data.engraving.label)
-            # else:
-            #     hero_update = hero_instance_result.update(
-            #         detected_hero_data.signature_item.label,
-            #         detected_hero_data.furniture.label,
-            #         detected_hero_data.ascension.label,
-            #         detected_hero_data.engraving.label)
-            # if hero_update:
-            #     self.bot.session.add(hero_instance_result)
-            heroes_result = await self.fetch_heroes(hero_tuple_list)
-            await send_embed(ctx, embed_wrapper=EmbedWrapper(
-                description=heroes_result))
+        for hero_tuple in detected_hero_list:
+            hero_instance_select = self.db_select(HeroInstance).where(
+                HeroInstance.player_id == author_id,
+                HeroInstance.hero_id == hero_tuple.hero_id)
 
-            # await send_message(ctx,
-            #                    heroes_result,
-            #                    css=False)
+            hero_instance_result = await self.db_execute(
+                hero_instance_select).first()
+            new_hero_instance = HeroInstance.from_instance_tuple(
+                hero_tuple, author_id)
+            # New Hero
+            if hero_instance_result is None:
+                hero_tuple.hero_update_status = HeroUpdateStatus.NEW_HERO
+                updated_hero_list.append(hero_tuple)
+            # Updated hero
+            elif new_hero_instance > hero_instance_result:
+                hero_tuple.hero_update_status = HeroUpdateStatus.UPDATED_HERO
+                updated_hero_list.append(hero_tuple)
+            else:
+                continue
+            self.bot.session.add(new_hero_instance)
+
+        if len(updated_hero_list) == 0:
+            heroes_result_str = "No Hero updates detected"
+        else:
+            heroes_result_str = await self.fetch_heroes(updated_hero_list)
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=heroes_result_str))
 
 
 def setup(bot: "AlbedoBot"):

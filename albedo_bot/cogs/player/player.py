@@ -153,16 +153,15 @@ class PlayerCog(BasePlayerCog):
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             title="Player List", description=players_str))
 
-    # @player.command(name="add for", aliases=["register for"])
-    # @check_config_permission("manager")
-    # async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
-    #     """[summary]
+    @BasePlayerCog.player_admin.command(name="add", aliases=["register"])
+    async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
+        """[summary]
 
-    #     Args:
-    #         ctx (Context): invocation context containing information on how
-    #             a discord event/command was invoked
-    #     """
-    #     await self.register_player(ctx, guild_member, guild_role)
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+        await self.register_player(ctx, guild_member, guild_role)
 
 
 def setup(bot: "AlbedoBot"):

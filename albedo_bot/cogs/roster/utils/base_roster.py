@@ -4,7 +4,7 @@ from discord import Member
 
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.hero import (
-    Hero, HeroInstance, HeroInstanceTuple, HeroList)
+    Hero, HeroInstance, HeroInstanceData, HeroList)
 from albedo_bot.utils.message import send_message
 
 from albedo_bot.cogs.hero.utils import (
@@ -48,7 +48,7 @@ class BaseRosterCog(BaseCog):
 
         self.db_add(hero_instance_result)
 
-        hero_instance_tuples = await HeroInstanceTuple.from_hero_instance(
+        hero_instance_tuples = await HeroInstanceData.from_hero_instance(
             self, hero_instance_result)
 
         await send_message(ctx,
@@ -66,12 +66,12 @@ class BaseRosterCog(BaseCog):
 
         roster_results = await self.db_execute(hero_instance_select).all()
 
-        hero_instance_tuples = await HeroInstanceTuple.from_hero_instance(
+        hero_instance_tuples = await HeroInstanceData.from_hero_instance(
             self, roster_results)
 
         return await self.fetch_heroes(hero_instance_tuples)
 
-    async def fetch_heroes(self, hero_list: List[HeroInstanceTuple]):
+    async def fetch_heroes(self, hero_list: List[HeroInstanceData]):
         """_summary_
 
         Args:

@@ -1,7 +1,6 @@
 import json
 import logging
 import re
-from socket import CAN_BCM_TX_COUNTEVT
 import sys
 import time
 import traceback
@@ -85,6 +84,10 @@ class AlbedoBot(commands.Bot):
             roles=False, everyone=False, users=True)
 
         self.default_prefix = default_bot_prefix[0]
+
+        # Initialize before super call so help_command can use command_cache
+        self.command_cache: dict[str,
+                                 Union[commands.Command, commands.Group]] = {}
 
         super().__init__(command_prefix=bot_prefix_callable,
                          description=self.description,
@@ -203,6 +206,26 @@ class AlbedoBot(commands.Bot):
             name = self.cog_cache.get(name)
 
         return super().get_cog(name)
+
+    def add_command(self, command: Union[commands.Command, commands.Group]):
+        """
+        Add the ability to add commands to multiple modules
+
+        Args:
+            command (Union[commands.Command, commands.Group]): _description_
+        """
+
+        parents = [parent.name for parent in command.parents]
+        parents.append(command.name)
+        full_name = f"{'.'.join(parents)}"
+        if full_name in self.command_cache:
+            # Check kwargs of original command because monkey patching does not work
+            if command.__original_kwargs__.get("allow_duplicate") and full_name in self.command_cache:
+                return
+        else:
+            self.command_cache[full_name] = (command)
+
+        super().add_command(command)
 
     def get_current_scope(self):
         """_summary_

@@ -5,6 +5,7 @@ from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
+from albedo_bot.utils.checks import check_config_permission
 
 
 class BasePlayerCog(BaseCog):
@@ -13,6 +14,17 @@ class BasePlayerCog(BaseCog):
     Args:
         commands (_type_): _description_
     """
+
+    @BaseCog.admin.group(name="player")
+    @check_config_permission("manager")
+    async def player_admin(self, ctx: commands.Context):
+        """
+        A group of players commands that require elevated permissions to run
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
 
     async def register_player(self, ctx: commands.Context,
                               discord_member: Member, guild_role: Role):

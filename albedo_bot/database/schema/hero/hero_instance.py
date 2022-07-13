@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 import os
-from typing import List, NamedTuple, Union, TYPE_CHECKING
+from typing import List, Union, TYPE_CHECKING
 from enum import Enum
 
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
@@ -28,10 +29,26 @@ ascension_values = {"None": 0,
                     "A4": 11,
                     "A5": 12}
 
+
 AscensionValues = Enum(value="AscensionValues", names=ascension_values)
 
 
-class HeroInstanceTuple(NamedTuple):
+class HeroUpdateStatus(Enum):
+    """_summary_
+
+    Args:
+        Enum (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    NO_UPDATED_HERO = " "
+    UPDATED_HERO = "~"
+    NEW_HERO = "+"
+
+
+@dataclass
+class HeroInstanceData:
     """_summary_
 
     Args:
@@ -46,20 +63,25 @@ class HeroInstanceTuple(NamedTuple):
     furniture_level: int
     ascension_level: AscensionValues
     engraving_level: int
+    hero_update_status: HeroUpdateStatus = HeroUpdateStatus.NO_UPDATED_HERO
 
-    @classmethod
-    async def from_hero_instance(cls, db_handle: DatabaseMixin,
+    @staticmethod
+    async def from_hero_instance(db_handle: DatabaseMixin,
                                  hero_instances: list["HeroInstance"]):
-        """_summary_
+        """
+        Convert a list of `HeroInstance` into a list of `HeroInstanceData`
 
         Args:
-            hero_instance (HeroInstance): _description_
+            db_handle (DatabaseMixin): connection to the hero database for
+                fetching additional hero information
+            hero_instances (list[&quot;HeroInstance&quot;]): list of
+                HeroInstance to be converted
 
         Returns:
-            _type_: _description_
+            list[HeroInstanceData]: a list of HeroInstanceDatas
         """
 
-        hero_instance_tuple_list: list[HeroInstanceTuple] = []
+        hero_instance_tuple_list: list[HeroInstanceData] = []
 
         # Convert hero_instances into a list if only a single hero_instance
         #   was provided
@@ -72,24 +94,39 @@ class HeroInstanceTuple(NamedTuple):
 
             hero_object = await db_handle.db_execute(hero_select).first()
             hero_instance_tuple_list.append(
-                HeroInstanceTuple(hero_object.name, hero_instance.hero_id,
-                                  hero_instance.signature_level,
-                                  hero_instance.furniture_level,
-                                  hero_instance.ascension_level,
-                                  hero_instance.engraving_level))
+                HeroInstanceData(hero_object.name, hero_instance.hero_id,
+                                 hero_instance.signature_level,
+                                 hero_instance.furniture_level,
+                                 hero_instance.ascension_level,
+                                 hero_instance.engraving_level))
 
         return hero_instance_tuple_list
+
+    def __eq__(self, comparator: "HeroInstanceData") -> bool:
+        return self.ascension_level.value == comparator.ascension_level.value
+
+    def __lt__(self, comparator: "HeroInstanceData") -> bool:
+        return self.ascension_level.value < comparator.ascension_level.value
+
+    def __le__(self, comparator: "HeroInstanceData") -> bool:
+        return self.ascension_level.value <= comparator.ascension_level.value
+
+    def __gt__(self, comparator: "HeroInstanceData") -> bool:
+        return self.ascension_level.value > comparator.ascension_level.value
+
+    def __ge__(self, comparator: "HeroInstanceData") -> bool:
+        return self.ascension_level.value >= comparator.ascension_level.value
 
 
 class HeroList(DatabaseMixin, EmojiMixin):
     """_summary_
     """
 
-    def __init__(self, bot: "AlbedoBot", heroes: List[HeroInstanceTuple]):
+    def __init__(self, bot: "AlbedoBot", heroes: List[HeroInstanceData]):
         """_summary_
 
         Args:
-            heroes (List[HeroInstanceTuple]): _description_
+            heroes (List[HeroInstanceData]): _description_
         """
         # Set self.bot for DatabaseMixin
         self.bot = bot
@@ -103,10 +140,14 @@ class HeroList(DatabaseMixin, EmojiMixin):
          Returns:
              _type_: _description_
         """
-        formated_heroes = []
+        formatted_heroes = []
 
-        formated_heroes.append(
-            f"{busts_in_silhouette} `{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING`")
+        hero_update_space = " "
+
+        formatted_heroes.append(
+            (f"{busts_in_silhouette}{hero_update_space}`"
+             f"{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING`")
+        )
 
         for hero_tuple in self.heroes:
 
@@ -116,50 +157,17 @@ class HeroList(DatabaseMixin, EmojiMixin):
 
             portrait_name, _portrait_extension = os.path.splitext(
                 os.path.basename(hero_result.hero_portrait))
-            formated_heroes.append(
+            formatted_heroes.append(
                 f"{str(self.get_emoji(portrait_name))} "
+                # f"{hero_tuple.hero_update_status.value} "
                 f"`{hero_tuple.hero_name: <{self.longest_name}} "
                 f"{hero_tuple.ascension_level.name: <{3}} "
                 f"{hero_tuple.signature_level: <2} "
                 f"{hero_tuple.furniture_level: <2} "
                 f"{hero_tuple.engraving_level}`")
-        message = "\n".join(formated_heroes)
+        message = "\n".join(formatted_heroes)
         output = f"{message}"
         return output
-
-    # def generate_embed(self):
-    #     """_summary_
-
-    #     Returns:
-    #         _type_: _description_
-    #     """
-    #     blank_field = "\u200b"
-
-    #     embed_object = Embed(
-    #         title="Title", description="Description", color=0xffbf00)
-    #     # embed_object.add_field(name="Heroes", value=blank_field, inline=True)
-    #     header_string = f"{'Heroes': <{self.longest_name}} ASC SI FI ENGRAVING"
-    #     embed_object.add_field(
-    #         name=header_string, value=blank_field,  inline=False)
-
-    #     for hero_tuple in self.heroes:
-    #         hero_object: Hero = GV.session.query(Hero).filter_by(
-    #             id=hero_tuple.hero_id).first()
-    #         portrait_name, _portrait_ext = os.path.splitext(
-    #             os.path.basename(hero_object.hero_portrait))
-    #         hero_string = (f"{str(get_emoji(portrait_name))} "
-    #                        f"`{hero_tuple.hero_name: <{self.longest_name}} "
-    #                        f"{hero_tuple.ascension: <{3}} "
-    #                        f"{hero_tuple.si: <2} "
-    #                        f"{hero_tuple.fi: <2} "
-    #                        f"{hero_tuple.engraving}`")
-    #         # hero_string.replace(" ", "\u1CBC\u1CBC")
-    #         # hero_string = re.sub(r"\S", "\u1CBC", hero_string)
-    #         print(hero_string)
-    #         embed_object.add_field(
-    #             name=hero_string, value=hero_string, inline=False)
-
-    #     return embed_object
 
     def __str__(self):
         """_summary_
@@ -192,9 +200,9 @@ class HeroInstance(base):
     ascension_level = Column(SQLEnum(AscensionValues, name="ascension_enum"))
     engraving_level = Column(Integer)
 
-    def __init__(self, hero_id, player_id, signature_level=0,
-                 furniture_level=0, ascension_level=AscensionValues(0),
-                 engraving_level=0):
+    def __init__(self, hero_id: int, player_id: int, signature_level: int,
+                 furniture_level: int, ascension_level: AscensionValues,
+                 engraving_level: int):
         self.hero_id = hero_id
         self.player_id = player_id
         self.signature_level = int(signature_level)
@@ -253,3 +261,36 @@ class HeroInstance(base):
             self.engraving_level = int(engraving)
 
         return updated
+
+    @staticmethod
+    def from_instance_tuple(hero_instance_tuple: HeroInstanceData,
+                            player_id: int):
+        """
+        Creates a HeroInstance from a `HeroInstanceData` and a `player_id`
+
+        Args:
+            hero_instance_tuple (HeroInstanceData): object to create new
+                HeroInstance from
+            player_id (int): player_id to set on new HeroInstance
+        """
+
+        return HeroInstance(hero_instance_tuple.hero_id, player_id,
+                            hero_instance_tuple.signature_level,
+                            hero_instance_tuple.furniture_level,
+                            hero_instance_tuple.ascension_level,
+                            hero_instance_tuple.engraving_level)
+
+    def __eq__(self, comparator: "HeroInstance") -> bool:
+        return self.ascension_level.value == comparator.ascension_level.value
+
+    def __lt__(self, comparator: "HeroInstance") -> bool:
+        return self.ascension_level.value < comparator.ascension_level.value
+
+    def __le__(self, comparator: "HeroInstance") -> bool:
+        return self.ascension_level.value <= comparator.ascension_level.value
+
+    def __gt__(self, comparator: "HeroInstance") -> bool:
+        return self.ascension_level.value > comparator.ascension_level.value
+
+    def __ge__(self, comparator: "HeroInstance") -> bool:
+        return self.ascension_level.value >= comparator.ascension_level.value
