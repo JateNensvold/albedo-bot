@@ -1,5 +1,6 @@
 
 from typing import TYPE_CHECKING
+from albedo_bot.cogs.utils.base_cog import BaseCog
 
 
 from discord.ext import commands
@@ -35,8 +36,17 @@ class GuildCog(BaseGuildCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
-        # if ctx.invoked_subcommand is None:
-        #     await ctx.send('Invalid sub command passed...')
+
+    # pylint: disable=no-member
+    @BaseCog.admin.group(name="guild")
+    async def guild_admin(self, ctx: commands.Context):
+        """
+        A group of players commands that require elevated permissions to run
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
 
     @guild.command(name="add", aliases=["register"])
     async def _add(self, ctx: commands.Context, guild_role: Role):

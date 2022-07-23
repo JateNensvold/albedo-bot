@@ -1,7 +1,6 @@
 
 from typing import TYPE_CHECKING
 
-import discord
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot

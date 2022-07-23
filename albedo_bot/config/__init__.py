@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from .caches import *
+
 from .json_config import (
     permissions, database, prefixes, blacklist, hero_alias)
 from .json_config import (
@@ -14,12 +16,11 @@ if "config.py" not in os.listdir(cur_dir):
     shutil.copyfile(os.path.join(cur_dir, "default_config.py"),
                     os.path.join(cur_dir, "config.py"))
 # autopep8: off
-from .config import (
-    token, database_name,
-    VERBOSE, processing_server_address) # pylint: disable=wrong-import-position
+from .config import * # pylint: disable=wrong-import-position
 
-if token == "":
-    if token is None or len(token) == 0:
+
+if TOKEN == "":
+    if TOKEN is None or len(TOKEN) == 0:
         raise Exception(
-            "Set 'token' Environment variable at "
+            "Set 'TOKEN' Environment variable at "
             f"({os.path.join(cur_dir, 'config.py')}) before running bot")

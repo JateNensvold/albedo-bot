@@ -1,4 +1,8 @@
 from typing import TYPE_CHECKING
+from albedo_bot.cogs.hero.utils.ascension_type import AscensionType
+from albedo_bot.cogs.hero.utils.hero_class import HeroClass
+from albedo_bot.cogs.hero.utils.hero_faction import HeroFaction
+from albedo_bot.cogs.hero.utils.hero_type import HeroType
 
 from discord.ext import commands
 
@@ -30,7 +34,9 @@ class HeroCog(BaseHeroCog):
 
     @hero.command(name="register", aliases=["add"])
     @check_config_permission("guild_manager")
-    async def register(self, ctx: commands.Context, hero_name: str):
+    async def register(self, ctx: commands.Context, hero_name: str,
+                       hero_faction: HeroFaction, hero_class: HeroClass,
+                       hero_type: HeroType, ascension_tier: AscensionType):
         """
         Add/Register a new AFK Arena hero with the bot
 
@@ -39,7 +45,9 @@ class HeroCog(BaseHeroCog):
                 a discord event/command was invoked
             name (str): name of hero getting added
         """
-        await self._add_hero(ctx, hero_name)
+
+        await self._add_hero(ctx, hero_name, hero_faction, hero_class,
+                             hero_type, ascension_tier)
 
     @hero.command(name="remove", aliases=["delete"])
     @check_config_permission("guild_manager")

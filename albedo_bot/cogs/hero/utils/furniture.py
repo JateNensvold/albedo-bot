@@ -1,9 +1,9 @@
 
 from albedo_bot.database.schema.hero import Hero
-from albedo_bot.database.schema.hero.hero import faction_values
+from albedo_bot.database.schema.hero.hero import HeroFactionEnum
 from discord.ext import commands
 
-FACTION_MAX_FURNITURE = {faction: 36 for faction in faction_values}
+FACTION_MAX_FURNITURE = {faction: 36 for faction in HeroFactionEnum.list()}
 
 
 def check_furniture(hero: Hero, furniture: int):

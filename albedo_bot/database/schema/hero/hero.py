@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, NamedTuple, Union
+from typing import TYPE_CHECKING, Union
+from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
 
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
@@ -14,46 +15,53 @@ if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-ascension_tier_values = ("ascended", "legendary")
-ASCENSION_TIER_ENUM = SQLEnum(
-    *ascension_tier_values, name="ascension_tier_enum")
-
-
-class FactionValues(NamedTuple):
+class HeroAscensionEnum(EnumMixin):
     """_summary_
-
-    Args:
-        NamedTuple (_type_): _description_
     """
-    lightbearer: str
-    mauler: str
-    wilder: str
-    graveborn: str
-    celestial: str
-    hypogean: str
-    dimensional: str
+    legendary = "legendary"
+    ascended = "ascended"
 
 
-faction_values = FactionValues("Lightbearer",
-                               "Mauler",
-                               "Wilder",
-                               "Graveborn",
-                               "Celestial",
-                               "Hypogean",
-                               "Dimensional")
-FACTION_ENUM = SQLEnum(*faction_values, name="faction_enum")
+ASCENSION_TIER_ENUM = SQLEnum(HeroAscensionEnum)
 
-class_values = ("Warrior",
-                "Tank",
-                "Ranger",
-                "Mage",
-                "Support")
-CLASS_ENUM = SQLEnum(*class_values, name="class_enum")
 
-hero_type_values = ("Strength",
-                    "Intelligence",
-                    "Agility")
-HERO_TYPE_ENUM = SQLEnum(*hero_type_values, name="hero_type_enum")
+class HeroFactionEnum(EnumMixin):
+    """_summary_
+    """
+    Graveborn = "Graveborn"
+    Lightbearer = "Lightbearer"
+    Wilder = "Wilder"
+    Mauler = "Mauler"
+    Hypogean = "Hypogean"
+    Dimensional = "Dimensional"
+    Celestial = "Celestial"
+
+
+FACTION_ENUM = SQLEnum(HeroFactionEnum)
+
+
+class HeroClassEnum(EnumMixin):
+    """_summary_
+    """
+    Mage = "Mage"
+    Tank = "Tank"
+    Ranger = "Ranger"
+    Support = "Support"
+    Warrior = "Warrior"
+
+
+CLASS_ENUM = SQLEnum(HeroClassEnum)
+
+
+class HeroTypeEnum(EnumMixin):
+    """_summary_
+    """
+    Agility = "Agility"
+    Intelligence = "Intelligence"
+    Strength = "Strength"
+
+
+HERO_TYPE_ENUM = SQLEnum(HeroTypeEnum)
 
 
 class Hero(base, commands.Converter, DatabaseMixin):

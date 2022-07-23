@@ -15,6 +15,7 @@ class BasePlayerCog(BaseCog):
         commands (_type_): _description_
     """
 
+    # pylint: disable=no-member
     @BaseCog.admin.group(name="player")
     @check_config_permission("manager")
     async def player_admin(self, ctx: commands.Context):
@@ -107,14 +108,18 @@ class BasePlayerCog(BaseCog):
             description=(f"Player {player.mention} was removed from guild "
                          f"{guild_object.guild_mention_no_ping}")))
 
-    async def list_players(self):
+    async def list_players(self, player_filter: str):
         """_summary_
 
         Args:
             ctx (commands.Context): _description_
         """
 
-        players_select = self.db_select(Player)
+        if player_filter is None:
+            players_select = self.db_select(Player)
+        else:
+            players_select = self.db_select(Player).where(
+                Player.name.ilike(f"{player_filter}%"))
 
         players_result = await self.db_execute(players_select).all()
         return players_result

@@ -1,12 +1,14 @@
-from typing import TYPE_CHECKING, Union
-from albedo_bot.utils.errors import CogCommandError, UnregisteredUserError
-from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
+import datetime
+from typing import TYPE_CHECKING
+from albedo_bot.database.schema.player import Player
 
 from discord.ext import commands
 from discord import User
 
+from albedo_bot.utils.checks import _is_registered
+from albedo_bot.utils.errors import CogCommandError
+from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
-from albedo_bot.database.schema.player import Player
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -69,9 +71,7 @@ class BaseCog(commands.Cog, DatabaseMixin):
     #     command_list: list[commands.Group,
     #                        commands.command] = self.get_commands()
     #     for index, command in enumerate(self.__cog_commands__):
-
-    #         if self.track_command(command):
-    #             self
+    #         print(index, command)
 
     #     return super()._inject(bot)
 
@@ -100,24 +100,23 @@ class BaseCog(commands.Cog, DatabaseMixin):
         await send_embed_exception(
             ctx, CogCommandError(embed_wrapper=embed_wrapper))
 
-    async def is_registered(self, user: User):
+    async def update_player(self, player: User):
         """
-        Check if a player is already registered with the bot
+        Update the access_time in the `Player` object associated with `player`
 
         Args:
-            author (User): _description_
+            player (User): player to update access_time of
         """
-        player_select = self.db_select(Player).where(
-            Player.discord_id == user.id)
-        player_result = await self.db_execute(player_select).first()
+        select_statement = self.db_select(Player).where(
+            Player.discord_id == player.id)
 
-        if player_result is None:
-            raise UnregisteredUserError(
-                f"Register your discord account with "
-                f"{self.bot.user.mention} to gain access to this command")
-        return True
+        player_object = await self.db_execute(select_statement).first()
+
+        player_object.access_time = datetime.datetime.utcnow()
+        await self.db_add(player_object)
 
     # pylint: disable=invalid-overridden-method
+
     async def cog_check(self, ctx: commands.Context):
         """_summary_
 
@@ -126,5 +125,5 @@ class BaseCog(commands.Cog, DatabaseMixin):
         """
         if not self.require_registration:
             return True
-        output = await self.is_registered(ctx.author)
+        output = await _is_registered(ctx.bot, ctx.author)
         return output

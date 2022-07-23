@@ -34,13 +34,11 @@ class PlayerCog(BasePlayerCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
-        # if ctx.invoked_subcommand is None:
-        #     await ctx.send('Invalid sub command passed...')
 
     @player.command(name="register", aliases=["add"])
     async def register(self, ctx: commands.Context, guild: Role = None):
         """
-        Registers a player with the bot, guild can be specified or left blank
+        Registers yourself with the bot, guild can be specified or left blank
             to allow for automatic detection
 
         Args:
@@ -109,8 +107,57 @@ class PlayerCog(BasePlayerCog):
 
         await self.register_player(ctx, ctx.author, guild_role)
 
-    @player.command(name="delete", aliases=["remove"])
-    @check_config_permission("manager")
+    @player.command(name="list")
+    @check_config_permission("guild_manager")
+    async def list(self, ctx: commands.Context, name_filter: str = None):
+        """
+        List all players registered with the bot, optionally filter players by
+            providing a `name_filter`
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+            name_filter (str): filter to add to player list. Defaults to
+                showing all players
+        """
+
+        player_list = await self.list_players(name_filter)
+
+        player_strings: list[str] = []
+
+        for player in player_list:
+            guild_select = self.db_select(Guild).where(
+                Guild.discord_id == player.guild_id)
+            guild_result = await self.db_execute(guild_select).first()
+
+            player_strings.append(
+                f"{player.mention()} - player=`{repr(player)}`- "
+                f"last_update={player.access_time} - guild={guild_result}")
+
+        if len(player_strings):
+            players_str = "\n".join(player_strings)
+        else:
+            players_str = "No players found"
+
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title="Player List", description=players_str))
+
+    # pylint: disable=no-member
+    @BasePlayerCog.player_admin.command(name="add", aliases=["register"])
+    async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
+        """
+        Register a `guild_player` with the bot under the guild associated
+            with `guild_role`
+        Args:
+            ctx (commands.Context): invocation context containing information on how
+                a discord event/command was invoked
+            guild_member (Member): discord users name, user mention, or user ID
+            guild_role (Role): A discord Role, Role ID or Role Mention.
+        """
+        await self.register_player(ctx, guild_member, guild_role)
+
+    # pylint: disable=no-member
+    @BasePlayerCog.player_admin.command(name="remove", aliases=["delete"])
     async def delete(self, ctx: commands.Context, guild_member: Member):
         """
         Remove an already registered player from a discord guild
@@ -121,47 +168,6 @@ class PlayerCog(BasePlayerCog):
             guild_member (Member): discord users name, user mention, or user ID
         """
         await self.delete_player(ctx, guild_member)
-
-    @player.command(name="list")
-    @check_config_permission("guild_manager")
-    async def list(self, ctx: commands.Context):
-        """
-        List all players registered with the bot
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-
-        player_list = await self.list_players()
-
-        player_strings: list[str] = []
-
-        for player in player_list:
-            guild_select = self.db_select(Guild).where(
-                Guild.discord_id == player.guild_id)
-            guild_result = await self.db_execute(guild_select).first()
-
-            player_strings.append(
-                f"{player.mention()} - `{repr(player)}` - {guild_result}")
-
-        if len(player_strings):
-            players_str = "\n".join(player_strings)
-        else:
-            players_str = "No players found"
-
-        await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            title="Player List", description=players_str))
-
-    @BasePlayerCog.player_admin.command(name="add", aliases=["register"])
-    async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
-        """[summary]
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-        await self.register_player(ctx, guild_member, guild_role)
 
 
 def setup(bot: "AlbedoBot"):

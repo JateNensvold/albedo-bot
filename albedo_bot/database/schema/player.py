@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, String, BIGINT
+import datetime
+from sqlalchemy import Column, ForeignKey, String, BIGINT, DateTime
 from sqlalchemy.orm import relationship
 
 from albedo_bot.database.schema.base import base
@@ -13,6 +14,7 @@ class Player(base):
     name = Column(String)
     guild_id = Column(BIGINT, ForeignKey("guilds.discord_id",
                       ondelete="RESTRICT"), nullable=False)
+    access_time = Column(DateTime, default=datetime.datetime.utcnow)
     hero_instances = relationship("HeroInstance")
 
     def mention(self):

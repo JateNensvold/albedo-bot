@@ -4,4 +4,5 @@ alembic
 asyncpg
 bidict
 emoji
+cachetools
 -e .

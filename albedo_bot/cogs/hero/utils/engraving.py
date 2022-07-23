@@ -1,14 +1,14 @@
 
 
 from albedo_bot.database.schema.hero import Hero
-from albedo_bot.database.schema.hero.hero import faction_values
+from albedo_bot.database.schema.hero.hero import HeroFactionEnum
 
 from discord.ext import commands
 
-FACTION_MAX_ENGRAVING = {faction: 80 for faction in faction_values}
-FACTION_MAX_ENGRAVING[faction_values.celestial] = 100
-FACTION_MAX_ENGRAVING[faction_values.hypogean] = 100
-FACTION_MAX_ENGRAVING[faction_values.dimensional] = 100
+FACTION_MAX_ENGRAVING = {faction: 80 for faction in HeroFactionEnum.list()}
+FACTION_MAX_ENGRAVING[HeroFactionEnum.Celestial] = 100
+FACTION_MAX_ENGRAVING[HeroFactionEnum.Hypogean] = 100
+FACTION_MAX_ENGRAVING[HeroFactionEnum.Dimensional] = 100
 
 
 def check_engraving(hero: Hero, engraving: int):

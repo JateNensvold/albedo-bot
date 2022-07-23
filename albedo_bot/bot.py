@@ -9,6 +9,8 @@ from collections import Counter, deque
 from datetime import datetime
 from typing import Callable, Deque, Dict, Iterable, List, Union
 from asyncio import current_task
+from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
+from albedo_bot.utils.errors import MessageError
 
 import discord
 from discord.ext import commands
@@ -55,7 +57,7 @@ def bot_prefix_callable(bot: "AlbedoBot", ctx: commands.Context):
     return prefix_list
 
 
-class AlbedoBot(commands.Bot):
+class AlbedoBot(commands.Bot, DatabaseMixin):
     """_summary_
 
     Args:
@@ -123,6 +125,8 @@ class AlbedoBot(commands.Bot):
         self.database = config.database
         self.database.postgres_connect()
         self.database.update_scoped_session(self.get_current_scope)
+
+        self.bot = self
 
         self.task_cache = {}
 
@@ -218,9 +222,16 @@ class AlbedoBot(commands.Bot):
         parents = [parent.name for parent in command.parents]
         parents.append(command.name)
         full_name = f"{'.'.join(parents)}"
+
+        command_parent: str = command.__original_kwargs__.get("parent")
+        if command_parent:
+            command.parent = command_parent
+
         if full_name in self.command_cache:
-            # Check kwargs of original command because monkey patching does not work
-            if command.__original_kwargs__.get("allow_duplicate") and full_name in self.command_cache:
+            # Checks kwargs of original command because monkey patching does
+            #   not work
+            if command.__original_kwargs__.get(
+                    "allow_duplicate") and full_name in self.command_cache:
                 return
         else:
             self.command_cache[full_name] = (command)
@@ -276,12 +287,12 @@ class AlbedoBot(commands.Bot):
         elif isinstance(exception, commands.ArgumentParsingError):
             await context.send(exception)
         else:
+            traceback.print_tb(exception.__traceback__)
+            if isinstance(exception, MessageError) or issubclass(
+                    type(exception), MessageError):
+                print(exception.embed_wrapper)
 
             # No traceback available so just print the exception
-            traceback.print_exception(
-                type(exception),
-                exception,
-                exception.__traceback__)
             await send_embed_exception(context, exception)
 
     def get_guild_prefixes(self, guild, *, local_inject: Callable = bot_prefix_callable):
@@ -530,7 +541,7 @@ class AlbedoBot(commands.Bot):
         """_summary_
         """
         try:
-            super().run(config.token, reconnect=True)
+            super().run(config.TOKEN, reconnect=True)
         finally:
             with open('prev_events.log', 'w', encoding='utf-8') as file_pointer:
                 for data in self._prev_events:

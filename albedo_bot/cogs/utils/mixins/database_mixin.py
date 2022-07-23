@@ -148,7 +148,7 @@ class DatabaseMixin:
 
         return SelectWrapper(schema)
 
-    def db_add(self, database_object: Any):
+    async def db_add(self, database_object: Any):
         """_summary_
 
         Args:
@@ -156,6 +156,8 @@ class DatabaseMixin:
         """
 
         self.bot.session.add(database_object)
+        await self.bot.session.commit()
+        await self.bot.session.refresh(database_object)
 
     async def db_delete(self, database_object: Any):
         """_summary_

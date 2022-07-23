@@ -96,7 +96,7 @@ def main():
     args = parser.parse_args()
 
     config.VERBOSE = args.verbose
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     database = config.database
 
     if args.mode == launch_choices.run:
@@ -105,11 +105,11 @@ def main():
     elif args.mode == launch_choices.init:
         database.select_database("postgres")
         loop.run_until_complete(database.init_database(
-            config.database_name, raise_error=False))
+            config.DATABASE_NAME, raise_error=False))
     elif args.mode == launch_choices.drop:
-        loop.run_until_complete(database.drop_database(config.database_name))
+        loop.run_until_complete(database.drop_database(config.DATABASE_NAME))
     elif args.mode == launch_choices.reset:
-        database.select_database(config.database_name)
+        database.select_database(config.DATABASE_NAME)
         loop.run_until_complete(database.reset_database())
 
 if __name__ == '__main__':

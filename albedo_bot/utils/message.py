@@ -134,6 +134,32 @@ class EmbedWrapper:
 
         return embed_list
 
+    def __str__(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        embed_str_list: list[str] = []
+        if self.title:
+            embed_str_list.append(self.title)
+        else:
+            embed_str_list.append("No title")
+
+        if self.description:
+            embed_str_list.append(self.description)
+        else:
+            embed_str_list.append("No description")
+
+        if self.footer:
+            embed_str_list.append(self.footer)
+        else:
+            embed_str_list.append("No footer")
+
+        dash_line = '-' * 20
+        backslash = "\n"
+        return f"{dash_line}\n{backslash.join(embed_str_list)}\n{dash_line}"
+
 
 class EmbedFooter(NamedTuple):
     """_summary_
@@ -265,50 +291,34 @@ async def send_embed(ctx: Context,
         else:
             embed_wrapper_list = [embed_wrapper]
 
-            for current_embed_wrapper in embed_wrapper_list:
+        for current_embed_wrapper in embed_wrapper_list:
+            embed = Embed(
+                color=color,
+                timestamp=datetime.fromtimestamp(time()))
+            if (current_embed_wrapper.title == "" or
+                    current_embed_wrapper.title is None):
+                embed.title = f"{emoji} Success"
+            elif emoji:
+                embed.title = f"{emoji} {current_embed_wrapper.title}"
+            else:
+                embed.title = current_embed_wrapper.title
+            embed.description = current_embed_wrapper.description
+            embed.set_footer(text=current_embed_wrapper.footer)
 
-                embed = Embed(
-                    color=color,
-                    timestamp=datetime.fromtimestamp(time()))
-                if (current_embed_wrapper.title == "" or
-                        current_embed_wrapper.title is None):
-                    embed.title = f"{emoji} Success"
-                elif emoji:
-                    embed.title = f"{emoji} {current_embed_wrapper.title}"
-                else:
-                    embed.title = current_embed_wrapper.title
-                embed.description = current_embed_wrapper.description
-                embed.set_footer(text=current_embed_wrapper.footer)
+            for embed_field in current_embed_wrapper.embed_fields:
+                embed.add_field(name=embed_field.name,
+                                value=embed_field.value)
 
-                for embed_field in current_embed_wrapper.embed_fields:
-                    embed.add_field(name=embed_field.name,
-                                    value=embed_field.value)
+            if reply:
+                await ctx.reply(embed=embed, mention_author=mention_author)
+            else:
+                await ctx.send(embed=embed)
+        return
 
-                if reply:
-                    await ctx.reply(embed=embed, mention_author=mention_author)
-                else:
-                    await ctx.send(embed=embed)
-            return
-        # else:
-        #     embed = Embed(
-        #         color=color,
-        #         timestamp=datetime.fromtimestamp(time()))
-        #     if embed_wrapper.title == "" or embed_wrapper.title is None:
-        #         embed.title = f"{emoji} Success"
-        #     elif emoji:
-        #         embed.title = f"{emoji} {embed_wrapper.title}"
-        #     else:
-        #         embed.title = embed_wrapper.title
-        #     embed.description = embed_wrapper.description
-        #     embed.set_footer(text=current_embed_wrapper.footer)
-
-        #     for embed_field in embed_wrapper.embed_fields:
-        #         embed.add_field(name=embed_field.name, value=embed_field.value)
-
-        if reply:
-            await ctx.reply(embed=embed, mention_author=mention_author)
-        else:
-            await ctx.send(embed=embed)
+    if reply:
+        await ctx.reply(embed=embed, mention_author=mention_author)
+    else:
+        await ctx.send(embed=embed)
 
 
 async def send_embed_exception(ctx: Context, exception: MessageError, **kwargs):
