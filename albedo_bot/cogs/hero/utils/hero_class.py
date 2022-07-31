@@ -27,5 +27,5 @@ class HeroClass(commands.Converter):
             return HeroClassEnum(argument)
         except Exception as exception:
             raise commands.BadArgument(
-                (f"Invalid Class given `{argument}`, class must be one of "
-                 f"the following `{HeroClassEnum.list()}`")) from exception
+                (f"Invalid Hero Class given `{argument}`, class must be one of "
+                 f"the following `{HeroClassEnum.v_list()}`")) from exception

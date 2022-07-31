@@ -28,5 +28,5 @@ class AscensionType(commands.Converter):
         except Exception as exception:
             raise commands.BadArgument(
                 (f"Invalid ascension type given `{argument}`, ascension type "
-                 f"must be one of the following `{HeroAscensionEnum.list()}`")
+                 f"must be one of the following `{HeroAscensionEnum.v_list()}`")
             ) from exception

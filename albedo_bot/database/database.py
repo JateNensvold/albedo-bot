@@ -90,7 +90,8 @@ class Database:
             db_string)  # connect to server
 
         self.session_factory = sessionmaker(
-            self.engine, autoflush=autoflush, class_=AsyncSession)
+            self.engine, autoflush=autoflush, expire_on_commit=False,
+            class_=AsyncSession)
 
         self.session_producer = async_scoped_session(
             self.session_factory, self.startup_scope)

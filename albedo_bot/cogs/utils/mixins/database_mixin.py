@@ -160,7 +160,17 @@ class DatabaseMixin:
         await self.bot.session.refresh(database_object)
 
     async def db_delete(self, database_object: Any):
-        """_summary_
+        """
+        Delete an object from the database
+
+        *Note, while in the same transaction calls after deleting from the
+            database may fail with the following
+
+            ```
+            MissingGreenlet: greenlet_spawn has not been called; can't call
+            await_only() here. Was IO attempted in an unexpected place?
+            (Background on this error at: https://sqlalche.me/e/14/xd2s)
+            ```
 
         Args:
             database_object (Any): _description_
@@ -176,7 +186,6 @@ class DatabaseMixin:
         except Exception as exception:
             await self.bot.session.rollback()
             await self.bot.session.refresh(database_object)
-
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 

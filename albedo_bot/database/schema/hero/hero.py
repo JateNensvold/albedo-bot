@@ -22,7 +22,7 @@ class HeroAscensionEnum(EnumMixin):
     ascended = "ascended"
 
 
-ASCENSION_TIER_ENUM = SQLEnum(HeroAscensionEnum)
+ASCENSION_TYPE_ENUM = SQLEnum(HeroAscensionEnum)
 
 
 class HeroFactionEnum(EnumMixin):
@@ -72,10 +72,10 @@ class Hero(base, commands.Converter, DatabaseMixin):
     id = Column(Integer,  Sequence("hero_id_seq"),
                 primary_key=True, unique=True)
     name = Column(String, unique=True)
-    hero_faction = Column(FACTION_ENUM)
+    hero_faction: HeroFactionEnum = Column(FACTION_ENUM)
     hero_class = Column(CLASS_ENUM)
     hero_type = Column(HERO_TYPE_ENUM)
-    ascension_tier = Column(ASCENSION_TIER_ENUM)
+    ascension_tier = Column(ASCENSION_TYPE_ENUM)
     hero_portrait = Column(String)
 
     hero_instances = relationship("HeroInstance")

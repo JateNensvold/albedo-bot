@@ -40,7 +40,7 @@ class EmbedWrapper:
         """
         self.title = title
         if embed_fields is None:
-            self.embed_fields: list['EmbedField'] = []
+            self.embed_fields: list["EmbedField"] = []
         else:
             self.embed_fields = embed_fields
         self.footer = footer
@@ -49,6 +49,14 @@ class EmbedWrapper:
 
         self.description = description
         self.multi_message_compatible = multi_message_compatible
+
+    def add_field(self, embed_field: "EmbedField"):
+        """_summary_
+
+        Args:
+            embed_field (EmbedField): _description_
+        """
+        self.embed_fields.append(embed_field)
 
     def create_footer(self):
         """

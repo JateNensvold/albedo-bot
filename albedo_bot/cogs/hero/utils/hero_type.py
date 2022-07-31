@@ -28,4 +28,4 @@ class HeroType(commands.Converter):
         except Exception as exception:
             raise commands.BadArgument(
                 (f"Invalid hero type given `{argument}`, hero type must be one "
-                 f"of the following `{HeroTypeEnum.list()}`")) from exception
+                 f"of the following `{HeroTypeEnum.v_list()}`")) from exception

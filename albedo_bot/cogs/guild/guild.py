@@ -1,13 +1,12 @@
 
 from typing import TYPE_CHECKING
-from albedo_bot.cogs.utils.base_cog import BaseCog
-
 
 from discord.ext import commands
 from discord import Role
 
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
+from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
 

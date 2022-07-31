@@ -27,7 +27,8 @@ initial_extensions = (
     'cogs.guild.guild',
     'cogs.roster.roster',
     'cogs.owner.owner',
-    'cogs.hero.hero'
+    'cogs.hero.hero',
+    'cogs.checklist.checklist'
     # 'cogs.admin.admin',
 )
 
@@ -287,7 +288,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         elif isinstance(exception, commands.ArgumentParsingError):
             await context.send(exception)
         else:
-            traceback.print_tb(exception.__traceback__)
+            traceback.print_exception(
+                type(exception), exception, exception.__traceback__)
             if isinstance(exception, MessageError) or issubclass(
                     type(exception), MessageError):
                 print(exception.embed_wrapper)
@@ -381,7 +383,9 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
             return discord.utils.find(lambda m: m.name == argument or m.nick == argument, members)
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int):
-        """Looks up a member in cache or fetches if not found.
+        """
+        Looks up a member in cache or fetches if not found.
+
         Parameters
         -----------
         guild: Guild
@@ -398,7 +402,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         if member is not None:
             return member
 
-        members: List[Member] = await guild.query_members(limit=1, user_ids=[member_id], cache=True)
+        members: List[Member] = await guild.query_members(
+            limit=1, user_ids=[member_id], cache=True)
         if not members:
             return None
         return members[0]

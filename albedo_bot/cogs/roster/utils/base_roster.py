@@ -1,17 +1,18 @@
+
 import pprint
 from typing import TYPE_CHECKING, List
 
 from discord.ext import commands
-from discord import Member
+from discord import Member, User
 from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import (
-    EmbedWrapper, send_embed, send_embed_exception, send_message)
+    EmbedWrapper, send_embed, send_embed_exception)
 from albedo_bot.cogs.hero.utils import (
-    check_ascension, check_signature_item, check_furniture, check_engraving)
+    AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (
     Hero, HeroInstance, HeroInstanceData, HeroList, AscensionValues)
 from albedo_bot.database.schema.hero.hero_instance import (
@@ -32,8 +33,10 @@ class BaseRosterCog(BaseCog):
         super().__init__(bot)
 
     async def add_hero(self, ctx: commands.Context, player: Member, hero: Hero,
-                       ascension: str, signature_item: int, furniture: int,
-                       engraving: int):
+                       ascension: AscensionValue,
+                       signature_item: SignatureItemValue,
+                       furniture: FurnitureValue,
+                       engraving: EngravingValue):
         """[summary]
 
         Args:
@@ -41,10 +44,6 @@ class BaseRosterCog(BaseCog):
                 a discord event/command was invoked
             name (str): [description]
         """
-        hero_ascension = check_ascension(ascension)
-        check_signature_item(hero, signature_item)
-        check_furniture(hero, furniture)
-        check_engraving(hero, engraving)
 
         hero_instance_select = self.db_select(HeroInstance).where(
             HeroInstance.hero_id == hero.id, HeroInstance.player_id == player.id)
@@ -52,20 +51,59 @@ class BaseRosterCog(BaseCog):
 
         if hero_instance_result is None:
             hero_instance_result = HeroInstance(
-                hero.id, player.id, signature_item, furniture, hero_ascension, engraving)
+                hero.id,
+                player.id,
+                signature_item.si_value,
+                furniture.furniture_value,
+                ascension.ascension_value,
+                engraving.engraving_value)
         else:
-            hero_instance_result.ascension_level = hero_ascension
-            hero_instance_result.signature_level = signature_item
-            hero_instance_result.furniture_level = furniture
-            hero_instance_result.engraving_level = engraving
+            hero_instance_result.ascension_level = ascension.ascension_value
+            hero_instance_result.signature_level = signature_item.si_value
+            hero_instance_result.furniture_level = furniture.furniture_value
+            hero_instance_result.engraving_level = engraving.engraving_value
 
         await self.db_add(hero_instance_result)
 
         hero_instance_tuples = await HeroInstanceData.from_hero_instance(
             self, hero_instance_result)
+        added_heroes = await self.fetch_heroes(hero_instance_tuples)
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=("The following heroes have been added successfully\n "
+                         f"{added_heroes}")))
 
-        await send_message(ctx,
-                           await self.fetch_heroes(hero_instance_tuples))
+    async def remove_hero(self, ctx: commands.Context, player: User,
+                          hero: Hero,):
+        """[summary]
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+            name (str): [description]
+        """
+
+        hero_instance_select = self.db_select(HeroInstance).where(
+            HeroInstance.hero_id == hero.id,
+            HeroInstance.player_id == player.id)
+        hero_instance_result = await self.db_execute(
+            hero_instance_select).first()
+
+        if hero_instance_result is None:
+            embed_wrapper = EmbedWrapper(
+                title="Missing hero",
+                description=("You do not have the following hero "
+                             f"`{hero.name}` in your roster"))
+            raise CogCommandError(embed_wrapper=embed_wrapper)
+        else:
+            hero_instance_tuples = await HeroInstanceData.from_hero_instance(
+                self, hero_instance_result)
+            removed_heroes = await self.fetch_heroes(hero_instance_tuples)
+
+            await self.db_delete(hero_instance_result)
+            await send_embed(ctx, embed_wrapper=EmbedWrapper(
+                title="Removed Hero",
+                description=(f"The following heroes have been successfully "
+                             f"removed from your roster\n {removed_heroes}")))
 
     async def fetch_roster(self, discord_id: int):
         """_summary_

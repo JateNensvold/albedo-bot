@@ -27,5 +27,5 @@ class HeroFaction(commands.Converter):
             return HeroFactionEnum(argument)
         except Exception as exception:
             raise commands.BadArgument(
-                (f"Invalid Faction given `{argument}`, factions must be one of "
-                 f"the following `{HeroFactionEnum.list()}`")) from exception
+                (f"Invalid Faction given `{argument}`, faction must be one of "
+                 f"the following `{HeroFactionEnum.v_list()}`")) from exception

@@ -1,3 +1,4 @@
+
 from typing import TYPE_CHECKING
 
 from discord import User
@@ -7,7 +8,8 @@ from albedo_bot.database.schema.hero import Hero
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.utils.checks import is_registered
-
+from albedo_bot.cogs.hero.utils import (
+    AscensionValue, FurnitureValue, SignatureItemValue, EngravingValue)
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -46,14 +48,18 @@ class RosterCog(BaseRosterCog):
         if guild_member:
             user_id = guild_member.id
 
+        user_object: User = await self.bot.fetch_user(user_id)
+
         heroes_result = await self.fetch_roster(user_id)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title=f"{user_object.name}'s roster",
             description=heroes_result))
 
     @roster.command(name="add", aliases=["update"])
     async def _add(self, ctx: commands.Context, hero: Hero,
-                   ascension: str, signature_item: int, furniture: int,
-                   engraving: int):
+                   ascension: AscensionValue,
+                   signature_item: SignatureItemValue, furniture: FurnitureValue,
+                   engraving: EngravingValue):
         """
         Add a AFK Arena hero to your roster
 
@@ -69,6 +75,20 @@ class RosterCog(BaseRosterCog):
         """
         await self.add_hero(ctx, ctx.author, hero, ascension, signature_item, furniture,
                             engraving)
+        await self.update_player(ctx.author)
+
+    @roster.command(name="remove", aliases=["delete"])
+    async def remove(self, ctx: commands.Context, hero: Hero):
+        """
+        Remove an AFK Arena hero from your roster
+
+        Args:
+            ctx (commands.Context): ctx (Context): invocation context
+                containing information on how a discord event/command was
+                invoked
+            hero (Hero): Name or hero ID of hero to remove
+        """
+        await self.remove_hero(ctx, ctx.author, hero)
         await self.update_player(ctx.author)
 
     @roster.command(name="upload")
