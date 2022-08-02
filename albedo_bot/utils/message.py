@@ -70,7 +70,7 @@ class EmbedWrapper:
             else:
                 self.footer = f"{self.footer}\n{duration_message}"
 
-    def check_char_limit(self):
+    def char_limit(self):
         """
         Check if the Embed Wrapper has exceeded
 
@@ -88,6 +88,14 @@ class EmbedWrapper:
             total += len(str_item)
 
         return total
+
+
+    def check_char_limit(self):
+        
+        if self.char_limit() < 6000 and len(self.description) < 4096:
+            return True
+        return False
+
 
     def split_embed(self):
         """
@@ -294,7 +302,7 @@ async def send_embed(ctx: Context,
             embed_wrapper.duration = time()-ctx.start_time
             embed_wrapper.create_footer()
 
-        if embed_wrapper.check_char_limit() > 6000:
+        if not embed_wrapper.check_char_limit():
             embed_wrapper_list = embed_wrapper.split_embed()
         else:
             embed_wrapper_list = [embed_wrapper]
