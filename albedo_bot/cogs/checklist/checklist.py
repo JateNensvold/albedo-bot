@@ -26,34 +26,35 @@ class ChecklistCog(BaseChecklistCog):
 
     @commands.group(name="checklist")
     async def checklist_command(self, ctx: commands.Context):
-        """[summary]
+        """
+        A group of commands used to interact with Checklists. A checklist is a
+        group of heroes that have been pinned to certain investment levels to
+        show the minimum required investment for the corresponding group
+
+        Ex. A checklist called "AE Heroes" could have the following in it
+        showing that these AE Heroes need to be at least at this investment
+        level
+
+        `Ainz SI 30 FI 9 E60`
+        `Albedo SI 30 FI 3 E0`
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
 
-    @checklist_command.command(name="add", aliases=["update"])
-    @check_config_permission("guild_manager")
-    async def add_hero(self, ctx: commands.Context, checklist: Checklist, hero: Hero,
-                       ascension: AscensionValue,
-                       signature_item: SignatureItemValue,
-                       furniture: FurnitureValue,
-                       engraving: EngravingValue):
+    @checklist_command.command(name="check")
+    async def check_roster(self, ctx: commands.Context, checklist: Checklist):
         """
-        Add a hero to a checklist
+        Check if you have all the required heroes required by `checklist` in
+            your roster
 
         Args:
             ctx (commands.Context): _description_
-            checklist (Checklist): Checklist to add to
-            hero (Hero): hero name, or id getting added
-            ascension (AscensionValue): Ascension level of hero being added
-            signature_item (SignatureItemValue): SI Level of hero being added
-            furniture (FurnitureValue): Furniture level of hero being added
-            engraving (EngravingValue): Engraving level of hero being added
+            checklist (Checklist): checklist getting checked against
         """
-        await self._add_hero(ctx, checklist, hero,
-                             ascension, signature_item, furniture, engraving)
+
+        await self._check_roster(ctx, checklist, ctx.author)
 
     @checklist_command.command(name="list", aliases=[])
     async def list_checklists(self, ctx: commands.Context):
@@ -90,8 +91,30 @@ class ChecklistCog(BaseChecklistCog):
             title=f"{checklist.name} checklist",
             description=heroes_string))
 
+    @checklist_command.command(name="add", aliases=["update"])
+    @check_config_permission("manager")
+    async def add_hero(self, ctx: commands.Context, checklist: Checklist, hero: Hero,
+                       ascension: AscensionValue,
+                       signature_item: SignatureItemValue,
+                       furniture: FurnitureValue,
+                       engraving: EngravingValue):
+        """
+        Add a hero to a checklist
+
+        Args:
+            ctx (commands.Context): _description_
+            checklist (Checklist): Checklist to add to
+            hero (Hero): hero name, or id getting added
+            ascension (AscensionValue): Ascension level of hero being added
+            signature_item (SignatureItemValue): SI Level of hero being added
+            furniture (FurnitureValue): Furniture level of hero being added
+            engraving (EngravingValue): Engraving level of hero being added
+        """
+        await self._add_hero(ctx, checklist, hero,
+                             ascension, signature_item, furniture, engraving)
+
     @checklist_command.command(name="remove")
-    @check_config_permission("guild_manager")
+    @check_config_permission("manager")
     async def remove_hero(self, ctx: commands.Context, checklist: Checklist,
                           hero: Hero):
         """
@@ -104,7 +127,7 @@ class ChecklistCog(BaseChecklistCog):
         await self._remove_hero(ctx, checklist, hero)
 
     @ checklist_command.command(name="create", aliases=["register"])
-    @ check_config_permission("guild_manager")
+    @ check_config_permission("manager")
     async def add_checklist(self, ctx: commands.Context, checklist_name: str,
                             description: str):
         """
@@ -120,7 +143,7 @@ class ChecklistCog(BaseChecklistCog):
         await self._add_checklist(ctx, checklist_name, description)
 
     @checklist_command.command(name="delete")
-    @check_config_permission("guild_manager")
+    @check_config_permission("manager")
     async def remove_checklist(self, ctx: commands.Context,
                                checklist: Checklist):
         """
@@ -131,19 +154,6 @@ class ChecklistCog(BaseChecklistCog):
             checklist (Checklist): checklist getting deleted
         """
         await self._remove_checklist(ctx, checklist)
-
-    @checklist_command.command(name="check")
-    async def check_roster(self, ctx: commands.Context, checklist: Checklist):
-        """
-        Check if you have all the required heroes required by `checklist` in
-            your roster
-
-        Args:
-            ctx (commands.Context): _description_
-            checklist (Checklist): checklist getting checked against
-        """
-
-        await self._check_roster(ctx, checklist, ctx.author)
 
 
 def setup(bot: "AlbedoBot"):

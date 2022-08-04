@@ -1,11 +1,11 @@
 import datetime
-from typing import TYPE_CHECKING
-from albedo_bot.database.schema.player import Player
+from typing import TYPE_CHECKING, Union
 
 from discord.ext import commands
 from discord import User
 
-from albedo_bot.utils.checks import _is_registered
+from albedo_bot.database.schema.player import Player
+from albedo_bot.utils.checks import _is_registered, check_config_permission
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
@@ -57,8 +57,9 @@ class BaseCog(commands.Cog, DatabaseMixin):
         self.bot = bot
         self.require_registration = require_registration
 
-    @commands.group(name="admin", allow_duplicate=True)
-    async def admin(self, ctx: commands.Context):
+    @commands.group(name="admin", allow_duplicate=True, cog=False)
+    @check_config_permission("admin")
+    async def admin(self, ctx: User):
         """
         A group of commands that require elevated permissions to run
 
@@ -76,13 +77,23 @@ class BaseCog(commands.Cog, DatabaseMixin):
     #     return super()._inject(bot)
 
     async def cog_after_invoke(self, ctx: commands.Context):
-        """_summary_
+        """
+        Used to invoke send_help when a command Group is invoked without a
+            subcommand
 
         Args:
             ctx (commands.Context): _description_
         """
 
-        if not ctx.invoked_subcommand and len(ctx.invoked_parents) == 0:
+        command: Union[commands.Command, commands.Group] = ctx.command
+
+        # Currently it is not possible to detect if a message has already
+        #   been sent on a ctx object. It is assumed that if a command failed
+        #   then the bot error handling has taken over. If a command did not
+        #   fail then we will send the help message for a group being invoked
+        # without a subcommand
+        if (not ctx.invoked_subcommand and len(ctx.invoked_parents) == 0 and
+                isinstance(command, commands.Group)):
             await self.send_help(ctx)
 
     async def send_help(self, ctx: commands.Context):

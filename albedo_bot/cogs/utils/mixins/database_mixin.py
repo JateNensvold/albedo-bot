@@ -189,7 +189,7 @@ class DatabaseMixin:
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 
-            raise DatabaseSessionError(embed_wrapper) from exception
+            raise DatabaseSessionError(embed_wrapper=embed_wrapper) from exception
 
     def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """

@@ -6,7 +6,6 @@ from discord import Role
 
 from albedo_bot.database.schema import Guild
 from albedo_bot.cogs.guild.utils.base_guild import BaseGuildCog
-from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.utils.errors import CogCommandError
 
@@ -26,28 +25,8 @@ class GuildCog(BaseGuildCog):
     """
     _summary_ = "A collections of commands for managing afk arena guilds"
 
-    @commands.group(name="guild")
-    async def guild(self, ctx: commands.Context):
-        """
-        A group of commands that deal with managing afk guilds through the bot
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-
     # pylint: disable=no-member
-    @BaseCog.admin.group(name="guild")
-    async def guild_admin(self, ctx: commands.Context):
-        """
-        A group of players commands that require elevated permissions to run
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-
-    @guild.command(name="add", aliases=["register"])
+    @BaseGuildCog.guild_admin.command(name="add", aliases=["register"])
     async def _add(self, ctx: commands.Context, guild_role: Role):
         """
         Add/register a new guild
@@ -75,7 +54,8 @@ class GuildCog(BaseGuildCog):
                 description=f"{guild_object} is already a registered guild")
             raise CogCommandError(embed_wrapper=embed_wrapper)
 
-    @guild.command(name="delete", aliases=["remove"])
+    # pylint: disable=no-member
+    @BaseGuildCog.guild_admin.command(name="delete", aliases=["remove"])
     async def delete(self, ctx: commands.Context, guild_role: Role):
         """
         Delete/Remove an existing guild registered with the bot
@@ -101,7 +81,8 @@ class GuildCog(BaseGuildCog):
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=f"Successfully removed guild {guild_object}"))
 
-    @guild.command(name="list")
+    # pylint: disable=no-member
+    @BaseGuildCog.guild_admin.command(name="list")
     async def _list(self, ctx: commands.Context):
         """
         List all guilds registered with the bot

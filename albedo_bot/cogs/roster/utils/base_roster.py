@@ -32,6 +32,17 @@ class BaseRosterCog(BaseCog):
         self.hero_alias = config.hero_alias
         super().__init__(bot)
 
+    # pylint: disable=no-member
+    @BaseCog.admin.group(name="roster")
+    async def roster_admin(self, ctx: commands.Context):
+        """
+        A group of players commands that require elevated permissions to run
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+
     async def add_hero(self, ctx: commands.Context, player: Member, hero: Hero,
                        ascension: AscensionValue,
                        signature_item: SignatureItemValue,
@@ -154,8 +165,22 @@ class BaseRosterCog(BaseCog):
             command_list = [str(attachment)]
             if config.VERBOSE:
                 command_list.append("-v")
-            roster_json = remote_compute_results(
-                config.PROCESSING_SERVER_ADDRESS, 15000, command_list)
+            try:
+                roster_json = remote_compute_results(
+                    config.PROCESSING_SERVER_ADDRESS,
+                    config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+                    command_list)
+            except Exception as exception:
+                embed_wrapper = EmbedWrapper(
+                    title="Roster Detection Failed",
+                    description=(
+                        f"Roster detection has failed due to `{exception}`.\n\n"
+                        f"Please contact an admin or {self.bot.owner_string} "
+                        f"and give them the image that failed, or upload the "
+                        "failed image into any debugging channels available"))
+                raise CogCommandError(
+                    embed_wrapper=embed_wrapper) from exception
+
             if config.VERBOSE:
                 pprint.pprint(roster_json.json_dict())
 
@@ -212,16 +237,19 @@ class BaseRosterCog(BaseCog):
             new_hero_instance = HeroInstance.from_instance_tuple(
                 hero_tuple, author_id)
             # New Hero
+            final_hero_instance: HeroInstance = hero_instance_result
             if hero_instance_result is None:
                 hero_tuple.hero_update_status = HeroUpdateStatus.NEW_HERO
                 updated_hero_list.append(hero_tuple)
+                final_hero_instance = new_hero_instance
             # Updated hero
             elif new_hero_instance > hero_instance_result:
                 hero_tuple.hero_update_status = HeroUpdateStatus.UPDATED_HERO
                 updated_hero_list.append(hero_tuple)
+                final_hero_instance.update_from_instance(new_hero_instance)
             else:
                 continue
-            self.bot.session.add(new_hero_instance)
+            self.bot.session.add(final_hero_instance)
 
         if len(updated_hero_list) == 0:
             heroes_result_str = "No Hero updates detected"
@@ -229,3 +257,23 @@ class BaseRosterCog(BaseCog):
             heroes_result_str = await self.fetch_heroes(updated_hero_list)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=heroes_result_str))
+
+    async def clear_roster(self, ctx: commands.Context, discord_user: User):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+            discord_user (User): _description_
+        """
+
+        hero_instances_select = self.db_select(HeroInstance).where(
+            HeroInstance.player_id == discord_user.id)
+
+        hero_instance_objects = await self.db_execute(
+            hero_instances_select).all()
+
+        for hero_instance_object in hero_instance_objects:
+            await self.db_delete(hero_instance_object)
+
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            description=(f"Roster cleared for {discord_user.mention}")))

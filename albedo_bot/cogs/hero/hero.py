@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
+
+from discord.ext import commands
+
 from albedo_bot.cogs.hero.utils.ascension_type import AscensionType
 from albedo_bot.cogs.hero.utils.hero_class import HeroClass
 from albedo_bot.cogs.hero.utils.hero_faction import HeroFaction
 from albedo_bot.cogs.hero.utils.hero_type import HeroType
-
-from discord.ext import commands
-
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.cogs.hero.utils.base_hero import BaseHeroCog
 from albedo_bot.utils.checks import check_config_permission
@@ -20,19 +20,8 @@ class HeroCog(BaseHeroCog):
     A group of commands used to manager a players AFK Arena roster
     """
 
-    @commands.group(name="hero")
-    async def hero(self, ctx: commands.Context):
-        """
-        A group of commands used to display information about AFK arena
-            characters, to view your AFK arena characters view the `roster`
-            command
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-
-    @hero.command(name="register", aliases=["add"])
+    # pylint: disable=no-member
+    @BaseHeroCog.hero_admin.command(name="register", aliases=["add"])
     @check_config_permission("guild_manager")
     async def register(self, ctx: commands.Context, hero_name: str,
                        hero_faction: HeroFaction, hero_class: HeroClass,
@@ -49,7 +38,8 @@ class HeroCog(BaseHeroCog):
         await self._add_hero(ctx, hero_name, hero_faction, hero_class,
                              hero_type, ascension_tier)
 
-    @hero.command(name="remove", aliases=["delete"])
+    # pylint: disable=no-member
+    @BaseHeroCog.hero_admin.command(name="remove", aliases=["delete"])
     @check_config_permission("guild_manager")
     async def remove(self, ctx: commands.Context, hero_name: Hero):
         """
@@ -62,7 +52,8 @@ class HeroCog(BaseHeroCog):
         """
         await self._remove_hero(ctx, hero_name)
 
-    @hero.command(name="show")
+    # pylint: disable=no-member
+    @BaseHeroCog.hero_admin.command(name="show")
     async def show(self, ctx: commands.Context, hero_name: str = None):
         """
         Shows all the heroes currently added to the database

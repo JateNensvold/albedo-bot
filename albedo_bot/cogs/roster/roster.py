@@ -106,6 +106,20 @@ class RosterCog(BaseRosterCog):
         await self._upload(ctx)
         await self.update_player(ctx.author)
 
+    # pylint: disable=no-member
+    @BaseRosterCog.roster_admin.command(name="clear")
+    async def clear(self, ctx: commands.Context, discord_user: User):
+        """
+        Clear a users roster, removing any dependencies preventing them from
+            being deleted from the bot
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+            discord_user (Member): discord users name, user mention, or user ID
+        """
+        await self.clear_roster(ctx, discord_user)
+
 
 def setup(bot: "AlbedoBot"):
     """_summary_

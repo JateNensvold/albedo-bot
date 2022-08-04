@@ -1,11 +1,11 @@
+import traceback
 from discord.ext import commands
 from discord import Role, Member
 
 from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
-from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.checks import check_config_permission
+from albedo_bot.utils.errors import CogCommandError, DatabaseSessionError
 
 
 class BasePlayerCog(BaseCog):
@@ -17,7 +17,6 @@ class BasePlayerCog(BaseCog):
 
     # pylint: disable=no-member
     @BaseCog.admin.group(name="player")
-    @check_config_permission("manager")
     async def player_admin(self, ctx: commands.Context):
         """
         A group of players commands that require elevated permissions to run
@@ -76,9 +75,14 @@ class BasePlayerCog(BaseCog):
         new_player = Player(discord_id=discord_member.id,
                             name=discord_member.name, guild_id=guild_role.id)
         self.bot.session.add(new_player)
+        bot_prefix = self.bot.default_prefix
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            description=(f"{discord_member.mention} registered "
-                         f"with {guild_result}")))
+            description=(f"{discord_member.mention} has been successfully "
+                         f"registered with {guild_result}.\n\nTo begin adding "
+                         "your hero roster to the bot use the command "
+                         f"`{bot_prefix}hero upload` with screenshots of your "
+                         "roster from the Heroes page in-game, or checkout the "
+                         f"other commands on the bot with `{bot_prefix}help`")))
 
     async def delete_player(self, ctx: commands.Context, player: Member):
         """
@@ -98,8 +102,17 @@ class BasePlayerCog(BaseCog):
                 description=f"Player {player.mention} is not registered")
             raise CogCommandError(embed_wrapper=embed_wrapper)
 
-        await self.db_delete(player_object)
+        try:
+            await self.db_delete(player_object)
+        except DatabaseSessionError as exception:
 
+            embed_wrapper = exception.embed_wrapper
+            embed_wrapper.description = (
+                f"{embed_wrapper.description}\n\n"
+                f"Try running '{self.bot.default_prefix}admin roster clear "
+                f"{player}' before this command")
+            raise CogCommandError(
+                embed_wrapper=exception.embed_wrapper) from exception
         select_guild = self.db_select(Guild).where(
             Guild.discord_id == player_object.guild_id)
         guild_object = await self.db_execute(select_guild).first()

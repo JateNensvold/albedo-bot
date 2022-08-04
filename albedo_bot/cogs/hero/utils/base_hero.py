@@ -13,6 +13,17 @@ class BaseHeroCog(BaseCog):
     """_summary_
     """
 
+    # pylint: disable=no-member
+    @BaseCog.admin.group(name="hero")
+    async def hero_admin(self, ctx: commands.Context):
+        """
+        A group of players commands that require elevated permissions to run
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+
     async def _find_hero(self, hero_name: Hero):
         """
         Search for a hero with the name 'hero_name' in the database. Return true if

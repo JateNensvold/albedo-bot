@@ -56,7 +56,8 @@ class HelpCog(command_module.MinimalHelpCommand):
             _type_: _description_
         """
         cog: command_module.Cog = command.cog
-        if cog is not None:
+        has_cog: bool = command.__original_kwargs__.get("cog", True)
+        if cog is not None and has_cog:
             matches = re.split(r"Cog", cog.qualified_name)
             return matches[0]
         else:
@@ -179,10 +180,15 @@ class HelpCog(command_module.MinimalHelpCommand):
         if note:
             self.paginator.add_line(note, empty=True)
 
-        filtered = await self.filter_commands(bot.commands, sort=True, key=self.get_category)
+        filtered: list[
+            command_module.core.Command] = await self.filter_commands(
+                bot.commands, sort=True, key=self.get_category)
         to_iterate = itertools.groupby(filtered, key=self.get_category)
 
+        print(filtered)
+
         for category, command_groups in to_iterate:
+            print(category, command_groups)
             command_groups = sorted(
                 command_groups, key=lambda c: c.name) \
                 if self.sort_commands else list(command_groups)

@@ -9,7 +9,6 @@ from albedo_bot.database.schema.player import Player
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
-from albedo_bot.utils.checks import check_config_permission
 
 
 if TYPE_CHECKING:
@@ -25,17 +24,7 @@ class PlayerCog(BasePlayerCog):
         commands (_type_): _description_
     """
 
-    @commands.group(name="player")
-    async def player(self, ctx: commands.Context):
-        """
-        A group of commands for managing players in an AFK guild
-
-        Args:
-            ctx (Context): invocation context containing information on how
-                a discord event/command was invoked
-        """
-
-    @player.command(name="register", aliases=["add"])
+    @commands.command(name="register", aliases=["add"], cog=False)
     async def register(self, ctx: commands.Context, guild: Role = None):
         """
         Registers yourself with the bot, guild can be specified or left blank
@@ -86,8 +75,8 @@ class PlayerCog(BasePlayerCog):
                 embed_wrapper = EmbedWrapper(
                     title="Player Error",
                     description=(
-                        f"{member_object.mention} needs to be in a guild before "
-                        "they can register"))
+                        f"{member_object.mention} needs to be in a guild "
+                        "before they can register"))
                 raise CogCommandError(embed_wrapper=embed_wrapper)
             elif len(guild_result) > 1:
                 member_guilds = ','.join(
@@ -95,11 +84,11 @@ class PlayerCog(BasePlayerCog):
                 embed_wrapper = EmbedWrapper(
                     title="Player Error",
                     description=(
-                        f"Cannot detect guild for user {member_object.mention}. "
-                        "To allow for automatic guild detection player must have "
-                        f"only one of the following roles ({member_guilds}) "
-                        "or should specify the <@guild-id> they are registering "
-                        "with"))
+                        "Cannot detect guild for user "
+                        f"{member_object.mention}. To allow for automatic "
+                        "guild detection player must have only one of the "
+                        f"following roles ({member_guilds}) or should specify "
+                        "the <@guild-id> they are registering with"))
                 raise CogCommandError(embed_wrapper=embed_wrapper)
 
             guild_role = discord.utils.get(
@@ -107,8 +96,8 @@ class PlayerCog(BasePlayerCog):
 
         await self.register_player(ctx, ctx.author, guild_role)
 
-    @player.command(name="list")
-    @check_config_permission("guild_manager")
+    # pylint: disable=no-member
+    @BasePlayerCog.player_admin.command(name="list")
     async def list(self, ctx: commands.Context, name_filter: str = None):
         """
         List all players registered with the bot, optionally filter players by

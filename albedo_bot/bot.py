@@ -64,18 +64,18 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
     Args:
         commands (_type_): _description_
     """
-    # Owner Id for tosh
-    tosh_id = "tosh#8118"
+    # Owner Id for toshd
+    owner_string = "@tosh#8118"
+    tosh_id = "<@270762725179654144>"
 
     description = ("AFK Arena Roster Management Bot Written by "
-                   f"`{tosh_id}`")
+                   f"{owner_string}")
 
-    help_description = \
-        """
-        To get started using the bot use the command `player register`
-        To register your roster check out the roster commands with `help roster`
-        To view more commands check out the categories below.
-        """
+    help_description = (
+        f"To get started using the bot use the command `{default_bot_prefix[0]}"
+        "register`.\n To register your roster check out the roster commands "
+        f"with `{default_bot_prefix[0]}help roster`.\n To view more commands "
+        "check out the categories below.")
 
     def __init__(self):
         intents = discord.Intents(
@@ -98,6 +98,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
                          allowed_mentions=allowed_mentions,
                          enable_debug_events=True,
                          help_command=HelpCog())
+
+        self.owner_id = self.tosh_id
 
         self.uptime: datetime = None
         self._emoji_cache: Dict[str, Emoji] = {}
@@ -220,19 +222,27 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
             command (Union[commands.Command, commands.Group]): _description_
         """
 
+        # Remove cog parameter of a command if its original kwarg specifies
+        #   it to be false
+
         parents = [parent.name for parent in command.parents]
+
         parents.append(command.name)
         full_name = f"{'.'.join(parents)}"
 
-        command_parent: str = command.__original_kwargs__.get("parent")
-        if command_parent:
-            command.parent = command_parent
-
         if full_name in self.command_cache:
-            # Checks kwargs of original command because monkey patching does
-            #   not work
+            # Checks kwargs of original command because monkey patching the
+            #   decorator creating commands does not work
             if command.__original_kwargs__.get(
                     "allow_duplicate") and full_name in self.command_cache:
+                original_command = self.command_cache[full_name]
+                # Remove previous command and replace with newest one
+                for sub_command_name, sub_command in command.all_commands.items():
+                    sub_command: commands.Command
+                    if sub_command.name not in original_command.all_commands:
+                        print(
+                            f"adding subcommand {full_name}: {sub_command_name}")
+                        original_command.add_command(sub_command)
                 return
         else:
             self.command_cache[full_name] = (command)

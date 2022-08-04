@@ -359,10 +359,23 @@ class HeroInstance(base, DatabaseMixin):
                 f"{str(self.signature_level).rjust(2, '0')}"
                 f"{self.furniture_level} E={self.engraving_level}")
 
+    def update_from_instance(self, new_instance: "HeroInstance"):
+        """
+        Update the current hero instance with another HeroInstance Object
+
+        Args:
+            now_instance (HeroInstance): _description_
+        """
+        return self.update(new_instance.signature_level,
+                           new_instance.furniture_level,
+                           new_instance.ascension_level,
+                           new_instance.engraving_level)
+
     def update(self, signature_level: Union[int, str],
-               furniture: Union[int, str], ascension: str,
+               furniture: Union[int, str], ascension: AscensionValues,
                engraving: Union[int, str]):
-        """_summary_
+        """
+        Update self with new values
 
         Args:
             signature_level (int): _description_
@@ -384,9 +397,9 @@ class HeroInstance(base, DatabaseMixin):
         if furniture > self.furniture_level:
             updated = True
             self.furniture_level = int(furniture)
-        if AscensionValues[ascension].value > self.ascension_level.value:
+        if ascension.value > self.ascension_level.value:
             updated = True
-            self.ascension_level = AscensionValues[ascension]
+            self.ascension_level = ascension
         if engraving > self.engraving_level:
             updated = True
             self.engraving_level = int(engraving)
