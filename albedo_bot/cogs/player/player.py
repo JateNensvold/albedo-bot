@@ -27,8 +27,8 @@ class PlayerCog(BasePlayerCog):
     @commands.command(name="register", cog=False)
     async def register(self, ctx: commands.Context, guild: Role = None):
         """
-        Registers yourself with the bot, guild can be specified or left blank
-            to allow for automatic detection
+        Register yourself with the bot and assign yourself a guild! The guild 
+        can be specified or left blank to allow for automatic detection
 
         Args:
             ctx (commands.Context): invocation context containing information on

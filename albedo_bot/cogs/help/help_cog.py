@@ -58,10 +58,12 @@ class HelpCog(command_module.MinimalHelpCommand):
         cog: command_module.Cog = command.cog
         has_cog: bool = command.__original_kwargs__.get("cog", True)
         if cog is not None and has_cog:
-            matches = re.split(r"Cog", cog.qualified_name)
-            return matches[0]
+            return "Command Groups"
+            # matches = re.split(r"Cog", cog.qualified_name)
+            # return matches[0]
         else:
-            return f'\u200b{self.no_category}'
+            return "Commands"
+            # return f'\u200b{self.no_category}'
 
     # pylint: disable=dangerous-default-value
     def parse_command_help(self, command_help: str, remove_commands=["ctx"]):
@@ -89,6 +91,8 @@ class HelpCog(command_module.MinimalHelpCommand):
                 valid_help_lines.add_highlighting = True
                 valid_help_lines.ignore_whitespace = True
                 continue
+            elif "raises" in stripped_help_line:
+                break
             elif len(stripped_help_line) == 0 and valid_help_lines.add_highlighting:
                 valid_help_lines.add_highlighting = False
                 valid_help_lines.ignore_whitespace = False
@@ -100,7 +104,8 @@ class HelpCog(command_module.MinimalHelpCommand):
                     lead_space_count = len(
                         remove_help_line) - len(remove_help_line.lstrip())
                     new_lead_space_count = -1
-                    while (remove_help_line_index + 1) < len(help_lines) and lead_space_count != new_lead_space_count:
+                    while ((remove_help_line_index + 1) < len(help_lines)
+                           and lead_space_count != new_lead_space_count):
                         remove_help_line_index += 1
                         remove_help_line = help_lines[remove_help_line_index]
                         new_lead_space_count = len(
@@ -159,6 +164,28 @@ class HelpCog(command_module.MinimalHelpCommand):
             raise DiscordPermissionError(embed_wrapper=embed_wrapper)
 
         return await super().send_group_help(group)
+
+    def add_bot_commands_formatting(self, commands: command_module.core.Group,
+                                    heading: str):
+        """Adds the minified bot heading with commands to the output.
+
+        The formatting should be added to the :attr:`paginator`.
+
+        The default implementation is a bold underline heading followed
+        by commands separated by an EN SPACE (U+2002) in the next line.
+
+        Parameters
+        -----------
+        commands: Sequence[:class:`Command`]
+            A list of commands that belong to the heading.
+        heading: :class:`str`
+            The heading to add to the line.
+        """
+        if commands:
+            # U+2002 Middle Dot
+            joined = '\u2002'.join(c.name for c in commands)
+            self.paginator.add_line(f'__**{heading}**__')
+            self.paginator.add_line(joined)
 
     async def send_bot_help(self, mapping: Union[
             dict[command_module.Cog, list[command_module.core.Group]], None]):
