@@ -143,7 +143,6 @@ class Hero(base, commands.Converter, DatabaseMixin):
                     Hero).where(Hero.name.ilike(f"{argument}%"))
                 hero_instances_result = await self.db_execute(
                     hero_instances_select).all()
-                print(hero_instances_result)
 
                 if len(hero_instances_result) == 1:
                     hero_instance_result = hero_instances_result[0]

@@ -132,16 +132,15 @@ class OwnerCog(BaseOwnerCog):
             title="Loaded Modules", description=module_list))
 
     @owner.command(name="listc")
-    async def list_commands(self, ctx:Context):
+    async def list_commands(self, ctx: Context):
         """_summary_
 
         Args:
             ctx (Context): _description_
         """
-        print(self.bot.all_commands)
-        command_list = [f"`{key}`: {repr(value)}" for key, value in self.bot.all_commands.items()]
+        command_list = [f"`{key}`: {repr(value)}"
+                        for key, value in self.bot.all_commands.items()]
         await send_embed(ctx, EmbedWrapper(description="\n".join(command_list)))
-
 
     @owner.command()
     async def unload(self, ctx: Context, *, module):

@@ -1,4 +1,3 @@
-import traceback
 from discord.ext import commands
 from discord import Role, Member
 

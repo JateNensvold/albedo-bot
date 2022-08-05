@@ -24,7 +24,7 @@ class PlayerCog(BasePlayerCog):
         commands (_type_): _description_
     """
 
-    @commands.command(name="register", aliases=["add"], cog=False)
+    @commands.command(name="register", cog=False)
     async def register(self, ctx: commands.Context, guild: Role = None):
         """
         Registers yourself with the bot, guild can be specified or left blank

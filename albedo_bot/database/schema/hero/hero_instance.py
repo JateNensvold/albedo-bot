@@ -235,12 +235,13 @@ class HeroList(DatabaseMixin, EmojiMixin):
                 Hero.id == hero_id)
             hero_result = await self.db_execute(hero_select).first()
 
-            if hero_result is None:
-                hero_emoji = emoji.grey_question
-            else:
+            try:
                 portrait_name, _portrait_extension = os.path.splitext(
                     os.path.basename(hero_result.hero_portrait))
                 hero_emoji = str(self.get_emoji(portrait_name))
+            # pylint: disable=broad-except
+            except Exception as _exception:
+                hero_emoji = emoji.grey_question
 
             if isinstance(hero_tuple, MissingHero):
                 checklist_hero_str = self.hero_str(

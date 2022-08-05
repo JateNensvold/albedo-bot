@@ -185,10 +185,7 @@ class HelpCog(command_module.MinimalHelpCommand):
                 bot.commands, sort=True, key=self.get_category)
         to_iterate = itertools.groupby(filtered, key=self.get_category)
 
-        print(filtered)
-
         for category, command_groups in to_iterate:
-            print(category, command_groups)
             command_groups = sorted(
                 command_groups, key=lambda c: c.name) \
                 if self.sort_commands else list(command_groups)
