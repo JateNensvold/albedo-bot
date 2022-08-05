@@ -89,13 +89,11 @@ class EmbedWrapper:
 
         return total
 
-
     def check_char_limit(self):
-        
+
         if self.char_limit() < 6000 and len(self.description) < 4096:
             return True
         return False
-
 
     def split_embed(self):
         """
@@ -286,7 +284,8 @@ async def send_message(ctx: Context, message: str, header: str = "",
 async def send_embed(ctx: Context,
                      embed_wrapper: EmbedWrapper = None,
                      embed: Embed = None,
-                     reply: bool = True, mention_author: bool = False,
+                     reply: bool = True,
+                     mention_author: bool = False,
                      embed_color: str = "green",
                      emoji: str = white_check_mark):
     """_summary_

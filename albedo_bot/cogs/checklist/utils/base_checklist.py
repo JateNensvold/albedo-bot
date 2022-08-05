@@ -219,7 +219,7 @@ class BaseChecklistCog(BaseCog):
         heroes_str = await checklist_compare.format_heroes()
 
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            title=f"Missing Heroes for checklist {checklist.name}",
+            title=f"Missing Heroes for checklist \"{checklist.name}\"",
             description=(
                 f"{roster_user.mention} is missing the following heroes\n"
                 f"{heroes_str}")))

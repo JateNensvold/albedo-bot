@@ -133,9 +133,18 @@ class Hero(base, commands.Converter, DatabaseMixin):
                     hero_instance_select).first()
             except ValueError as exception:
                 hero_instances_select = self.db_select(
+                    Hero).where(Hero.name == argument)
+                hero_instances_result = await self.db_execute(
+                    hero_instances_select).all()
+                if len(hero_instances_result) == 1:
+                    return hero_instances_result[0]
+
+                hero_instances_select = self.db_select(
                     Hero).where(Hero.name.ilike(f"{argument}%"))
                 hero_instances_result = await self.db_execute(
                     hero_instances_select).all()
+                print(hero_instances_result)
+
                 if len(hero_instances_result) == 1:
                     hero_instance_result = hero_instances_result[0]
                 elif len(hero_instances_result) == 0 and argument in hero_alias:
@@ -144,10 +153,18 @@ class Hero(base, commands.Converter, DatabaseMixin):
                         Hero.name == hero_database_name)
                     hero_instance_result = await self.db_execute(
                         hero_instance_select).first()
-                else:
+                elif len(hero_instances_result) == 0:
                     raise commands.BadArgument(
-                        f"Invalid hero name `{argument}` too  many `Hero` "
-                        f"matches ({hero_instances_result})") from exception
+                        (f"Invalid hero name `{argument}` no hero matches "
+                         "that name")) from exception
+                else:
+                    hero_names = [f"(\"{hero.name}\", {hero.id})"
+                                  for hero in hero_instances_result]
+                    hero_names_str = ", ".join(hero_names)
+                    raise commands.BadArgument(
+                        f"Invalid hero name `{argument}` too many Hero "
+                        "matches. Choose one of the following heroes "
+                        f"`[{hero_names_str}]`") from exception
             if hero_instance_result is None:
                 raise AssertionError
             return hero_instance_result

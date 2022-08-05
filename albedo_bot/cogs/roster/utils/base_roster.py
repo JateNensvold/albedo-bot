@@ -9,14 +9,15 @@ from image_processing.processing_client import remote_compute_results
 import albedo_bot.config as config
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import (
-    EmbedWrapper, send_embed, send_embed_exception)
+from albedo_bot.utils.message import (EmbedWrapper, send_embed)
 from albedo_bot.cogs.hero.utils import (
     AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (
     Hero, HeroInstance, HeroInstanceData, HeroList, AscensionValues)
 from albedo_bot.database.schema.hero.hero_instance import (
     HeroUpdateStatus)
+from albedo_bot.utils import emoji
+
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
@@ -31,6 +32,11 @@ class BaseRosterCog(BaseCog):
     def __init__(self, bot: "AlbedoBot"):
         self.hero_alias = config.hero_alias
         super().__init__(bot)
+
+        self.failed_roster_str = (
+            f"Please contact an admin or {bot.owner_string} "
+            f"and give them the image that failed, or upload the "
+            "failed image into any debugging channels available")
 
     # pylint: disable=no-member
     @BaseCog.admin.group(name="roster")
@@ -159,6 +165,7 @@ class BaseRosterCog(BaseCog):
 
         detected_hero_dict: dict[str, int] = {}
         detected_hero_list: list[HeroInstanceData] = []
+        unknown_hero_list: list[HeroInstanceData] = []
 
         for image_number, attachment in enumerate(ctx.message.attachments):
 
@@ -175,9 +182,7 @@ class BaseRosterCog(BaseCog):
                     title="Roster Detection Failed",
                     description=(
                         f"Roster detection has failed due to `{exception}`.\n\n"
-                        f"Please contact an admin or {self.bot.owner_string} "
-                        f"and give them the image that failed, or upload the "
-                        "failed image into any debugging channels available"))
+                        f"{self.failed_roster_str}"))
                 raise CogCommandError(
                     embed_wrapper=embed_wrapper) from exception
 
@@ -199,13 +204,17 @@ class BaseRosterCog(BaseCog):
                     hero_result = await self.db_execute(hero_select).first()
 
                 if not hero_result:
-                    await send_embed_exception(
-                        ctx, CogCommandError(embed_wrapper=EmbedWrapper(
-                            title="Unknown Hero Detected",
-                            description=(
-                                "Unable to find detected hero with "
-                                f"name: '{detected_hero_data.name}' in image "
-                                f"{image_number}, position {detected_index}"))))
+                    unknown_hero_tuple = HeroInstanceData(
+                        hero_name=(
+                            f"Image {image_number}, Position {detected_index} "
+                            f"- {detected_hero_data.name}"),
+                        hero_id=None,
+                        signature_level=detected_hero_data.signature_item.label,
+                        furniture_level=detected_hero_data.furniture.label,
+                        ascension_level=AscensionValues[
+                            detected_hero_data.ascension.label],
+                        engraving_level=detected_hero_data.engraving.label)
+                    unknown_hero_list.append(unknown_hero_tuple)
                     continue
 
                 hero_tuple = HeroInstanceData(
@@ -255,8 +264,23 @@ class BaseRosterCog(BaseCog):
             heroes_result_str = "No Hero updates detected"
         else:
             heroes_result_str = await self.fetch_heroes(updated_hero_list)
-        await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            description=heroes_result_str))
+
+        description = heroes_result_str
+        send_embed_kwargs = {}
+        if len(unknown_hero_list) > 0:
+            unknown_heroes_result_str = await self.fetch_heroes(
+                unknown_hero_list)
+            description = (
+                f"{description}\n\n"
+                "```The following unknown heroes were found in your roster\n"
+                f"{self.failed_roster_str}```\n"
+                f"{unknown_heroes_result_str}")
+            send_embed_kwargs["embed_color"] = "yellow"
+            send_embed_kwargs["emoji"] = emoji.warning
+
+        await send_embed(ctx,
+                         embed_wrapper=EmbedWrapper(description=description),
+                         **send_embed_kwargs)
 
     async def clear_roster(self, ctx: commands.Context, discord_user: User):
         """_summary_

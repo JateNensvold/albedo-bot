@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from typing import Union, TYPE_CHECKING
+from albedo_bot.utils import emoji
 
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
 from sqlalchemy import Enum as SQLEnum
@@ -234,9 +235,13 @@ class HeroList(DatabaseMixin, EmojiMixin):
                 Hero.id == hero_id)
             hero_result = await self.db_execute(hero_select).first()
 
-            portrait_name, _portrait_extension = os.path.splitext(
-                os.path.basename(hero_result.hero_portrait))
-            hero_emoji = str(self.get_emoji(portrait_name))
+            if hero_result is None:
+                hero_emoji = emoji.grey_question
+            else:
+                portrait_name, _portrait_extension = os.path.splitext(
+                    os.path.basename(hero_result.hero_portrait))
+                hero_emoji = str(self.get_emoji(portrait_name))
+
             if isinstance(hero_tuple, MissingHero):
                 checklist_hero_str = self.hero_str(
                     hero_tuple.checklist_hero,
@@ -259,7 +264,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
         output = f"{message}"
         return output
 
-    def hero_str(self, hero_tuple: HeroInstanceData, emoji: str,
+    def hero_str(self, hero_tuple: HeroInstanceData, emoji_str: str,
                  prefix: str):
         """
         Generate a hero attribute string
@@ -274,7 +279,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
 
         hero_str = (
             f"{prefix_str}"
-            f"{emoji} "
+            f"{emoji_str} "
             # f"{hero_tuple.hero_update_status.value} "
             f"`{hero_tuple.hero_name: <{self.longest_name}} "
             f"{hero_tuple.ascension_level.name: <{3}} "
