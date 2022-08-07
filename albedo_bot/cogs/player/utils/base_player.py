@@ -1,5 +1,6 @@
+import discord
 from discord.ext import commands
-from discord import Role, Member
+from discord import Role, Member, User
 
 from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
@@ -79,7 +80,7 @@ class BasePlayerCog(BaseCog):
             description=(f"{discord_member.mention} has been successfully "
                          f"registered with {guild_result}.\n\nTo begin adding "
                          "your hero roster to the bot use the command "
-                         f"`{bot_prefix}hero upload` with screenshots of your "
+                         f"`{bot_prefix}roster upload` with screenshots of your "
                          "roster from the Heroes page in-game, or checkout the "
                          f"other commands on the bot with `{bot_prefix}help`")))
 
@@ -135,3 +136,35 @@ class BasePlayerCog(BaseCog):
 
         players_result = await self.db_execute(players_select).all()
         return players_result
+
+    async def _unregistered(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+
+        guild: discord.Guild = ctx.guild
+
+        member_dict: dict[int, Member] = {
+            member.id: member for member in guild.members}
+
+        select_player = self.db_select(Player).where(
+            Player.discord_id.in_(member_dict))
+        registered_players = await self.db_execute(select_player).all()
+
+        for registered_player in registered_players:
+            del member_dict[registered_player.discord_id]
+
+        member_list: list[Member] = []
+        for member_id, member in member_dict.items():
+            if not member.bot:
+                member_list.append(
+                    f"member_id={member_id}, name={member.mention}")
+
+        member_list_str = "\n".join(member_list)
+        await send_embed(ctx, embed_wrapper=EmbedWrapper(
+            title=f"Unregistered players in \"{guild.name}\"",
+            description=(
+                f"`There are currently {len(member_list)} unregistered users "
+                f"on this server`\n{member_list_str}")))

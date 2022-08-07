@@ -23,18 +23,33 @@ class SelectWrapper(Generic[S]):
         Generic (_type_): _description_
     """
 
-    def __init__(self, schema: S):
+    def __init__(self, *schema: S):
         """_summary_
 
         Args:
             schema (S): _description_
         """
-        self.select: Select = select(schema)
+        self.select: Select = select(*schema)
 
     def where(self, *args):
         """_summary_
         """
         self.select = self.select.where(*args)
+        return self
+
+    def join(self, *args):
+        """_summary_
+        """
+        self.select = self.select.join(*args)
+        return self
+
+    def order_by(self, *args):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
+        self.select = self.select.order_by(*args)
         return self
 
 
@@ -48,6 +63,23 @@ def select_wrapper(schema: S) -> SelectWrapper[S]:
         SelectWrapper[S]: _description_
     """
     return SelectWrapper(schema)
+
+
+def _execution_decorator():  # pylint: disable=no-method-argument
+    """
+    Decorator for any method that interacts with the 'execution_result'
+        i.e it automatically calls _execute before that result is accessed
+    """
+    def wrapper(func):
+        @functools.wraps(func)
+        async def wrapped(self: "ScalarWrapper", *args, **kwargs):
+            """
+            Execute select statement before 'func' is called
+            """
+            await self._execute()  # pylint: disable=protected-access
+            return await func(self, *args, **kwargs)
+        return wrapped
+    return wrapper
 
 
 class ScalarWrapper(Generic[S]):
@@ -67,6 +99,7 @@ class ScalarWrapper(Generic[S]):
         self.bot = bot
         self.select_object = select_object
         self.execution_result: ChunkedIteratorResult = None
+        self.executed = False
 
     async def _execute(self):
         """_summary_
@@ -74,24 +107,10 @@ class ScalarWrapper(Generic[S]):
         Returns:
             _type_: _description_
         """
-        self.execution_result: ChunkedIteratorResult = (
-            await self.bot.session.execute(self.select_object.select))
-
-    def _execution_decorator():  # pylint: disable=no-method-argument
-        """
-        Decorator for any method that interacts with the 'execution_result'
-            i.e it automatically calls _execute before that result is accessed
-        """
-        def wrapper(func):
-            @functools.wraps(func)
-            async def wrapped(self: "ScalarWrapper", *args, **kwargs):
-                """
-                Execute select statement before 'func' is called
-                """
-                await self._execute()  # pylint: disable=protected-access
-                return await func(self, *args, **kwargs)
-            return wrapped
-        return wrapper
+        if not self.executed:
+            self.execution_result: ChunkedIteratorResult = (
+                await self.bot.session.execute(self.select_object.select))
+            self.executed = True
 
     @_execution_decorator()
     async def all(self) -> List[S]:
@@ -103,6 +122,15 @@ class ScalarWrapper(Generic[S]):
         return self.execution_result.scalars().all()
 
     @_execution_decorator()
+    async def all_objects(self) -> List[S]:
+        """_summary_
+
+        Returns:
+            List[S]: _description_
+        """
+        return self.execution_result.all()
+
+    @_execution_decorator()
     async def first(self) -> Union[S, None]:
         """
         Return the first result found
@@ -111,6 +139,16 @@ class ScalarWrapper(Generic[S]):
             S: Result object when result is found, None otherwise
         """
         return self.execution_result.scalars().first()
+
+    @_execution_decorator()
+    async def raw(self) -> Union[S, None]:
+        """
+        Return the raw scalar results
+
+        Returns:
+            S: Result object when result is found, None otherwise
+        """
+        return self.execution_result
 
 
 def scalar_wrapper(bot: "AlbedoBot", select_object: SelectWrapper[S]):
@@ -133,7 +171,7 @@ class DatabaseMixin:
     # def __init__(self):
     bot: "AlbedoBot"
 
-    def db_select(self, schema: S) -> SelectWrapper[S]:
+    def db_select(self, *schema: S) -> SelectWrapper[S]:
         """
         Create a SelectWrapper that wraps the select statement created from
             sqlalchemy.select, this allows for type checking/hinting to be kept
@@ -146,7 +184,7 @@ class DatabaseMixin:
             S: SelectWrapper around select statement
         """
 
-        return SelectWrapper(schema)
+        return SelectWrapper(*schema)
 
     async def db_add(self, database_object: Any):
         """_summary_
@@ -189,7 +227,8 @@ class DatabaseMixin:
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 
-            raise DatabaseSessionError(embed_wrapper=embed_wrapper) from exception
+            raise DatabaseSessionError(
+                embed_wrapper=embed_wrapper) from exception
 
     def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """

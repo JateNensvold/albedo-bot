@@ -3,7 +3,7 @@ from time import time
 from typing import NamedTuple
 
 from discord.ext.commands.context import Context
-from discord import Embed
+from discord import Embed, Message, File
 
 from image_processing.utils.color_helper import MplColorHelper
 
@@ -64,7 +64,8 @@ class EmbedWrapper:
             text it currently has
         """
         if self.duration:
-            duration_message = f"{hourglass} Executed in {self.duration:.2f} seconds"
+            duration_message = (f"{hourglass} Executed in {self.duration:.2f} "
+                                "seconds")
             if self.footer == "":
                 self.footer = duration_message
             else:
@@ -90,6 +91,11 @@ class EmbedWrapper:
         return total
 
     def check_char_limit(self):
+        """_summary_
+
+        Returns:
+            _type_: _description_
+        """
 
         if self.char_limit() < 6000 and len(self.description) < 4096:
             return True
@@ -287,25 +293,48 @@ async def send_embed(ctx: Context,
                      reply: bool = True,
                      mention_author: bool = False,
                      embed_color: str = "green",
-                     emoji: str = white_check_mark):
-    """_summary_
+                     emoji: str = white_check_mark,
+                     edit_message: Message = None,
+                     file: File = None):
+    """
+    Send an embed Message containing `embed`. If an `embed_wrapper` is provided
+        an embed will be constructed from it.
+
 
     Args:
         ctx (Context): _description_
-        embed (Embed): _description_
+        embed_wrapper (EmbedWrapper, optional): Embed wrapper to construct an
+            embed out of. Defaults to None.
+        embed (Embed, optional): Embed to send. Defaults to None.
+        reply (bool, optional): reply to the original message in the embed
+            message. Defaults to True.
+        mention_author (bool, optional): mention discord users in the message
+            when True. Defaults to False.
+        embed_color (str, optional): Color to set the embed colors to.
+            Defaults to "green".
+        emoji (str, optional): Emoji to put at the start of the embed Title.
+            Defaults to white_check_mark.
+        edit_message (Message, optional): When a message is provided it means
+            that the embed that would get sent in the message should instead be
+            attached to the message provided . Defaults to None.
+
+    Returns:
+        (list[Message] | Message): returns the messages generated to send the
+            embeds
     """
+    sent_file = file
     if not embed:
         color = MplColorHelper().get_unicode(embed_color)
 
         if embed_wrapper.duration is None:
-            embed_wrapper.duration = time()-ctx.start_time
+            embed_wrapper.duration = time() - ctx.start_time
             embed_wrapper.create_footer()
 
         if not embed_wrapper.check_char_limit():
             embed_wrapper_list = embed_wrapper.split_embed()
         else:
             embed_wrapper_list = [embed_wrapper]
-
+        message_list: list[Message] = []
         for current_embed_wrapper in embed_wrapper_list:
             embed = Embed(
                 color=color,
@@ -324,16 +353,45 @@ async def send_embed(ctx: Context,
                 embed.add_field(name=embed_field.name,
                                 value=embed_field.value)
 
-            if reply:
-                await ctx.reply(embed=embed, mention_author=mention_author)
-            else:
-                await ctx.send(embed=embed)
-        return
+            last_message = await _send_embed(
+                ctx, embed, reply, edit_message, mention_author, file=sent_file)
+            message_list.append(last_message)
+            if sent_file is not None:
+                sent_file = None
+        if len(message_list) == 1:
+            return message_list[0]
+        else:
+            return message_list
+    return await _send_embed(ctx, embed, reply, edit_message, mention_author, file)
+
+
+async def _send_embed(ctx: Context,
+                      embed: Embed,
+                      reply: bool,
+                      edit_message: Message,
+                      mention_author: bool,
+                      file: File) -> Message:
+    """
+    Do the sending/editing of a message and return the response
+
+    Args:
+        ctx (Context): _description_
+        embed (Embed): _description_
+        reply (bool): _description_
+        edit_message (Message): _description_
+        mention_author (bool): _description_
+
+    Returns:
+        Message: _description_
+    """
+    if edit_message is not None:
+        return await edit_message.edit(embed=embed)
 
     if reply:
-        await ctx.reply(embed=embed, mention_author=mention_author)
+        return await ctx.reply(embed=embed, mention_author=mention_author,
+                               file=file)
     else:
-        await ctx.send(embed=embed)
+        return await ctx.send(embed=embed, file=file)
 
 
 async def send_embed_exception(ctx: Context, exception: MessageError, **kwargs):

@@ -158,6 +158,16 @@ class PlayerCog(BasePlayerCog):
         """
         await self.delete_player(ctx, guild_member)
 
+    # pylint: disable=no-member
+    @BasePlayerCog.player_admin.command(name="unregistered")
+    async def unregistered(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+        await self._unregistered(ctx)
+
 
 def setup(bot: "AlbedoBot"):
     """_summary_

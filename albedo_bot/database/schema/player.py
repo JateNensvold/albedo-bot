@@ -6,7 +6,8 @@ from albedo_bot.database.schema.base import base
 
 
 class Player(base):
-    """[summary]
+    """
+    AlbedoBot player Schema
     """
 
     __tablename__ = "players"

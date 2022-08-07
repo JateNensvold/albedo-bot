@@ -118,7 +118,18 @@ class RosterCog(BaseRosterCog):
                 a discord event/command was invoked
             discord_user (Member): discord users name, user mention, or user ID
         """
+
         await self.clear_roster(ctx, discord_user)
+
+    # pylint: disable=no-member
+    @BaseRosterCog.roster_admin.command(name="dump")
+    async def dump(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+        await self.dump_rosters(ctx)
 
 
 def setup(bot: "AlbedoBot"):

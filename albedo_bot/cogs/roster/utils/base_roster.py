@@ -1,12 +1,20 @@
 
+from datetime import datetime
 import pprint
-from typing import TYPE_CHECKING, List
+import io
+from sqlalchemy import select
 
+from typing import TYPE_CHECKING, List
+import jsonpickle
 from discord.ext import commands
-from discord import Member, User
+from discord import Member, User, Message, File
+
+from image_processing.afk.hero.hero_data import RosterJson
 from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
+from albedo_bot.database.schema.guild import Guild
+from albedo_bot.database.schema.player import Player
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import (EmbedWrapper, send_embed)
@@ -167,16 +175,32 @@ class BaseRosterCog(BaseCog):
         detected_hero_list: list[HeroInstanceData] = []
         unknown_hero_list: list[HeroInstanceData] = []
 
+        temporary_holdover_message: Message = None
         for image_number, attachment in enumerate(ctx.message.attachments):
+            embed_wrapper = EmbedWrapper(
+                title="Processing Roster... ",
+                description=(f"Currently processing image {image_number}"))
+            if temporary_holdover_message is None:
 
+                temporary_holdover_message = await send_embed(
+                    ctx, embed_wrapper=embed_wrapper)
+            else:
+                await send_embed(ctx,
+                                 embed_wrapper=embed_wrapper,
+                                 edit_message=temporary_holdover_message)
             command_list = [str(attachment)]
             if config.VERBOSE:
                 command_list.append("-v")
             try:
-                roster_json = remote_compute_results(
+                roster_json_str = remote_compute_results(
                     config.PROCESSING_SERVER_ADDRESS,
                     config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
                     command_list)
+                try:
+                    roster_json = RosterJson.from_json(roster_json_str)
+                except Exception as serialization_exception:
+                    error_message = jsonpickle.decode(roster_json_str)
+                    raise Exception(error_message) from serialization_exception
             except Exception as exception:
                 embed_wrapper = EmbedWrapper(
                     title="Roster Detection Failed",
@@ -192,22 +216,27 @@ class BaseRosterCog(BaseCog):
             for detected_index, detected_hero_data in enumerate(
                     roster_json.hero_data_list):
 
-                if detected_hero_data.name in self.hero_alias:
+                if detected_hero_data.name.valid_match():
+                    detected_hero_name = detected_hero_data.name.hero_name
+                else:
+                    detected_hero_name = str(detected_hero_data.name)
+
+                if detected_hero_name in self.hero_alias:
                     hero_database_name = self.hero_alias.get(
-                        detected_hero_data.name)
+                        detected_hero_name)
                     hero_select = self.db_select(Hero).where(
                         Hero.name == hero_database_name)
                     hero_result = await self.db_execute(hero_select).first()
                 else:
                     hero_select = self.db_select(Hero).where(
-                        Hero.name.ilike(f"{detected_hero_data.name}%"))
+                        Hero.name.ilike(f"{detected_hero_name}%"))
                     hero_result = await self.db_execute(hero_select).first()
 
                 if not hero_result:
                     unknown_hero_tuple = HeroInstanceData(
                         hero_name=(
                             f"Image {image_number}, Position {detected_index} "
-                            f"- {detected_hero_data.name}"),
+                            f"- {detected_hero_name}"),
                         hero_id=None,
                         signature_level=detected_hero_data.signature_item.label,
                         furniture_level=detected_hero_data.furniture.label,
@@ -278,6 +307,9 @@ class BaseRosterCog(BaseCog):
             send_embed_kwargs["embed_color"] = "yellow"
             send_embed_kwargs["emoji"] = emoji.warning
 
+        # Delete the holdover message
+        await temporary_holdover_message.delete()
+
         await send_embed(ctx,
                          embed_wrapper=EmbedWrapper(description=description),
                          **send_embed_kwargs)
@@ -301,3 +333,70 @@ class BaseRosterCog(BaseCog):
 
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=(f"Roster cleared for {discord_user.mention}")))
+
+    async def dump_rosters(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+
+        hero_instance_select = self.db_select(
+            HeroInstance, Player, Hero, Guild
+        ).join(
+            HeroInstance, Player.discord_id == HeroInstance.player_id
+        ).join(
+            Hero, Hero.id == HeroInstance.hero_id
+        ).join(
+            Guild, Guild.discord_id == Player.guild_id
+        ).order_by(
+            Player.discord_id)
+        player_roster_rows = await self.db_execute(
+            hero_instance_select).all_objects()
+        temporary_message_description = "Fetching information from database..."
+
+        temporary_message = await send_embed(
+            ctx, embed_wrapper=EmbedWrapper(
+                title="Dumping player rosters...",
+                description=temporary_message_description))
+
+        temporary_message_description = (
+            f"{temporary_message_description} selected "
+            f"{len(player_roster_rows)} rows\n Generating CSV...")
+
+        await send_embed(
+            ctx,
+            embed_wrapper=EmbedWrapper(
+                title="Generating CSV...",
+                description=temporary_message_description),
+            edit_message=temporary_message)
+
+        hero_instance_strings: list[str] = []
+        player_set = set()
+
+        for hero_row in player_roster_rows:
+
+            hero_instance: HeroInstance = hero_row[0]
+            player: Player = hero_row[1]
+            hero: Hero = hero_row[2]
+            guild: Guild = hero_row[3]
+            player_set.add(player.discord_id)
+
+            hero_instance_str = (
+                f"{player.name},{guild.name},{hero.name},"
+                f"{hero_instance.ascension_level},"
+                f"{hero_instance.signature_level},"
+                f"{hero_instance.furniture_level},"
+                f"{hero_instance.engraving_level}")
+            hero_instance_strings.append(hero_instance_str)
+
+        buffer = io.BytesIO(str.encode("\n".join(hero_instance_strings)))
+        discord_file = File(
+            buffer, filename=f"players_hero_dump_{str(datetime.now())}.csv")
+
+        await temporary_message.delete()
+        await send_embed(ctx,
+                         embed_wrapper=EmbedWrapper(description=(
+                             f"Dumped {len(player_roster_rows)} lines, from "
+                             f"{len(player_set)} players")),
+                         file=discord_file)
