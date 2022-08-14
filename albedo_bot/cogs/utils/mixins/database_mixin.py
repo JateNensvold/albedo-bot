@@ -187,7 +187,8 @@ class DatabaseMixin:
         return SelectWrapper(*schema)
 
     async def db_add(self, database_object: Any):
-        """_summary_
+        """
+        Add/Update an Sqlalchemy object so its persisted in the database
 
         Args:
             database_object (Any): _description_
@@ -201,8 +202,8 @@ class DatabaseMixin:
         """
         Delete an object from the database
 
-        *Note, while in the same transaction calls after deleting from the
-            database may fail with the following
+        *Note, while in the same transaction after calling this function calls
+            to the database may fail with the following
 
             ```
             MissingGreenlet: greenlet_spawn has not been called; can't call
@@ -223,7 +224,7 @@ class DatabaseMixin:
             await self.bot.session.commit()
         except Exception as exception:
             await self.bot.session.rollback()
-            await self.bot.session.refresh(database_object)
+            # await self.bot.session.refresh(database_object)
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 

@@ -1,3 +1,6 @@
+from albedo_bot.cogs.player.utils.availability_select import AvailabilitySelect
+from albedo_bot.cogs.player.utils.timezone_select import TimezoneSelect
+from albedo_bot.utils.select import SelectView
 import discord
 from discord.ext import commands
 from discord import Role, Member
@@ -6,7 +9,6 @@ from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed, send_message
 from albedo_bot.utils.errors import CogCommandError, DatabaseSessionError
-from albedo_bot.cogs.utils.converters.timezone import build_view
 
 
 class BasePlayerCog(BaseCog):
@@ -172,6 +174,24 @@ class BasePlayerCog(BaseCog):
                 f"`There are currently {len(member_list)} unregistered users "
                 f"on this server`\n{member_list_str}")))
 
+    async def build_view(self, author: Member):
+        """
+        Build a View with both a TimezoneSelect and AvailabilitySelect in it
+
+        Args:
+            author (Member): member to build a view for
+
+        Returns:
+            SelectView: view containing several Select options
+                tailored to `author`
+        """
+        timezone_selection = await TimezoneSelect.build_selection(
+            self.bot, author)
+        availability_selection = await AvailabilitySelect.build_selection(
+            self.bot, author)
+
+        return SelectView([timezone_selection, availability_selection])
+
     async def _set_timezone(self, ctx: commands.Context):
         """_summary_
 
@@ -184,4 +204,4 @@ class BasePlayerCog(BaseCog):
             ctx,
             message=("Select your timezone and availability for when you can "
                      "play AFK Arena!"),
-            view=build_view(self.bot, ctx.author))
+            view=await self.build_view(ctx.author))

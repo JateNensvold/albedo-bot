@@ -14,5 +14,5 @@ class PlayerElderTree(base):
     __tablename__ = "player_elder_tree"
     player_id = Column(BIGINT, ForeignKey(
         "players.discord_id"), primary_key=True)
-    hero_id = Column(Integer, ForeignKey("heroes.id"), primary_key=True)
+    branch_level = Column(Integer)
     tree_branch = Column(SQLEnum(ElderTreeTypesEnum), primary_key=True)

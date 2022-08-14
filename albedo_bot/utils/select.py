@@ -1,30 +1,18 @@
 
-import datetime
-from typing import Any, Awaitable, Callable, TYPE_CHECKING, Union
+from typing import Any, Awaitable, Callable
 
 import discord
-from discord import Member
-from cachetools import cached
-
-from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
-from albedo_bot.utils.enums.availability_enum import (
-    AVAILABILITY_ENUM, NORMAL_TIME_FORMAT)
-from albedo_bot.database.schema.player.player import Player
-from albedo_bot.utils.enums.timezone_enum import TIMEZONE_ENUM
-
-if TYPE_CHECKING:
-    from albedo_bot.bot import AlbedoBot
-
 
 
 FuncType = Callable[[Any], Awaitable[Any]]
 
 
 class Select(discord.ui.Select):
-    """_summary_
-
-    Args:
-        discord (_type_): _description_
+    """
+    A wrapper around discord.py `Select` object that provides defaults while
+    initializing the `Select` object, also allows for a callback object to be
+    passed in during object initialization so a new Select class with a
+    `Callback` does not need to be created for every usage of `Select`
     """
 
     def __init__(self,
@@ -42,7 +30,8 @@ class Select(discord.ui.Select):
 
 
 class SelectView(discord.ui.View):
-    """_summary_
+    """
+    A wrapper around discord.py View object
 
     Args:
         discord (_type_): _description_
@@ -60,144 +49,13 @@ class SelectView(discord.ui.View):
             self.add_item(selector)
 
 
-class AvailabilitySelect(Select, DatabaseMixin):
-    """_summary_
-
-    Args:
-        Select (_type_): _description_
+class SelectOption(discord.SelectOption):
+    """
+    A wrapper around the discord.py `SelectOption` that will store an additional
+    field called original_value that helps translate the selected values when
+    a callback is called on the `Select` object
     """
 
-    def __init__(self, bot: "AlbedoBot",  *args, **kwargs):
-        self.bot = bot
+    def __init__(self, *args, original_value: Any = None, **kwargs) -> None:
+        self.original_value = original_value
         super().__init__(*args, **kwargs)
-
-    async def callback(self, interaction: discord.Interaction):
-        """_summary_
-
-        Args:
-            interaction (discord.Interaction): _description_
-        """
-
-        await interaction.response.send_message(
-            content=("Your current availability is set as "
-                     f"`{self.values}`"), ephemeral=True)
-
-
-class TimezoneSelect(Select, DatabaseMixin):
-    """_summary_
-
-    Args:
-        Select (_type_): _description_
-    """
-
-    def __init__(self, bot: "AlbedoBot",  *args, **kwargs):
-        self.bot = bot
-        super().__init__(*args, **kwargs)
-
-    async def callback(self, interaction: discord.Interaction):
-        """_summary_
-
-        Args:
-            interaction (discord.Interaction): _description_
-        """
-
-        author = interaction.user
-        player_object = await self.get_player(author)
-        print(self.values)
-        current_timezone = self.values[0]
-        timezone_enum = TIMEZONE_ENUM[current_timezone]
-
-        print(timezone_enum.value)
-
-        await interaction.response.send_message(
-            content=("Your current timezone is set as "
-                     f"`{self.values}`"), ephemeral=True)
-
-    async def get_player(self, author: Member):
-        """
-        Fetches the player associated with a Member object
-
-        Args:
-            author (Member): player to fetch database entry for
-        """
-
-        player_select = self.db_select(Player).where(
-            Player.discord_id == author.id)
-
-        player_object = await self.db_execute(player_select).first()
-        return player_object
-
-    async def get_current_timezones(self,
-                                    author: Member) -> Union[
-                                        TIMEZONE_ENUM, None]:
-        """
-        Get the current timezone for a Member object
-
-        Args:
-            author (Member): author to get the timezone for
-
-        Returns the current timezone entry for the player
-        """
-        player_object = await self.get_player(author)
-
-        current_timezone = player_object.timezone
-        return current_timezone
-
-
-def build_availability_selection(bot: "AlbedoBot", author: Member):
-    """_summary_
-    """
-
-    availability_options: list[discord.SelectOption] = []
-
-    for availability_index, availability_datetime in AVAILABILITY_ENUM.tuple_list():
-        normal_time = availability_datetime.strftime(NORMAL_TIME_FORMAT)
-        # milliary_time = availability_datetime.strftime(
-        #     MILITARY_TIME_FORMAT)
-        next_normal_datetime: datetime.datetime = AVAILABILITY_ENUM[
-            str((int(availability_index) + 1) % 24)].value
-
-        next_normal_timestamp = next_normal_datetime.strftime(
-            NORMAL_TIME_FORMAT)
-        availability_options.append(
-            discord.SelectOption(
-                label=f"{normal_time}",
-                description=(
-                    f"{normal_time} - "
-                    f"{next_normal_timestamp}")))
-
-    availability_selection = AvailabilitySelect(
-        bot=bot,
-        options=availability_options,
-        placeholder_text="Availability Preference",
-        max_values=len(availability_options))
-    return availability_selection
-
-
-def build_timezone_selection(bot: "AlbedoBot", author: Member):
-    """_summary_
-    """
-
-    timezone_selection_options: list[discord.SelectOption] = []
-
-    for timezone_name, timezone_description in TIMEZONE_ENUM.tuple_list():
-        timezone_selection_options.append(discord.SelectOption(
-            label=timezone_name, description=timezone_description))
-
-    timezone_selection = TimezoneSelect(bot,
-                                        options=timezone_selection_options,
-                                        placeholder_text="Timezone Preference")
-
-    return timezone_selection
-
-# Cache calls to this function and just return the same selectView
-
-
-@cached(cache={})
-def build_view(bot: "AlbedoBot", author: Member):
-    """_summary_
-    """
-    timezone_selection = build_timezone_selection(bot, author)
-    availability_selection = build_availability_selection(bot, author)
-
-    return SelectView([timezone_selection, availability_selection])
