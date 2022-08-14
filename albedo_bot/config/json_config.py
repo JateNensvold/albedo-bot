@@ -16,7 +16,7 @@ HERO_ALIAS_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "hero_alias.json")
 AFK_HELPER_PATH = os.path.join(_par_dir, "afk_helper")
 PREFIX_JSON_PATH = os.path.join(_par_dir, "prefixes.json")
 BLACKLIST_JSON_PATH = os.path.join(_par_dir, "blacklist.json")
-AFK_HELPER_IMAGE_PREFIX = os.path.join(_par_dir, "abledo_bot")
+AFK_HELPER_IMAGE_PREFIX = os.path.join(_par_dir, "albedo_bot")
 
 
 permissions = Permissions.from_json(PERMISSIONS_JSON_PATH)

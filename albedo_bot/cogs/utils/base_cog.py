@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Union
 from discord.ext import commands
 from discord import User
 
-from albedo_bot.database.schema.player import Player
+from albedo_bot.database.schema.player.player import Player
 from albedo_bot.utils.checks import _is_registered, check_config_permission
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import EmbedWrapper, send_embed_exception

@@ -39,9 +39,9 @@ class RosterCog(BaseRosterCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            guild_member (User, optional): User name, user mention, or user ID to show
-                the roster of . Defaults to showing the roster of whoever
-                invoked the command when no user is provided.
+            guild_member (User, optional): User name, user mention, or
+                user ID to show the roster of . Defaults to showing the roster
+                of whoever invoked the command when no user is provided.
         """
 
         user_id = ctx.author.id
@@ -58,7 +58,8 @@ class RosterCog(BaseRosterCog):
     @roster.command(name="add", aliases=["update"])
     async def _add(self, ctx: commands.Context, hero: Hero,
                    ascension: AscensionValue,
-                   signature_item: SignatureItemValue, furniture: FurnitureValue,
+                   signature_item: SignatureItemValue,
+                   furniture: FurnitureValue,
                    engraving: EngravingValue):
         """
         Add a AFK Arena hero to your roster
@@ -73,8 +74,8 @@ class RosterCog(BaseRosterCog):
             furniture (int): Furniture level of hero
             engraving (int): Engraving level of hero
         """
-        await self.add_hero(ctx, ctx.author, hero, ascension, signature_item, furniture,
-                            engraving)
+        await self.add_hero(ctx, ctx.author, hero, ascension,
+                            signature_item, furniture, engraving)
         await self.update_player(ctx.author)
 
     @roster.command(name="remove", aliases=["delete"])

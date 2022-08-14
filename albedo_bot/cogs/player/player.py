@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord import Role, Member
 
 from albedo_bot.database.schema.guild import Guild
-from albedo_bot.database.schema.player import Player
+from albedo_bot.database.schema.player.player import Player
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
 from albedo_bot.utils.message import EmbedWrapper, send_embed
@@ -23,6 +23,19 @@ class PlayerCog(BasePlayerCog):
     Args:
         commands (_type_): _description_
     """
+
+    @commands.group(name="player")
+    async def player(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+
+        Raises:
+            CogCommandError: _description_
+            CogCommandError: _description_
+            CogCommandError: _description_
+        """
 
     @commands.command(name="register", cog=False)
     async def register(self, ctx: commands.Context, guild: Role = None):
@@ -133,13 +146,14 @@ class PlayerCog(BasePlayerCog):
 
     # pylint: disable=no-member
     @BasePlayerCog.player_admin.command(name="add", aliases=["register"])
-    async def add_for(self, ctx: commands.Context,  guild_member: Member, guild_role: Role):
+    async def add_for(self, ctx: commands.Context,
+                      guild_member: Member, guild_role: Role):
         """
         Register a `guild_player` with the bot under the guild associated
             with `guild_role`
         Args:
-            ctx (commands.Context): invocation context containing information on how
-                a discord event/command was invoked
+            ctx (commands.Context): invocation context containing information
+                on how a discord event/command was invoked
             guild_member (Member): discord users name, user mention, or user ID
             guild_role (Role): A discord Role, Role ID or Role Mention.
         """
@@ -167,6 +181,15 @@ class PlayerCog(BasePlayerCog):
             ctx (commands.Context): _description_
         """
         await self._unregistered(ctx)
+
+    @player.command(name="settime", aliases=["timezone"])
+    async def set_time(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+        await self._set_timezone(ctx)
 
 
 def setup(bot: "AlbedoBot"):

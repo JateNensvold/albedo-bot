@@ -9,6 +9,7 @@ from image_processing.utils.color_helper import MplColorHelper
 
 from albedo_bot.utils.errors import MessageError
 from albedo_bot.utils.emoji import red_x, white_check_mark, hourglass
+from albedo_bot.utils.select import SelectView
 
 
 class EmbedWrapper:
@@ -259,10 +260,16 @@ def wrap_message(message: str,
     return message_list
 
 
-async def send_message(ctx: Context, message: str, header: str = "",
-                       css: bool = False, wrapper: str = "",
+async def send_message(ctx: Context,
+                       message: str,
+                       header: str = "",
+                       css: bool = False,
+                       wrapper: str = "",
                        reply: bool = True,
-                       mention_author: bool = False):
+                       mention_author: bool = False,
+                       edit_message: Message = None,
+                       file: File = None,
+                       view: SelectView = None):
     """_summary_
 
     Args:
@@ -274,17 +281,52 @@ async def send_message(ctx: Context, message: str, header: str = "",
     """
     css_wrapper = "```css\n{}\n```"
 
-    if header is None or header == "":
-        header = f"{white_check_mark}\n"
+    # if header is None or header == "":
+    #     header = f"{white_check_mark}\n"
 
     if css:
         wrapper = css_wrapper
     message_list = wrap_message(message, wrapper=wrapper, header=header)
-    for message_instance in message_list:
+    await _send_message(ctx, message_list, reply, edit_message, mention_author,
+                        view, file)
+
+
+async def _send_message(ctx: Context,
+                        message_list: list[str],
+                        reply: bool,
+                        edit_message: Message,
+                        mention_author: bool,
+                        view: SelectView,
+                        file: File) -> Message:
+    """
+    Do the sending/editing of a message and return the response.
+
+    If a message is edited with a text length greater than the message limit
+    on discord, the edit will be truncated to the maximum allowed characters
+
+    Args:
+        ctx (Context): _description_
+        embed (Embed): _description_
+        reply (bool): _description_
+        edit_message (Message): _description_
+        mention_author (bool): _description_
+
+    Returns:
+        Message: _description_
+    """
+
+    if edit_message is not None:
+        return await edit_message.edit(content=message_list[0])
+
+    message_kwargs = {"mention_author": mention_author,
+                      "file": file,
+                      "view": view}
+    for message in message_list:
+
         if reply:
-            await ctx.reply(message_instance, mention_author=mention_author)
+            return await ctx.reply(message, **message_kwargs)
         else:
-            await ctx.send(message_instance)
+            return await ctx.send(message, **message_kwargs)
 
 
 async def send_embed(ctx: Context,
@@ -295,7 +337,8 @@ async def send_embed(ctx: Context,
                      embed_color: str = "green",
                      emoji: str = white_check_mark,
                      edit_message: Message = None,
-                     file: File = None):
+                     file: File = None,
+                     view: SelectView = None):
     """
     Send an embed Message containing `embed`. If an `embed_wrapper` is provided
         an embed will be constructed from it.
@@ -354,7 +397,7 @@ async def send_embed(ctx: Context,
                                 value=embed_field.value)
 
             last_message = await _send_embed(
-                ctx, embed, reply, edit_message, mention_author, file=sent_file)
+                ctx, embed, reply, edit_message, mention_author, view, file=sent_file)
             message_list.append(last_message)
             if sent_file is not None:
                 sent_file = None
@@ -362,7 +405,7 @@ async def send_embed(ctx: Context,
             return message_list[0]
         else:
             return message_list
-    return await _send_embed(ctx, embed, reply, edit_message, mention_author, file)
+    return await _send_embed(ctx, embed, reply, edit_message, mention_author, view, file)
 
 
 async def _send_embed(ctx: Context,
@@ -370,9 +413,10 @@ async def _send_embed(ctx: Context,
                       reply: bool,
                       edit_message: Message,
                       mention_author: bool,
+                      view: SelectView,
                       file: File) -> Message:
     """
-    Do the sending/editing of a message and return the response
+    Do the sending/editing of an embed message and return the response
 
     Args:
         ctx (Context): _description_
@@ -384,14 +428,18 @@ async def _send_embed(ctx: Context,
     Returns:
         Message: _description_
     """
+
     if edit_message is not None:
         return await edit_message.edit(embed=embed)
 
+    message_kwargs = {"embed": embed,
+                      "mention_author": mention_author,
+                      "file": file,
+                      "view": view}
     if reply:
-        return await ctx.reply(embed=embed, mention_author=mention_author,
-                               file=file)
+        return await ctx.reply(**message_kwargs)
     else:
-        return await ctx.send(embed=embed, file=file)
+        return await ctx.send(**message_kwargs)
 
 
 async def send_embed_exception(ctx: Context, exception: MessageError, **kwargs):

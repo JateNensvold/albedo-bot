@@ -8,13 +8,15 @@ from discord.ext import commands
 
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
-from albedo_bot.database.schema.hero.hero_instance import AscensionValues
+from albedo_bot.utils.enums.ascension_enum import AscensionValues
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
+#  commands.Converter
 
-class Checklist(base, commands.Converter, DatabaseMixin):
+
+class Checklist(base, DatabaseMixin):
     """[summary]
     """
 

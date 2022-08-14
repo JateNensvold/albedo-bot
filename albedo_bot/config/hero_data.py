@@ -3,9 +3,16 @@ import json
 import os
 from typing import Any, Callable, Dict, List
 
-from albedo_bot.database.schema.hero import (
-    Hero, HeroSkill, HeroSkillUpgrade, HeroSignatureItem,
-    HeroSignatureItemUpgrade, HeroFurniture, HeroFurnitureUpgrade)
+from albedo_bot.database.schema.hero import (Hero)
+
+from albedo_bot.database.schema.hero.hero_si import (HeroSignatureItem,
+                                                     HeroSignatureItemUpgrade)
+
+from albedo_bot.database.schema.hero.hero_skill import (
+    HeroSkill, HeroSkillUpgrade)
+
+from albedo_bot.database.schema.hero.hero_furniture import (
+    HeroFurniture, HeroFurnitureUpgrade)
 
 import albedo_bot.config as config
 

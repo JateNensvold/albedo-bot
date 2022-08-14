@@ -2,7 +2,6 @@
 from datetime import datetime
 import pprint
 import io
-from sqlalchemy import select
 
 from typing import TYPE_CHECKING, List
 import jsonpickle
@@ -14,16 +13,17 @@ from image_processing.processing_client import remote_compute_results
 
 import albedo_bot.config as config
 from albedo_bot.database.schema.guild import Guild
-from albedo_bot.database.schema.player import Player
+from albedo_bot.database.schema.player.player import Player
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import (EmbedWrapper, send_embed)
 from albedo_bot.cogs.hero.utils import (
     AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (
-    Hero, HeroInstance, HeroInstanceData, HeroList, AscensionValues)
+    Hero, HeroInstance)
 from albedo_bot.database.schema.hero.hero_instance import (
-    HeroUpdateStatus)
+    HeroInstanceData, HeroList, HeroUpdateStatus)
+from albedo_bot.utils.enums.ascension_enum import AscensionValues
 from albedo_bot.utils import emoji
 
 if TYPE_CHECKING:
@@ -71,8 +71,10 @@ class BaseRosterCog(BaseCog):
         """
 
         hero_instance_select = self.db_select(HeroInstance).where(
-            HeroInstance.hero_id == hero.id, HeroInstance.player_id == player.id)
-        hero_instance_result = await self.db_execute(hero_instance_select).first()
+            HeroInstance.hero_id == hero.id,
+            HeroInstance.player_id == player.id)
+        hero_instance_result = await self.db_execute(
+            hero_instance_select).first()
 
         if hero_instance_result is None:
             hero_instance_result = HeroInstance(
@@ -251,7 +253,8 @@ class BaseRosterCog(BaseCog):
                     hero_id=hero_result.id,
                     signature_level=detected_hero_data.signature_item.label,
                     furniture_level=detected_hero_data.furniture.label,
-                    ascension_level=AscensionValues[detected_hero_data.ascension.label],
+                    ascension_level=AscensionValues[
+                        detected_hero_data.ascension.label],
                     engraving_level=detected_hero_data.engraving.label)
 
                 hero_name = hero_tuple.hero_name

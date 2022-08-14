@@ -1,40 +1,25 @@
 import os
 from dataclasses import dataclass
 from typing import Union, TYPE_CHECKING
-from albedo_bot.utils import emoji
 
 from sqlalchemy import Column, ForeignKey, Integer, BIGINT
 from sqlalchemy import Enum as SQLEnum
 
 from discord.ext import commands
 
+from albedo_bot.utils import emoji
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
 from albedo_bot.cogs.utils.mixins.emoji_mixin import EmojiMixin
 from albedo_bot.database.schema.base import base
-from albedo_bot.database.schema.hero import Hero
+from albedo_bot.database.schema.hero.hero import Hero
 from albedo_bot.utils.emoji import busts_in_silhouette
 from albedo_bot.cogs.checklist.utils.missing_hero import MissingHero
+from albedo_bot.utils.enums.ascension_enum import AscensionValues
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
     from albedo_bot.database.schema.checklist import ChecklistHero
-
-ascension_values = {"E": 1,
-                    "E+": 2,
-                    "L": 3,
-                    "L+": 4,
-                    "M": 5,
-                    "M+": 6,
-                    "A": 7,
-                    "A1": 8,
-                    "A2": 9,
-                    "A3": 10,
-                    "A4": 11,
-                    "A5": 12}
-
-# pylint: disable=unexpected-keyword-arg
-AscensionValues = EnumMixin(value="AscensionValues", names=ascension_values)
 
 
 class HeroUpdateStatus(EnumMixin):
@@ -82,7 +67,7 @@ class HeroInstanceData:
                 HeroInstance to be converted
 
         Returns:
-            list[HeroInstanceData]: a list of HeroInstanceDatas
+            list[HeroInstanceData]: a list of HeroInstanceData's
         """
 
         hero_instance_tuple_list: list[HeroInstanceData] = []

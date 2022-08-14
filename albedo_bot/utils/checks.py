@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import User
 
 import albedo_bot.config as config
-from albedo_bot.database.schema.player import Player
+from albedo_bot.database.schema.player.player import Player
 from albedo_bot.utils.errors import UnregisteredUserError
 
 if TYPE_CHECKING:

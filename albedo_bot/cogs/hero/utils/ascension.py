@@ -3,7 +3,8 @@ from typing import Union
 
 from discord.ext import commands
 
-from albedo_bot.database.schema.hero import (AscensionValues, Hero)
+from albedo_bot.database.schema.hero import (Hero)
+from albedo_bot.utils.enums.ascension_enum import AscensionValues
 from albedo_bot.database.schema.hero.hero import HeroAscensionEnum
 from albedo_bot.cogs.hero.utils.hero_value_mixin import HeroValueMixin
 
@@ -21,7 +22,8 @@ class AscensionValue(HeroValueMixin):
         commands (_type_): _description_
     """
 
-    def __init__(self, ascension_value: AscensionValues = None, hero=None, auto_detect: bool = True):
+    def __init__(self, ascension_value: AscensionValues = None, hero=None,
+                 auto_detect: bool = True):
         """_summary_
 
         Args:
@@ -51,7 +53,9 @@ class AscensionValue(HeroValueMixin):
         self.ascension_value = self.check_ascension(argument, self.hero)
 
     @classmethod
-    def check_ascension(cls, argument: Union[int, str], hero: Hero) -> AscensionValues:
+    def check_ascension(cls,
+                        argument: Union[int, str],
+                        hero: Hero) -> AscensionValues:
         """
         Check if the `argument` provided is a valid ascension for `hero` throws
             BadArgument exception if the `argument` is invalid/out of bounds

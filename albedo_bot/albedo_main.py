@@ -1,5 +1,5 @@
 
-
+import os
 import argparse
 import asyncio
 import contextlib
@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 from albedo_bot.bot import AlbedoBot
 import albedo_bot.config as config
+import albedo_bot.database.migration
 
 
 class RemoveNoise(logging.Filter):
@@ -23,7 +24,8 @@ class RemoveNoise(logging.Filter):
         super().__init__(name='discord.state')
 
     def filter(self, record):
-        if record.levelname == 'WARNING' and 'referencing an unknown' in record.msg:
+        if (record.levelname == 'WARNING' and
+                'referencing an unknown' in record.msg):
             return False
         return True
 
@@ -46,7 +48,8 @@ def setup_logging():
                                       maxBytes=max_bytes, backupCount=5)
         date_format = '%Y-%m-%d %H:%M:%S'
         log_format = logging.Formatter(
-            '[{asctime}] [{levelname:<7}] {name}: {message}', date_format, style='{')
+            '[{asctime}] [{levelname:<7}] {name}: {message}',
+            date_format, style='{')
         handler.setFormatter(log_format)
         log.addHandler(handler)
 
@@ -77,6 +80,7 @@ class LaunchChoices(NamedTuple):
     init: str = "init"
     drop: str = "drop"
     reset: str = "reset"
+    migrate: str = "migrate"
 
 
 def main():
@@ -87,7 +91,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='AFK arena Roster management Bot')
 
-    parser.add_argument("mode", type=str, nargs="?", default=launch_choices.run,
+    parser.add_argument("mode", type=str, nargs="?",
+                        default=launch_choices.run,
                         choices=launch_choices,
                         help="Mode to launch Albedo Bot with")
     parser.add_argument("-v", "--verbose", help="Increase verbosity of output"
@@ -111,6 +116,18 @@ def main():
     elif args.mode == launch_choices.reset:
         database.select_database(config.DATABASE_NAME)
         loop.run_until_complete(database.reset_database())
+    elif args.mode == launch_choices.migrate:
+        migration_execution_location = os.path.dirname(
+            os.path.abspath(albedo_bot.database.migration.__file__))
+        migration_commands: str = (
+            "Step 1: \"alembic revision --autogenerate -m \'description of "
+            "changes'\"\n"
+            "Step 2: \"alembic upgrade head\"")
+
+        print(f"Go to {migration_execution_location} and run the "
+              f"following instructions\n{migration_commands}\nor checkout the "
+              "Readme.MD for more information")
+
 
 if __name__ == '__main__':
     main()

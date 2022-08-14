@@ -1,11 +1,12 @@
 import discord
 from discord.ext import commands
-from discord import Role, Member, User
+from discord import Role, Member
 
 from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message import EmbedWrapper, send_embed, send_message
 from albedo_bot.utils.errors import CogCommandError, DatabaseSessionError
+from albedo_bot.cogs.utils.converters.timezone import build_view
 
 
 class BasePlayerCog(BaseCog):
@@ -62,7 +63,8 @@ class BasePlayerCog(BaseCog):
                     title="Player Error",
                     description=(
                         f"{discord_member.mention} is registered with "
-                        f"guild that no longer exists {player_result.guild_id}"))
+                        "guild that no longer exists "
+                        f"{player_result.guild_id}"))
                 raise CogCommandError(embed_wrapper=embed_wrapper)
             else:
                 embed_wrapper = EmbedWrapper(
@@ -80,9 +82,10 @@ class BasePlayerCog(BaseCog):
             description=(f"{discord_member.mention} has been successfully "
                          f"registered with {guild_result}.\n\nTo begin adding "
                          "your hero roster to the bot use the command "
-                         f"`{bot_prefix}roster upload` with screenshots of your "
-                         "roster from the Heroes page in-game, or checkout the "
-                         f"other commands on the bot with `{bot_prefix}help`")))
+                         f"`{bot_prefix}roster upload` with screenshots of "
+                         "your roster from the Heroes page in-game, or "
+                         "checkout the other commands on the bot with "
+                         f"`{bot_prefix}help`")))
 
     async def delete_player(self, ctx: commands.Context, player: Member):
         """
@@ -168,3 +171,17 @@ class BasePlayerCog(BaseCog):
             description=(
                 f"`There are currently {len(member_list)} unregistered users "
                 f"on this server`\n{member_list_str}")))
+
+    async def _set_timezone(self, ctx: commands.Context):
+        """_summary_
+
+        Args:
+            ctx (commands.Context): _description_
+            timezone (str): _description_
+        """
+
+        await send_message(
+            ctx,
+            message=("Select your timezone and availability for when you can "
+                     "play AFK Arena!"),
+            view=build_view(self.bot, ctx.author))

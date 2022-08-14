@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, Union
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
 
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
@@ -7,64 +6,26 @@ from sqlalchemy.orm import relationship
 
 from discord.ext import commands
 
-import albedo_bot.config as config
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
+from albedo_bot.utils.enums.ascension_type_enum import HeroAscensionEnum
+from albedo_bot.utils.enums.hero_faction_enum import HeroFactionEnum
+from albedo_bot.utils.enums.hero_class_enum import HeroClassEnum
+from albedo_bot.utils.enums.hero_type_enum import HeroTypeEnum
+
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
-
-class HeroAscensionEnum(EnumMixin):
-    """_summary_
-    """
-    legendary = "legendary"
-    ascended = "ascended"
-
-
 ASCENSION_TYPE_ENUM = SQLEnum(HeroAscensionEnum)
-
-
-class HeroFactionEnum(EnumMixin):
-    """_summary_
-    """
-    Graveborn = "Graveborn"
-    Lightbearer = "Lightbearer"
-    Wilder = "Wilder"
-    Mauler = "Mauler"
-    Hypogean = "Hypogean"
-    Dimensional = "Dimensional"
-    Celestial = "Celestial"
-
-
 FACTION_ENUM = SQLEnum(HeroFactionEnum)
-
-
-class HeroClassEnum(EnumMixin):
-    """_summary_
-    """
-    Mage = "Mage"
-    Tank = "Tank"
-    Ranger = "Ranger"
-    Support = "Support"
-    Warrior = "Warrior"
-
-
 CLASS_ENUM = SQLEnum(HeroClassEnum)
-
-
-class HeroTypeEnum(EnumMixin):
-    """_summary_
-    """
-    Agility = "Agility"
-    Intelligence = "Intelligence"
-    Strength = "Strength"
-
-
 HERO_TYPE_ENUM = SQLEnum(HeroTypeEnum)
 
+# commands.Converter,
 
-class Hero(base, commands.Converter, DatabaseMixin):
+
+class Hero(base, DatabaseMixin):
     """[summary]
     """
 
@@ -121,6 +82,7 @@ class Hero(base, commands.Converter, DatabaseMixin):
             Hero: returns the hero associated with the conversion argument that
                 was provided
         """
+        import albedo_bot.config as config
         hero_alias = config.hero_alias
 
         self.bot: "AlbedoBot" = ctx.bot

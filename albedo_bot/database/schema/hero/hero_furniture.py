@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String, Integer, Text, null
+from sqlalchemy import Column, ForeignKey, String, Integer, Text
 
 from albedo_bot.database.schema.base import base
 

@@ -86,6 +86,7 @@ class Database:
             db_string = (
                 f"postgresql+asyncpg://{self.user}:{self.password}@{self.address}/"
                 f"{self.database_name}")
+        print(db_string)
         self.engine: AsyncEngine = create_async_engine(
             db_string)  # connect to server
 
