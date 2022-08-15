@@ -339,8 +339,6 @@ class Database:
 
         await self.generate_cron(backup_command_args)
 
-        return
-
         backup_output = subprocess.run(
             backup_command_args, shell=False, text=True, check=True,
             stdout=subprocess.PIPE,
