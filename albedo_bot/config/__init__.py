@@ -2,26 +2,33 @@
 import os
 import shutil
 
-from .caches import *
+from .cache_config import *
 
 cur_dir = os.path.abspath(os.path.dirname(__file__))
-if "config.py" not in os.listdir(cur_dir):
-    shutil.copyfile(os.path.join(cur_dir, "default_config.py"),
-                    os.path.join(cur_dir, "config.py"))
+
+
+def copy_default(original_path: str, new_path: str):
+    """
+    Copy a file from one location to another under a new name
+
+    Args:
+        original_path (str): path to original file
+        new_path (str): path to where new file will exist
+    """
+    if not os.path.exists(new_path):
+        shutil.copyfile(original_path, new_path)
+
+
+# Generate the config.py from the default
+copy_default(os.path.join(cur_dir, "default_config.py"),
+             os.path.join(cur_dir, "config.py"))
+
 # autopep8: off
 from .config import *
 
-from .json_config import (
-    permissions, database_config, database, prefixes, blacklist, hero_alias)
-from .json_config import (
-    AFK_HELPER_PATH, AFK_HELPER_IMAGE_PREFIX, BLACKLIST_JSON_PATH,
-    CONFIG_FOLDER_PATH, DATABASE_CONFIG_JSON_PATH, GUILD_JSON_PATH,
-    HERO_ALIAS_JSON_PATH, HERO_JSON_PATH, PERMISSIONS_JSON_PATH,
-    PREFIX_JSON_PATH)
-
 def check_value(value:str, value_name:str):
     """
-    Check if a value in the config.py file has been initialized 
+    Check if a value in the config.py file has been initialized
 
     Args:
         value (str): value to check
@@ -32,7 +39,20 @@ def check_value(value:str, value_name:str):
                 f"Set '{value_name}' Environment variable at "
                 f"({os.path.join(cur_dir, 'config.py')}) before running bot")
 
-
 check_value(TOKEN, "TOKEN")
 check_value(DATABASE_PASS, "DATABASE_PASS")
 check_value(DATABASE_USER, "DATABASE_USER")
+
+
+# Import json_paths before json_config so they can use the paths
+from .json_configs import *
+
+database_config_dir, database_config_name = os.path.split(
+    DATABASE_CONFIG_JSON_PATH)
+# Generate the database_config from the default
+copy_default(os.path.join(database_config_dir,
+                          f"default_{database_config_name}"),
+            DATABASE_CONFIG_JSON_PATH)
+from .json_config import (
+    permissions, database_config, database, prefixes, blacklist, hero_alias)
+

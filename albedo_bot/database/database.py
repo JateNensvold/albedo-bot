@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 #   that need to be imported before calls to create_tables ensuring that all
 #   database schema are created
 from albedo_bot.database.schema import base
-from albedo_bot.config.hero_data import HeroData
+from albedo_bot.utils.hero_data import HeroData
 from albedo_bot.utils.config import Config
 import albedo_bot.config as config
 

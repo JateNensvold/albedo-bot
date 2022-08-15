@@ -36,9 +36,13 @@ class Permissions:
     def __init__(self, permission_config: Dict[str, Dict]):
         """_summary_
 
-        self.permission_name_lookup is a dictionary that maps a "role" defined in the permission_config to an integer value that represents the required permission level associated with it
-        self.role_lookup is a dictionary that maps a "discord role" to the permission level(int) associated with it
-        self.user_lookup is a dictionary that maps a "discord username" to the permission level(int) associated with it
+        self.permission_name_lookup is a dictionary that maps a "role" 
+            defined in the permission_config to an integer value that
+            represents the required permission level associated with it
+        self.role_lookup is a dictionary that maps a "discord role" to the
+            permission level(int) associated with it
+        self.user_lookup is a dictionary that maps a "discord username" to the
+            permission level(int) associated with it
 
         Args:
             permission_config (Dict[str, Dict]): _description_
