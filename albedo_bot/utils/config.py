@@ -5,7 +5,12 @@ import asyncio
 
 
 class Config:
-    """The "Config" object. Internally based on ``json``."""
+    """
+    The "Config" object. Internally based on ``json``.
+    
+    All commands that modify the Config file will prompt the file to be
+        flushed to disk using async
+    """
 
     def __init__(self, name: str, **options):
         self.name = name
@@ -38,7 +43,7 @@ class Config:
         """
         Dump config file to disk while in use
         """
-        temp = f"{uuid.uuid4()}-{self.name}.tmp"
+        temp = f"{self.name}-{uuid.uuid4()}.tmp"
         with open(temp, 'w', encoding='utf-8') as tmp:
             json.dump(self._db.copy(), tmp, ensure_ascii=True,
                       separators=(',', ':'))
@@ -51,7 +56,8 @@ class Config:
         Save config to disk using async loop
         """
         async with self.lock:
-            await self.loop.run_in_executor(None, self._dump)
+            self._dump()
+            # await self.loop.run_in_executor(None, self._dump)
 
     def get(self, key, *args):
         """Retrieves a config entry."""

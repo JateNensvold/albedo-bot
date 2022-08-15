@@ -224,7 +224,7 @@ class DatabaseMixin:
             await self.bot.session.commit()
         except Exception as exception:
             await self.bot.session.rollback()
-            # await self.bot.session.refresh(database_object)
+            await self.bot.session.refresh(database_object)
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 

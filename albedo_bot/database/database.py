@@ -1,8 +1,10 @@
-import asyncio
-import json
+import os
+import subprocess
+from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 import sqlalchemy
+import asyncio
 from sqlalchemy.engine.cursor import CursorResult
 from sqlalchemy.ext.asyncio import (
     create_async_engine, AsyncEngine, AsyncSession, async_scoped_session)
@@ -14,6 +16,7 @@ from sqlalchemy.orm import sessionmaker
 #   database schema are created
 from albedo_bot.database.schema import base
 from albedo_bot.config.hero_data import HeroData
+from albedo_bot.utils.config import Config
 import albedo_bot.config as config
 
 
@@ -22,7 +25,8 @@ class Database:
     """
 
     def __init__(self, user: str, password: str, address: str,
-                 database_name: str = "postgres"):
+                 database_name: str = "postgres",
+                 port: str = "5432"):
         """[summary]
 
         Args:
@@ -35,6 +39,7 @@ class Database:
         self.password = password
         self.address = address
         self.database_name = database_name
+        self.port = port
         self.engine: AsyncEngine = None
 
         self.base = base.Base
@@ -46,18 +51,22 @@ class Database:
         self.postgres_connect()
 
     @classmethod
-    def from_json(cls, json_path):
-        """_summary_
+    def from_json(cls, database_config: Config):
+        """
+        Create the database from a database_config file
 
         Args:
-            json_path (_type_): _description_
-        """
+            database_config (Config): Config file object with all the needed
+                database information
 
-        with open(json_path, "r", encoding="utf-8") as config_file:
-            database_config = json.load(config_file)
-            database = Database(database_config["user"], database_config["password"],
-                                database_config["address"])
-            database.select_database(database_config["name"])
+        Returns:
+            Database: a fully initialized and connected database object
+        """
+        database = Database(
+            config.DATABASE_USER,
+            config.DATABASE_PASS,
+            database_config["address"])
+        database.select_database(database_config["name"])
 
         return database
 
@@ -65,13 +74,23 @@ class Database:
                          address: str = None, database_name: str = None,
                          autoflush: bool = True,
                          db_string: str = None):
-        """[summary]
+        """
+        Connect to a postgres database
 
         Args:
-            user (str): [description]
-            password (str): [description]
-            address (str): [description]
-            database_name ([type]): [description]
+            user (str): username to connect to database with.
+                Defaults to None
+            password (str): password to connect to database with.
+                Defaults to None
+            address (str): address database is at.
+                Defaults to None
+            database_name (str): name of database to connect to.
+                Defaults to None
+            autoflush (bool, optional): flag telling the database engine to
+                autoflush to the database or not. Defaults to True.
+            db_string (str, optional): A fully formed database connection
+                string that can be used to connect to a database.
+                Defaults to None.
         """
         if user:
             self.user = user
@@ -86,7 +105,6 @@ class Database:
             db_string = (
                 f"postgresql+asyncpg://{self.user}:{self.password}@{self.address}/"
                 f"{self.database_name}")
-        print(db_string)
         self.engine: AsyncEngine = create_async_engine(
             db_string)  # connect to server
 
@@ -112,7 +130,7 @@ class Database:
     @property
     def session(self) -> AsyncSession:
         """_summary_
-T
+
         Returns:
             : _description_
         """
@@ -128,21 +146,22 @@ T
             self.session_factory, scope_func)
 
     def session_callback(self, *args, **kwargs):
-        """_summary_
+        """
+        Call the session callback from non async code 
         """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._session_callback(*args, **kwargs))
 
-    async def _session_callback(self, sql_object: Any,
+    async def _session_callback(self,
+                                sql_object: Any,
                                 update: bool = True) -> Any:
-        """_summary_
+        """
+        Add a new object to the database
 
         Args:
-            session (Session): _description_
-            object (Any): _description_
-
-        Returns:
-            Any: _description_
+            sql_object (Any): object to add to database
+            update (bool, optional): Flag to refresh all references to the
+                object in memory. Defaults to True.
         """
         async with self.session:
             async with self.session.begin():
@@ -160,6 +179,8 @@ T
 
         Args:
             database_name (str): new database name
+            raise_error (bool, optional): Flag to raise an error when the
+                database being initialized already exists. Defaults to True.
         """
         if database_name not in await self.list_database():
             async with self.session:
@@ -179,17 +200,19 @@ T
         # Load all hero data into database
 
     async def _load_data(self):
-        """_summary_
+        """
+        Load HeroData into the database
         """
         hero_data = HeroData.from_json(
             config.HERO_JSON_PATH, self._session_callback)
         await hero_data.build()
 
     async def drop_database(self, database_name: str):
-        """_summary_
+        """
+        Delete/drop a database
 
         Args:
-            database_name (str): _description_
+            database_name (str): name of database to drop
         """
 
         db_string = (
@@ -208,16 +231,17 @@ T
         print(f"Database {database_name} dropped.")
 
     def _confirm_action(self, action_str: str):
-        """_summary_
+        """
+        A generic template that prompts the user to confirm an action
 
         Args:
-            action_str (str): _description_
+            action_str (str): action to prompt for
 
         Returns:
-            _type_: _description_
+            bool: true if user confirmed the action, false otherwise
         """
         print(f"You are about to {action_str}. Enter 'Yes' to continue "
-              "or any other key to stop")
+              "or any other key to skip")
         key_input = input()
         if key_input.lower() == "yes":
             return True
@@ -225,10 +249,11 @@ T
         return False
 
     def select_database(self, database_name: str):
-        """[summary]
+        """
+        Select/Connect to a new database in a database cluster
 
         Args:
-            database_name (str): [description]
+            database_name (str): name of database to connect with
         """
         self.postgres_connect(database_name=database_name)
 
@@ -243,10 +268,17 @@ T
             await conn.run_sync(self.base.metadata.create_all)
 
     async def _drop_tables(self, check_action: bool = True):
-        """_summary_
+        """
+        Drop all tables in the current database
+
+        Args:
+            check_action (bool, optional): Flag to prompt the user to
+                confirm they want to drop the tables. Defaults to True.
         """
 
-        if check_action and not self._confirm_action(f"drop tables in '{self.database_name}'"):
+        if (check_action and
+                not self._confirm_action(
+                    f"drop tables in '{self.database_name}'")):
             return
 
         self.base.metadata.bind = self.engine
@@ -255,7 +287,9 @@ T
             await conn.run_sync(self.base.metadata.drop_all)
 
     async def reset_database(self):
-        """_summary_
+        """
+        Reset a database by dropping all the tables and then
+            re-initializing the database with the default data
         """
         if not self._confirm_action(f"reset tables in '{self.database_name}'"):
             return
@@ -264,7 +298,8 @@ T
         await self._load_data()
 
     async def list_database(self):
-        """[summary]
+        """
+        List all the databases in a cluster
         """
 
         async with self.session:
@@ -277,8 +312,114 @@ T
         return database_list
 
     def list_tables(self):
-        """[summary]
+        """
+        List all the tables for a database
         """
         inspector = sqlalchemy.inspect(self.engine)
         tables = inspector.get_table_names()
         return tables
+
+    async def backup_database(self, backup_location: str):
+        """
+        Runs the backup command in a subprocess to backup the database
+
+        Args:
+            backup_location (str): location to generate backup files at
+
+        Returns:
+            str: returns output of backup subprocess
+        """
+
+        self._generate_pgpass()
+
+        backup_db_directory = Path(__file__).parent.parent.parent
+        backup_command_path = backup_db_directory.joinpath("backup_db")
+        backup_command_args = ["bash", str(backup_command_path),
+                               backup_location, self.database_name, self.user]
+
+        await self.generate_cron(backup_command_args)
+
+        return
+
+        backup_output = subprocess.run(
+            backup_command_args, shell=False, text=True, check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+
+        return f"Out: {backup_output.stdout}\nErr: {backup_output.stderr}"
+
+    async def generate_cron(self, backup_command_args: list[str]):
+        """
+        Generates the crontab entry needed to backup the database
+        """
+
+        backup_configured = config.database_config.get(
+            "database_backup_configured", False)
+        if backup_configured:
+            return
+        print(("You have not setup daily cron backups for your database. "
+               "Confirm the following prompt if you wish to automatically "
+               "setup cron daily backups"))
+        generate_cron = self._confirm_action(
+            "enable database backups through cron")
+        if not generate_cron:
+            return
+        cron_frequency = "0 0 * * *"
+        cron_command = f"{cron_frequency} {' '.join(backup_command_args)}"
+
+        crontab_list_command = ["crontab", "-l"]
+
+        crontab_list_contents = subprocess.run(
+            crontab_list_command, shell=False, text=True, check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+
+        cron_tab_commands = crontab_list_contents.stdout
+        if cron_command not in cron_tab_commands:
+            cron_tab_commands = f"{cron_tab_commands}{cron_command}\n"
+
+        update_crontab_command = ["crontab", "-"]
+
+        update_crontab_output = subprocess.run(
+            update_crontab_command, shell=False, text=True, check=True,
+            input=cron_tab_commands,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        await config.database_config.put("database_backup_configured", True)
+
+        print((f"Out: [{update_crontab_output.stdout}]\nErr: "
+               f"[{update_crontab_output.stderr}]"))
+
+    def _generate_pgpass(self):
+        """
+        Generate the .pgpass file to run pg_dump without a password
+        passed to it
+        """
+
+        pg_pass_str = (f"{self.address}:{self.port}:{self.database_name}:"
+                       f"{self.user}:{self.password}")
+
+        # pg_file_path = "~/.pgpass"
+        pg_file_path = Path.home().joinpath(".pgpass")
+
+        file_exists = False
+        file_mode = "w"
+        if os.path.exists(pg_file_path):
+            # Open in read+ mode so we can read once then append to the end of
+            #   the file
+            file_exists = True
+            file_mode = "r+"
+
+        with open(pg_file_path, file_mode, encoding="utf-8") as pg_pass_file:
+            if file_exists:
+                pg_pass_file_contents = pg_pass_file.read()
+            else:
+                pg_pass_file_contents = ""
+            if pg_pass_str not in pg_pass_file_contents:
+                if (len(pg_pass_file_contents) > 0 and
+                        pg_pass_file_contents[-1] != "\n"):
+                    pg_pass_str = f"\n{pg_pass_str}"
+                pg_pass_file.write(pg_pass_str)
+
+        # pgpass file is only read when permissions are set to 0600
+        pg_file_path.chmod(0o600)

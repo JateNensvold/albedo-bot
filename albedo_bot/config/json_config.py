@@ -9,7 +9,8 @@ CONFIG_FOLDER_PATH = _par_dir
 
 PERMISSIONS_JSON_PATH = os.path.join(
     CONFIG_FOLDER_PATH, "permissions_config.json")
-DATABASE_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "database_config.json")
+DATABASE_CONFIG_JSON_PATH = os.path.join(
+    CONFIG_FOLDER_PATH, "database_config.json")
 HERO_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "hero_data.json")
 GUILD_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "guild_config.json")
 HERO_ALIAS_JSON_PATH = os.path.join(CONFIG_FOLDER_PATH, "hero_alias.json")
@@ -20,7 +21,8 @@ AFK_HELPER_IMAGE_PREFIX = os.path.join(_par_dir, "albedo_bot")
 
 
 permissions = Permissions.from_json(PERMISSIONS_JSON_PATH)
-database = Database.from_json(DATABASE_JSON_PATH)
+database_config = Config(DATABASE_CONFIG_JSON_PATH)
+database = Database.from_json(database_config)
 prefixes = Config(PREFIX_JSON_PATH)
 blacklist = Config(BLACKLIST_JSON_PATH)
 hero_alias = Config(HERO_ALIAS_JSON_PATH)

@@ -74,21 +74,15 @@ class AvailabilitySelect(Select, PlayerMixin):
             await self.db_delete(availability_object)
 
         # Delete availability entries that are no longer selected by the player
-
         if len(old_availability) == 0:
-
             message = ("Your current availability is set as "
                        f"`{', '.join(self.values)}`")
         else:
-            # availability_datetime = availability_object.availability_enum.value
-            # normal_time = availability_datetime.strftime(NORMAL_TIME_FORMAT)
             old_availability_times: list[str] = []
             for availability_datetime in old_availability.values():
                 old_availability_times.append(
                     availability_datetime.availability.value.strftime(
                         NORMAL_TIME_FORMAT))
-                # old_availability_times = [availability_datetime.value.strftime(
-                #     NORMAL_TIME_FORMAT) for availability_datetime in old_availability.values()]
             old_availability_str = ", ".join(old_availability_times)
 
             message = ("Your availability has been successfully updated from"

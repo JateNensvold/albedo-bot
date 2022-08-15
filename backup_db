@@ -1,0 +1,31 @@
+# (1) set up all the mysqldump variables
+DATE=`date +"%d_%b_%Y_%H:%M"`
+WEEK=`date +"%U"`
+MONTH=`date +"%b"`
+YEAR=`date +"%Y"`
+
+if [ "$#" -ne 3 ]; then
+    echo "Args `$@`"
+    echo "Invalid arguments provided"
+    echo "Ex. backup_db <back_up_folder> <database> <user>"
+    exit 1
+fi
+
+BACKUP_PATH=$1
+DATABASE=$2
+USER=$3
+# ADDRESS=$3
+SQL_FILE_NAME=db_backup_${DATE}.sql
+SQL_FOLDER_PATH=${BACKUP_PATH}/backup/db/${DATABASE}/${YEAR}/${MONTH}
+SQL_FILE_PATH=${SQL_FOLDER_PATH}/${SQL_FILE_NAME}
+
+# (2) in case you run this more than once a day,
+# remove the previous version of the file
+# unalias rm     2> /dev/null
+# rm ${SQL_FILE_PATH}     2> /dev/null
+# rm ${SQL_FILE_PATH}.gz  2> /dev/null
+
+mkdir -p ${SQL_FOLDER_PATH}
+pg_dump -h 172.40.0.7 -U ${USER} ${DATABASE} | gzip > ${SQL_FILE_PATH}.gz
+# sudo mysqldump -u ${USER} -p${PASSWORD} ${DATABASE}|gzip > ${SQLFILE}.gz
+echo "Database: ${DATABASE} backed up successfully at ${SQL_FILE_PATH}.gz"
