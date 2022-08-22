@@ -231,6 +231,13 @@ class DatabaseMixin:
             raise DatabaseSessionError(
                 embed_wrapper=embed_wrapper) from exception
 
+    async def rollback(self):
+        """
+        Reverse the current database transaction to erase any database actions
+        that have occurred
+        """
+        await self.bot.session.rollback()
+
     def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """
         Create a ScalarWrapper that wraps the execution result of a

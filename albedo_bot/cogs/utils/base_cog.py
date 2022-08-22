@@ -82,7 +82,8 @@ class BaseCog(commands.Cog, DatabaseMixin):
             subcommand
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         command: Union[commands.Command, commands.Group] = ctx.command
@@ -100,7 +101,8 @@ class BaseCog(commands.Cog, DatabaseMixin):
         """_summary_
 
         Args:
-            ctx (commands.context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         embed_wrapper = EmbedWrapper(
             title="Invalid command",
@@ -132,7 +134,8 @@ class BaseCog(commands.Cog, DatabaseMixin):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         if not self.require_registration:
             return True

@@ -1,7 +1,7 @@
 
 
 from typing import Union
-from albedo_bot.cogs.hero.utils.hero_value_mixin import HeroValueMixin
+from albedo_bot.cogs.hero.utils.converter.hero_value_mixin import HeroValueMixin
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import HeroFactionEnum
 
@@ -35,13 +35,15 @@ class EngravingValue(HeroValueMixin):
         self.hero = hero
         self.auto_detect = auto_detect
 
-    def init(self, argument: Union[int, str], ctx: commands.Context, hero: Hero = None):
+    async def init(self, argument: Union[int, str], ctx: commands.Context,
+                   hero: Hero = None):
         """
         If no hero is given then `auto_detect` determines if automatic
             hero_detection should be attempted
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         self.hero = None
 
@@ -50,10 +52,10 @@ class EngravingValue(HeroValueMixin):
         elif self.auto_detect:
             self.hero = self.find_hero(ctx)
 
-        self.engraving_value = self.check_engraving(self.hero, argument)
+        self.engraving_value = self.check(self.hero, argument)
 
     @classmethod
-    def check_engraving(cls, hero: Hero, engraving: int):
+    def check(cls, hero: Hero, engraving: int):
         """_summary_
 
         Args:

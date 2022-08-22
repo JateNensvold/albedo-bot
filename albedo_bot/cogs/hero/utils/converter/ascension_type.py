@@ -1,9 +1,9 @@
 
-from albedo_bot.database.schema.hero.hero import HeroTypeEnum
+from albedo_bot.database.schema.hero.hero import HeroAscensionEnum
 from discord.ext import commands
 
 
-class HeroType(commands.Converter):
+class AscensionType(commands.Converter):
     """_summary_
 
     Args:
@@ -14,7 +14,8 @@ class HeroType(commands.Converter):
         """_summary_
 
         Args:
-            ctx (Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             argument (Union[str, int]): _description_
 
         Raises:
@@ -24,8 +25,9 @@ class HeroType(commands.Converter):
             _type_: _description_
         """
         try:
-            return HeroTypeEnum(argument)
+            return HeroAscensionEnum(argument)
         except Exception as exception:
             raise commands.BadArgument(
-                (f"Invalid hero type given `{argument}`, hero type must be one "
-                 f"of the following `{HeroTypeEnum.v_list()}`")) from exception
+                (f"Invalid ascension type given `{argument}`, ascension type "
+                 f"must be one of the following `{HeroAscensionEnum.v_list()}`")
+            ) from exception

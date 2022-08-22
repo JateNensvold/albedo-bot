@@ -1,9 +1,9 @@
 
-from albedo_bot.database.schema.hero.hero import HeroFactionEnum
+from albedo_bot.database.schema.hero.hero import HeroTypeEnum
 from discord.ext import commands
 
 
-class HeroFaction(commands.Converter):
+class HeroType(commands.Converter):
     """_summary_
 
     Args:
@@ -14,7 +14,8 @@ class HeroFaction(commands.Converter):
         """_summary_
 
         Args:
-            ctx (Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             argument (Union[str, int]): _description_
 
         Raises:
@@ -24,8 +25,8 @@ class HeroFaction(commands.Converter):
             _type_: _description_
         """
         try:
-            return HeroFactionEnum(argument)
+            return HeroTypeEnum(argument)
         except Exception as exception:
             raise commands.BadArgument(
-                (f"Invalid Faction given `{argument}`, faction must be one of "
-                 f"the following `{HeroFactionEnum.v_list()}`")) from exception
+                (f"Invalid hero type given `{argument}`, hero type must be one "
+                 f"of the following `{HeroTypeEnum.v_list()}`")) from exception

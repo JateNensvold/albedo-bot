@@ -18,7 +18,8 @@ if TYPE_CHECKING:
 #     """_summary_
 
 #     Args:
-#         ctx (Context): _description_
+#         ctx (Context): invocation context containing information on how
+#                a discord event/command was invoked
 #         start_hero_index (int): _description_
 #         end_hero_index (int): _description_
 #     """
@@ -75,7 +76,8 @@ if TYPE_CHECKING:
 #     """_summary_
 
 #     Args:
-#         ctx (Context): _description_
+#         ctx (Context): invocation context containing information on how
+#                a discord event/command was invoked
 #     """
 
 #     emoji_list: List[Emoji] = ctx.guild.emojis
@@ -136,7 +138,8 @@ class OwnerCog(BaseOwnerCog):
         """_summary_
 
         Args:
-            ctx (Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         command_list = [f"`{key}`: {repr(value)}"
                         for key, value in self.bot.all_commands.items()]

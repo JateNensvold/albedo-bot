@@ -90,7 +90,8 @@ def is_registered():
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         return await _is_registered(ctx.bot, ctx.author)

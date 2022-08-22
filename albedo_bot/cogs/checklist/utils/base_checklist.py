@@ -6,10 +6,11 @@ from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.checklist import Checklist, ChecklistHero
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import EmbedWrapper, send_embed
-from albedo_bot.cogs.hero.utils.ascension import AscensionValue
-from albedo_bot.cogs.hero.utils.engraving import EngravingValue
-from albedo_bot.cogs.hero.utils.furniture import FurnitureValue
-from albedo_bot.cogs.hero.utils.signature_item import SignatureItemValue
+from albedo_bot.cogs.hero.utils.converter.ascension import AscensionValue
+from albedo_bot.cogs.hero.utils.converter.engraving import EngravingValue
+from albedo_bot.cogs.hero.utils.converter.furniture import FurnitureValue
+from albedo_bot.cogs.hero.utils.converter.signature_item import (
+    SignatureItemValue)
 from albedo_bot.database.schema.hero.hero import Hero
 from albedo_bot.database.schema.hero.hero_instance import (
     HeroInstance, HeroInstanceData, HeroList)
@@ -59,7 +60,8 @@ class BaseChecklistCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         checklist_select = self.db_select(Checklist)
@@ -198,7 +200,8 @@ class BaseChecklistCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             checklist (Checklist): _description_
         """
         checklist_heroes_select = self.db_select(ChecklistHero).where(

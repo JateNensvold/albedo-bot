@@ -1,6 +1,6 @@
 
 from typing import Union
-from albedo_bot.cogs.hero.utils.hero_value_mixin import HeroValueMixin
+from albedo_bot.cogs.hero.utils.converter.hero_value_mixin import HeroValueMixin
 from albedo_bot.database.schema.hero.hero import HeroFactionEnum, Hero
 from discord.ext import commands
 
@@ -31,13 +31,15 @@ class SignatureItemValue(HeroValueMixin):
         self.hero = hero
         self.auto_detect = auto_detect
 
-    def init(self, argument: Union[int, str], ctx: commands.Context, hero: Hero = None):
+    async def init(self, argument: Union[int, str], ctx: commands.Context,
+                   hero: Hero = None):
         """
         If no hero is given then `auto_detect` determines if automatic
             hero_detection should be attempted
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         self.hero = None
 
@@ -46,10 +48,10 @@ class SignatureItemValue(HeroValueMixin):
         elif self.auto_detect:
             self.hero = self.find_hero(ctx)
 
-        self.si_value = self.check_signature_item(self.hero, argument)
+        self.si_value = self.check(self.hero, argument)
 
     @classmethod
-    def check_signature_item(cls, hero: Hero, signature_item: int):
+    def check(cls, hero: Hero, signature_item: int):
         """_summary_
 
         Args:

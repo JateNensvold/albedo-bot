@@ -14,7 +14,8 @@ class MemberConverter(commands.Converter):
         """_summary_
 
         Args:
-            ctx (Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             argument (Union[str, int]): _description_
 
         Raises:

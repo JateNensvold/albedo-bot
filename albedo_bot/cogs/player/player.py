@@ -29,7 +29,8 @@ class PlayerCog(BasePlayerCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
 
         Raises:
             CogCommandError: _description_
@@ -178,7 +179,8 @@ class PlayerCog(BasePlayerCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         await self._unregistered(ctx)
 
@@ -187,7 +189,8 @@ class PlayerCog(BasePlayerCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         await self._set_timezone(ctx)
 

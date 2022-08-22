@@ -328,6 +328,10 @@ class Database:
 
         Returns:
             str: returns output of backup subprocess
+
+        Raises:
+            SubprocessError: raised when any of the crontab subprocess
+                commands fail or return a nonzero exit code
         """
 
         self._generate_pgpass()
@@ -349,7 +353,16 @@ class Database:
     async def generate_cron(self, backup_command_args: list[str]):
         """
         Generates the crontab entry needed to backup the database
+
+        Args:
+            backup_command_args (list[str]): list of args used to run the
+                database backup command
+
+        Raises:
+            SubprocessError: raised when any of the crontab subprocess
+                commands fail or return a nonzero exit code
         """
+
 
         backup_configured = config.database_config.get(
             "database_backup_configured", False)
@@ -362,6 +375,7 @@ class Database:
             "enable database backups through cron")
         if not generate_cron:
             return
+
         cron_frequency = "0 0 * * *"
         cron_command = f"{cron_frequency} {' '.join(backup_command_args)}"
 

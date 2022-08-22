@@ -1,6 +1,6 @@
 
 from typing import Union
-from albedo_bot.cogs.hero.utils.hero_value_mixin import HeroValueMixin
+from albedo_bot.cogs.hero.utils.converter.hero_value_mixin import HeroValueMixin
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import HeroFactionEnum
 from discord.ext import commands
@@ -30,13 +30,14 @@ class FurnitureValue(HeroValueMixin):
         self.hero = hero
         self.auto_detect = auto_detect
 
-    def init(self, argument: Union[int, str], ctx: commands.Context, hero: Hero = None):
+    async def init(self, argument: Union[int, str], ctx: commands.Context,
+             hero: Hero = None):
         """
-        If no hero is given then `auto_detect` determines if automatic
-            hero_detection should be attempted
+        Initialize the arguments needed to create a FurnitureValue
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         self.hero = None
 

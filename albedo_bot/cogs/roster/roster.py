@@ -1,10 +1,10 @@
 
 from typing import TYPE_CHECKING
+from albedo_bot.cogs.hero.utils.converter.hero import HeroValue
 
 from discord import User
 from discord.ext import commands
 
-from albedo_bot.database.schema.hero import Hero
 from albedo_bot.utils.message import EmbedWrapper, send_embed
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.utils.checks import is_registered
@@ -56,7 +56,7 @@ class RosterCog(BaseRosterCog):
             description=heroes_result))
 
     @roster.command(name="add", aliases=["update"])
-    async def _add(self, ctx: commands.Context, hero: Hero,
+    async def _add(self, ctx: commands.Context, hero: HeroValue,
                    ascension: AscensionValue,
                    signature_item: SignatureItemValue,
                    furniture: FurnitureValue,
@@ -74,12 +74,12 @@ class RosterCog(BaseRosterCog):
             furniture (int): Furniture level of hero
             engraving (int): Engraving level of hero
         """
-        await self.add_hero(ctx, ctx.author, hero, ascension,
+        await self.add_hero(ctx, ctx.author, hero.hero, ascension,
                             signature_item, furniture, engraving)
         await self.update_player(ctx.author)
 
     @roster.command(name="remove", aliases=["delete"])
-    async def remove(self, ctx: commands.Context, hero: Hero):
+    async def remove(self, ctx: commands.Context, hero: HeroValue):
         """
         Remove an AFK Arena hero from your roster
 
@@ -89,7 +89,7 @@ class RosterCog(BaseRosterCog):
                 invoked
             hero (Hero): Name or hero ID of hero to remove
         """
-        await self.remove_hero(ctx, ctx.author, hero)
+        await self.remove_hero(ctx, ctx.author, hero.hero)
         await self.update_player(ctx.author)
 
     @roster.command(name="upload")
@@ -128,7 +128,8 @@ class RosterCog(BaseRosterCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         await self.dump_rosters(ctx)
 

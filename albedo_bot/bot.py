@@ -253,7 +253,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             time (int): _description_
 
         Raises:
@@ -279,33 +280,38 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             errors (Any): _description_
         """
-        if isinstance(exception, commands.NoPrivateMessage):
-            await context.author.send('This command cannot be used in private messages.')
-        elif isinstance(exception, commands.DisabledCommand):
-            await context.author.send('Sorry. This command is disabled and cannot be used.')
-        elif isinstance(exception, commands.CommandInvokeError):
-            original = exception.original
-            if not isinstance(original, discord.HTTPException):
-                print(f'In {context.command.qualified_name}:',
-                      file=sys.stderr)
-                traceback.print_tb(original.__traceback__)
-                print(f'{original.__class__.__name__}: {original}',
-                      file=sys.stderr)
-            await send_embed_exception(context, exception)
-        elif isinstance(exception, commands.ArgumentParsingError):
-            await context.send(exception)
-        else:
-            traceback.print_exception(
-                type(exception), exception, exception.__traceback__)
-            if isinstance(exception, MessageError) or issubclass(
-                    type(exception), MessageError):
-                print(exception.embed_wrapper)
+        try:
+            if isinstance(exception, commands.NoPrivateMessage):
+                await context.author.send('This command cannot be used in private messages.')
+            elif isinstance(exception, commands.DisabledCommand):
+                await context.author.send('Sorry. This command is disabled and cannot be used.')
+            elif isinstance(exception, commands.CommandInvokeError):
+                original = exception.original
+                if not isinstance(original, discord.HTTPException):
+                    print(f'In {context.command.qualified_name}:',
+                          file=sys.stderr)
+                    traceback.print_tb(original.__traceback__)
+                    print(f'{original.__class__.__name__}: {original}',
+                          file=sys.stderr)
+                await send_embed_exception(context, exception)
+            elif isinstance(exception, commands.ArgumentParsingError):
+                await context.send(exception)
+            else:
+                traceback.print_exception(
+                    type(exception), exception, exception.__traceback__)
+                if isinstance(exception, MessageError) or issubclass(
+                        type(exception), MessageError):
+                    print(exception.embed_wrapper)
 
-            # No traceback available so just print the exception
-            await send_embed_exception(context, exception)
+                # No traceback available so just print the exception
+                await send_embed_exception(context, exception)
+        # pylint: disable=broad-except
+        except Exception as _exception:
+            await self.bot.rollback()
 
     def get_guild_prefixes(self, guild, *, local_inject: Callable = bot_prefix_callable):
         """_summary_

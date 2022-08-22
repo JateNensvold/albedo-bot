@@ -183,7 +183,6 @@ class BaseRosterCog(BaseCog):
                 title="Processing Roster... ",
                 description=(f"Currently processing image {image_number}"))
             if temporary_holdover_message is None:
-
                 temporary_holdover_message = await send_embed(
                     ctx, embed_wrapper=embed_wrapper)
             else:
@@ -321,7 +320,8 @@ class BaseRosterCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             discord_user (User): _description_
         """
 
@@ -341,7 +341,8 @@ class BaseRosterCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         hero_instance_select = self.db_select(

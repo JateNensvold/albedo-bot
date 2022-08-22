@@ -16,7 +16,8 @@ class AdminCog(commands.Cog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         # self.bot.get_cog(self)
         # if ctx.invoked_subcommand is None:

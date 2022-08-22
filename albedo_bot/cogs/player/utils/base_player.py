@@ -130,7 +130,8 @@ class BasePlayerCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         if player_filter is None:
@@ -146,7 +147,8 @@ class BasePlayerCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         guild: discord.Guild = ctx.guild
@@ -196,7 +198,8 @@ class BasePlayerCog(BaseCog):
         """_summary_
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             timezone (str): _description_
         """
 

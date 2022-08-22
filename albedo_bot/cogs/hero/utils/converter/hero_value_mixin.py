@@ -1,11 +1,14 @@
 
 
 from abc import abstractmethod
-from typing import Any
+from typing import Any,  TYPE_CHECKING
 
 from discord.ext import commands
 
 from albedo_bot.database.schema.hero.hero import Hero
+
+if TYPE_CHECKING:
+    from albedo_bot.bot import AlbedoBot
 
 
 class HeroValueMixin(commands.Converter):
@@ -13,7 +16,8 @@ class HeroValueMixin(commands.Converter):
     """
 
     @abstractmethod
-    def init(self, argument: Any, ctx: commands.Context, hero: Hero = None):
+    async def init(self, argument: Any, ctx: commands.Context,
+                   hero: Hero = None):
         """
         Initialize the argument being set by the converter
         """
@@ -22,7 +26,8 @@ class HeroValueMixin(commands.Converter):
         """_summary_
 
         Args:
-            ctx (Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
             argument (Union[str, int]): _description_
 
         Raises:
@@ -32,7 +37,9 @@ class HeroValueMixin(commands.Converter):
             _type_: _description_
         """
 
-        self.init(argument, ctx)
+        self.bot: "AlbedoBot" = ctx.bot
+
+        await self.init(argument, ctx)
         return self
 
     def find_hero(self, ctx: commands.Context):
@@ -41,7 +48,8 @@ class HeroValueMixin(commands.Converter):
             the ctx arguments
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
 
         hero_object: Hero = None

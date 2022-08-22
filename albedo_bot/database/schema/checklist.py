@@ -1,19 +1,10 @@
-
-from typing import TYPE_CHECKING
-
 from sqlalchemy import Column, ForeignKey, String, Integer, BIGINT
 from sqlalchemy.orm import relationship
 from sqlalchemy import Enum as SQLEnum
-from discord.ext import commands
 
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.utils.enums.ascension_enum import AscensionValues
-
-if TYPE_CHECKING:
-    from albedo_bot.bot import AlbedoBot
-
-#  commands.Converter
 
 
 class Checklist(base, DatabaseMixin):
@@ -32,31 +23,6 @@ class Checklist(base, DatabaseMixin):
             str: [description]
         """
         return f"Checklist<{self.name}>"
-
-    async def convert(self, ctx: commands.Context, argument: str):
-        """_summary_
-
-        Args:
-            ctx (commands.Context): _description_
-            argument (str): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        self.bot: "AlbedoBot" = ctx.bot
-        try:
-            checklist_select = self.db_select(
-                Checklist).where(Checklist.name == argument)
-            checklist_object = await self.db_execute(checklist_select).first()
-            if checklist_object is None:
-                raise AttributeError
-            return checklist_object
-        except Exception as exception:
-            raise commands.BadArgument(
-                (f"Invalid checklist name given `{argument}`, checklist name "
-                 f"must be shown by the `{self.bot.default_prefix}checklist "
-                 "list` command")
-            ) from exception
 
 
 class ChecklistHero(base):

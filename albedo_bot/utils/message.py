@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 from discord.ext.commands.context import Context
 from discord import Embed, Message, File
@@ -21,8 +21,10 @@ class EmbedWrapper:
                  footer: str = "",
                  embed_fields: list['EmbedField'] = None,
                  duration: float = None,
+                 image: File = None,
                  multi_message_compatible: bool = True):
-        """_summary_
+        """
+        Creates the EmbedWrapper with the properties passed to it
 
         Args:
             title (str, optional): Title of embed. Defaults to None.
@@ -49,6 +51,7 @@ class EmbedWrapper:
         self.create_footer()
 
         self.description = description
+        self.image = image
         self.multi_message_compatible = multi_message_compatible
 
     def add_field(self, embed_field: "EmbedField"):
@@ -86,7 +89,7 @@ class EmbedWrapper:
 
         total = 0
         for item in fields:
-            str_item = str(item) if str(item) != 'Embed.Empty' else ''
+            str_item = str(item) if str(item) != Embed.Empty else ''
             total += len(str_item)
 
         return total
@@ -273,7 +276,8 @@ async def send_message(ctx: Context,
     """_summary_
 
     Args:
-        ctx (Context): _description_
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         message (str): _description_
         header (str, optional): _description_. Defaults to None.
         css (bool, optional): _description_. Defaults to True.
@@ -305,7 +309,8 @@ async def _send_message(ctx: Context,
     on discord, the edit will be truncated to the maximum allowed characters
 
     Args:
-        ctx (Context): _description_
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         embed (Embed): _description_
         reply (bool): _description_
         edit_message (Message): _description_
@@ -330,22 +335,23 @@ async def _send_message(ctx: Context,
 
 
 async def send_embed(ctx: Context,
-                     embed_wrapper: EmbedWrapper = None,
+                     embed_wrapper: Union[EmbedWrapper,
+                                          list[EmbedWrapper]] = None,
                      embed: Embed = None,
                      reply: bool = True,
                      mention_author: bool = False,
                      embed_color: str = "green",
                      emoji: str = white_check_mark,
                      edit_message: Message = None,
-                     file: File = None,
+                     file: Union[File, list[File]] = None,
                      view: SelectView = None):
     """
     Send an embed Message containing `embed`. If an `embed_wrapper` is provided
-        an embed will be constructed from it.
-
+    an embed will be constructed from it.
 
     Args:
-        ctx (Context): _description_
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         embed_wrapper (EmbedWrapper, optional): Embed wrapper to construct an
             embed out of. Defaults to None.
         embed (Embed, optional): Embed to send. Defaults to None.
@@ -360,24 +366,40 @@ async def send_embed(ctx: Context,
         edit_message (Message, optional): When a message is provided it means
             that the embed that would get sent in the message should instead be
             attached to the message provided . Defaults to None.
+        file (Union[File, list[File]], optional): File or list of files to
+            send in message. Defaults to None.
+        view (SelectView, optional): Discord view object to send in
+            message(may contain selection or other discord embed types).
+            Defaults to None.
 
     Returns:
         (list[Message] | Message): returns the messages generated to send the
             embeds
     """
-    sent_file = file
+    if isinstance(file, File):
+        files = [file]
+    else:
+        files = file
     if not embed:
         color = MplColorHelper().get_unicode(embed_color)
-
-        if embed_wrapper.duration is None:
-            embed_wrapper.duration = time() - ctx.start_time
-            embed_wrapper.create_footer()
-
-        if not embed_wrapper.check_char_limit():
-            embed_wrapper_list = embed_wrapper.split_embed()
+        if isinstance(embed_wrapper, EmbedWrapper):
+            embed_wrappers = [embed_wrapper]
         else:
-            embed_wrapper_list = [embed_wrapper]
+            embed_wrappers = embed_wrapper
+
+        embed_wrapper_list: list[EmbedWrapper] = []
+        for _embed_wrapper in embed_wrappers:
+            if _embed_wrapper.duration is None:
+                _embed_wrapper.duration = time() - ctx.start_time
+                _embed_wrapper.create_footer()
+
+            if not _embed_wrapper.check_char_limit():
+                generated_embed_wrappers = _embed_wrapper.split_embed()
+                embed_wrapper_list.extend(generated_embed_wrappers)
+            else:
+                embed_wrapper_list.append(_embed_wrapper)
         message_list: list[Message] = []
+        embed_list: list[Embed] = []
         for current_embed_wrapper in embed_wrapper_list:
             embed = Embed(
                 color=color,
@@ -395,31 +417,43 @@ async def send_embed(ctx: Context,
             for embed_field in current_embed_wrapper.embed_fields:
                 embed.add_field(name=embed_field.name,
                                 value=embed_field.value)
-
+            if current_embed_wrapper.image:
+                embed.set_image(
+                    url=("attachment://"
+                         f"{current_embed_wrapper.image.filename}"))
+                files.insert(0, current_embed_wrapper.image)
+            embed_list.append(embed)
+            if len(embed_list) >= 10:
+                last_message = await _send_embed(
+                    ctx, embed, reply, edit_message,
+                    mention_author, view, files=files[:10])
+                message_list.append(last_message)
+                files = files[10:]
+        if len(embed_list) > 0:
             last_message = await _send_embed(
-                ctx, embed, reply, edit_message, mention_author, view, file=sent_file)
-            message_list.append(last_message)
-            if sent_file is not None:
-                sent_file = None
+                ctx, embed, reply, edit_message,
+                mention_author, view, files=files[:10])
         if len(message_list) == 1:
             return message_list[0]
         else:
             return message_list
-    return await _send_embed(ctx, embed, reply, edit_message, mention_author, view, file)
+    return await _send_embed(ctx, embed, reply, edit_message, mention_author,
+                             view, files)
 
 
 async def _send_embed(ctx: Context,
-                      embed: Embed,
+                      embeds: list[Embed],
                       reply: bool,
                       edit_message: Message,
                       mention_author: bool,
                       view: SelectView,
-                      file: File) -> Message:
+                      files: list[File]) -> Message:
     """
     Do the sending/editing of an embed message and return the response
 
     Args:
-        ctx (Context): _description_
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         embed (Embed): _description_
         reply (bool): _description_
         edit_message (Message): _description_
@@ -430,12 +464,12 @@ async def _send_embed(ctx: Context,
     """
 
     if edit_message is not None:
-        return await edit_message.edit(embed=embed)
+        return await edit_message.edit(embed=embeds[0])
 
-    message_kwargs = {"embed": embed,
+    message_kwargs = {"embeds": embeds,
                       "mention_author": mention_author,
-                      "file": file,
-                      "view": view}
+                      "view": view,
+                      "files": files}
     if reply:
         return await ctx.reply(**message_kwargs)
     else:
@@ -446,7 +480,8 @@ async def send_embed_exception(ctx: Context, exception: MessageError, **kwargs):
     """_summary_
 
     Args:
-        ctx (Context): _description_
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         exception (MessageError): _description_
     """
     embed_wrapper = None

@@ -6,7 +6,7 @@ from discord.ext import commands
 from albedo_bot.database.schema.hero import (Hero)
 from albedo_bot.utils.enums.ascension_enum import AscensionValues
 from albedo_bot.database.schema.hero.hero import HeroAscensionEnum
-from albedo_bot.cogs.hero.utils.hero_value_mixin import HeroValueMixin
+from albedo_bot.cogs.hero.utils.converter.hero_value_mixin import HeroValueMixin
 
 ASCENSION_VALUE_RANGE: list[tuple[str, int]] = AscensionValues.tuple_list()
 ASCENDED_MAX_VALUE: dict[str, AscensionValues] = {
@@ -35,13 +35,15 @@ class AscensionValue(HeroValueMixin):
         self.hero = hero
         self.auto_detect = auto_detect
 
-    def init(self, argument: str, ctx: commands.Context, hero: Hero = None):
+    async def init(self, argument: str, ctx: commands.Context,
+                   hero: Hero = None):
         """
         If no hero is given then `auto_detect` determines if automatic
             hero_detection should be attempted
 
         Args:
-            ctx (commands.Context): _description_
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
         """
         self.hero = None
 
@@ -50,12 +52,12 @@ class AscensionValue(HeroValueMixin):
         elif self.auto_detect:
             self.hero = self.find_hero(ctx)
 
-        self.ascension_value = self.check_ascension(argument, self.hero)
+        self.ascension_value = self.check(argument, self.hero)
 
     @classmethod
-    def check_ascension(cls,
-                        argument: Union[int, str],
-                        hero: Hero) -> AscensionValues:
+    def check(cls,
+              argument: Union[int, str],
+              hero: Hero) -> AscensionValues:
         """
         Check if the `argument` provided is a valid ascension for `hero` throws
             BadArgument exception if the `argument` is invalid/out of bounds
