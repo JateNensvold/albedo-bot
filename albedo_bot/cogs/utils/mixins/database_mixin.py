@@ -200,7 +200,7 @@ class DatabaseMixin:
         else:
             return self._session
 
-    @session.setter()
+    @session.setter
     def session(self, new_session: AsyncSession):
         """
         Sets _session to a new AsyncSession
