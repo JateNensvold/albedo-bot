@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, List, TypeVar, Union
 from sqlalchemy import select
 from sqlalchemy.sql.expression import Select
 from sqlalchemy.engine.result import ChunkedIteratorResult
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from albedo_bot.utils.message import EmbedWrapper
 from albedo_bot.utils.errors import DatabaseSessionError
@@ -53,16 +53,20 @@ class SelectWrapper(Generic[S]):
         return self
 
 
-def select_wrapper(schema: S) -> SelectWrapper[S]:
-    """_summary_
+def db_select(*schema: S) -> SelectWrapper[S]:
+    """
+    Create a SelectWrapper that wraps the select statement created from
+        sqlalchemy.select, this allows for type checking/hinting to be kept
+        intact when  running select/execution on Database/Schema Objects
 
     Args:
-        schema (S): _description_
+        schema (S): Object/Schema type being selected on
 
     Returns:
-        SelectWrapper[S]: _description_
+        S: SelectWrapper around select statement
     """
-    return SelectWrapper(schema)
+
+    return SelectWrapper(*schema)
 
 
 def _execution_decorator():  # pylint: disable=no-method-argument
@@ -87,8 +91,10 @@ class ScalarWrapper(Generic[S]):
     Wrapper around the execution results 
     """
 
-    def __init__(self, bot: "AlbedoBot", select_object: SelectWrapper[S]):
-        """_summary_
+    def __init__(self, session: AsyncSession, select_object: SelectWrapper[S]):
+        """
+        Initialize the ScalarWrapper with a database session and the selection 
+            object the database with
 
         Args:
             select_wrapper (SelectWrapper[S]): _description_
@@ -96,44 +102,45 @@ class ScalarWrapper(Generic[S]):
         Returns:
             _type_: _description_
         """
-        self.bot = bot
+        self.session = session
         self.select_object = select_object
         self.execution_result: ChunkedIteratorResult = None
         self.executed = False
 
     async def _execute(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
+        """
+        Fetch the data using the selection_object
         """
         if not self.executed:
             self.execution_result: ChunkedIteratorResult = (
-                await self.bot.session.execute(self.select_object.select))
+                await self.session.execute(self.select_object.select))
             self.executed = True
 
     @_execution_decorator()
     async def all(self) -> List[S]:
-        """_summary_
+        """
+        Get a list of all the objects returned from the selection results
 
         Returns:
-            List[S]: _description_
+            List[S]: a list of objects
         """
         return self.execution_result.scalars().all()
 
     @_execution_decorator()
     async def all_objects(self) -> List[S]:
-        """_summary_
+        """
+        Get a list of all the scalars/rows that were returned from the
+            selection results
 
         Returns:
-            List[S]: _description_
+            List[S]: a list of scalars/rows
         """
         return self.execution_result.all()
 
     @_execution_decorator()
     async def first(self) -> Union[S, None]:
         """
-        Return the first result found
+        Return the first result that was returned from the selection results
 
         Returns:
             S: Result object when result is found, None otherwise
@@ -146,29 +153,62 @@ class ScalarWrapper(Generic[S]):
         Return the raw scalar results
 
         Returns:
-            S: Result object when result is found, None otherwise
+            S: raw result object from selection execution
         """
         return self.execution_result
 
 
-def scalar_wrapper(bot: "AlbedoBot", select_object: SelectWrapper[S]):
-    """_summary_
+def db_execute(session: AsyncSession,
+               select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
+    """
+    Create a ScalarWrapper that wraps the execution result of a
+        'selectWrapper', this allows for type checking/hinting to be kept
+        intact when  running select/execution on Database/Schema Objects
 
     Args:
-        bot (AlbedoBot): _description_
-        select_object (SelectWrapper[S]): _description_
+        select_object (SelectWrapper[S]): SelectionResult to wrap
 
     Returns:
-        _type_: _description_
+        ScalarWrapper[S]: ScalarWrapper around 'SelectWrapper' result
     """
-    return ScalarWrapper(bot, select_object)
+
+    return ScalarWrapper(session, select_object)
 
 
 class DatabaseMixin:
-    """_summary_
+    """
+    A mixin that implements several commands to interact with a database
+    through sessions. The object that that inherits from this class must set
+    self.bot to an instance of `AlbedoBot` or self.session to an 
+    `AsyncSession` with the database
     """
 
     bot: "AlbedoBot"
+
+    _session: AsyncSession
+
+    @property
+    def session(self):
+        """
+        Return an AsyncSession object if one can be found
+
+        Returns:
+            AsyncSession: a session object connect to the database
+        """
+        if self.bot:
+            return self.bot.session
+        else:
+            return self._session
+
+    @session.setter()
+    def session(self, new_session: AsyncSession):
+        """
+        Sets _session to a new AsyncSession
+
+        Args:
+            new_session (AsyncSession): new AsyncSession
+        """
+        self._session = new_session
 
     def db_select(self, *schema: S) -> SelectWrapper[S]:
         """
@@ -193,9 +233,9 @@ class DatabaseMixin:
             database_object (Any): _description_
         """
 
-        self.bot.session.add(database_object)
-        await self.bot.session.commit()
-        await self.bot.session.refresh(database_object)
+        self.session.add(database_object)
+        await self.session.commit()
+        await self.session.refresh(database_object)
 
     async def db_delete(self, database_object: Any):
         """
@@ -214,16 +254,15 @@ class DatabaseMixin:
             database_object (Any): _description_
         """
         # Commit any changes before deleting
-        # self.bot.session.commit()
 
         try:
-            await self.bot.session.delete(database_object)
+            await self.session.delete(database_object)
 
             # Commit to check if any  exceptions, errors or constraints were raised
-            await self.bot.session.commit()
+            await self.session.commit()
         except Exception as exception:
-            await self.bot.session.rollback()
-            await self.bot.session.refresh(database_object)
+            await self.session.rollback()
+            await self.session.refresh(database_object)
             embed_wrapper = EmbedWrapper(
                 description=f"Unable to delete {database_object} due to \n ```{exception}```")
 
@@ -235,7 +274,7 @@ class DatabaseMixin:
         Reverse the current database transaction to erase any database actions
         that have occurred
         """
-        await self.bot.session.rollback()
+        await self.session.rollback()
 
     def db_execute(self, select_object: SelectWrapper[S]) -> ScalarWrapper[S]:
         """
@@ -250,4 +289,4 @@ class DatabaseMixin:
             ScalarWrapper[S]: ScalarWrapper around 'SelectWrapper' result
         """
 
-        return ScalarWrapper(self.bot, select_object)
+        return ScalarWrapper(self.session, select_object)

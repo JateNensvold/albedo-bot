@@ -44,7 +44,8 @@ check_value(DATABASE_PASS, "DATABASE_PASS")
 check_value(DATABASE_USER, "DATABASE_USER")
 
 
-# Import json_paths before json_config so they can use the paths
+# Import json_paths in json_configs before json_config so they can use the
+#   paths to initialize the json based classes
 from .json_configs import *
 
 database_config_dir = DATABASE_CONFIG_JSON_PATH.parent
@@ -54,5 +55,6 @@ copy_default(
     database_config_dir.joinpath(f"default_{database_config_name}"),
     DATABASE_CONFIG_JSON_PATH)
 from .json_config import (
-    permissions, database_config, database, prefixes, blacklist, hero_alias)
+    permissions, database_config, database, prefixes, blacklist, hero_alias,
+    hero_data)
 

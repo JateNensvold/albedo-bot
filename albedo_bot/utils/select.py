@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable
 import discord
 
 
-FuncType = Callable[[Any], Awaitable[Any]]
+AsyncCallable = Callable[[Any], Awaitable[Any]]
 
 
 class Select(discord.ui.Select):
@@ -17,7 +17,7 @@ class Select(discord.ui.Select):
 
     def __init__(self,
                  options: list[discord.SelectOption],
-                 callback: FuncType = None,
+                 callback: AsyncCallable = None,
                  placeholder_text: str = "Select an option",
                  max_values: int = 1,
                  min_values: int = 1):

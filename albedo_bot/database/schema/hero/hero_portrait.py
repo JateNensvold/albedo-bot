@@ -1,5 +1,7 @@
+from enum import Enum
+import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from sqlalchemy import Column, String, Integer, ForeignKey, Boolean
 
@@ -12,6 +14,49 @@ from albedo_bot.utils.message import EmbedWrapper
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
+
+
+class PortraitRequired(Enum):
+    """
+    An enumeration of all the ways that a portraits requirement status can be
+    specified in a file name
+    """
+    required: bool = True
+    optional: bool = False
+
+
+class PortraitNameInfo(NamedTuple):
+    """
+    A wrapper class for all the information stored in a HeroPortraits name
+    """
+    hero_name: str
+    required: bool
+    image_index: int
+    extension: str
+
+    def __str__(self):
+        """
+        Generate a file name from all the stored information
+        """
+
+        return ".".join([self.hero_name, self.required,
+                         self.image_index, self.extension])
+
+    @classmethod
+    def from_str(cls, image_name: str):
+        """
+        Generate a PortraitNameInfo object from a portrait `image_name`
+
+        Args:
+            image_name (str): a HeroPortrait image_name
+
+        Returns:
+            PortraitNameInfo: a newly initialized PortraitNameInfo
+        """
+
+        hero_name, required, image_index, extension = image_name.split(".")
+        required = PortraitRequired[required].value
+        return PortraitNameInfo(hero_name, required, image_index, extension)
 
 
 class HeroPortrait(base, DatabaseMixin):
@@ -124,8 +169,8 @@ class HeroPortrait(base, DatabaseMixin):
             embed_wrapper = EmbedWrapper(
                 title="Portrait Path Failure",
                 description=(
-                    "The following path already exists"
-                    f"{full_portrait_path}.\n"
+                    "The following path already exists "
+                    f"`{full_portrait_path}`.\n"
                     f"Contact an admin or {bot.owner_string} with the "
                     "above error"))
             raise MessageError(embed_wrapper=embed_wrapper)

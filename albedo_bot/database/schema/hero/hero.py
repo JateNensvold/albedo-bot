@@ -1,10 +1,11 @@
+from typing import Type
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
 from sqlalchemy.orm import relationship
 
-
 from albedo_bot.database.schema.base import base
-from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
+from albedo_bot.cogs.utils.mixins.database_mixin import (
+    DatabaseMixin)
 from albedo_bot.utils.enums.ascension_type_enum import HeroAscensionEnum
 from albedo_bot.utils.enums.hero_faction_enum import HeroFactionEnum
 from albedo_bot.utils.enums.hero_class_enum import HeroClassEnum
@@ -18,7 +19,8 @@ HERO_TYPE_ENUM = SQLEnum(HeroTypeEnum)
 
 
 class Hero(base, DatabaseMixin):
-    """[summary]
+    """
+    An AFK Arena hero
     """
 
     __tablename__ = "heroes"
@@ -40,7 +42,8 @@ class Hero(base, DatabaseMixin):
     hero_portrait = relationship("HeroPortrait")
 
     def __repr__(self) -> str:
-        """[summary]
+        """
+        Fast representation of Hero for quick identification of Hero Object
 
         Returns:
             str: [description]
@@ -48,11 +51,18 @@ class Hero(base, DatabaseMixin):
         return f"Hero<{self.id}, {self.name}>"
 
     def __str__(self):
+        """
+        String representation of Hero that is human readable
+
+        Returns:
+            str: human readable string with hero information
+        """
         return (f"{self.id} {self.name} - ({self.hero_faction}, "
                 f"{self.hero_class}, {self.hero_type}, {self.ascension_tier})")
 
     def full_repr(self):
-        """_summary_
+        """
+        Representation of Hero with all information 
         """
         return (f"Hero<{self.id}, {self.name}, {self.hero_faction}, "
                 f"{self.hero_class}, {self.hero_type}, {self.ascension_tier}, "

@@ -112,7 +112,8 @@ def main():
     elif args.mode == launch_choices.init:
         database.select_database("postgres")
         loop.run_until_complete(database.init_database(
-            database.database_name, raise_error=False))
+            database.database_name, config.hero_data,
+            raise_error=False))
     elif args.mode == launch_choices.drop:
         loop.run_until_complete(database.drop_database(
             database.database_name))

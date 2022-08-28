@@ -17,23 +17,31 @@ from sqlalchemy.orm import sessionmaker
 from albedo_bot.database.schema import base
 from albedo_bot.utils.hero_data import HeroData
 from albedo_bot.utils.config import Config
+from albedo_bot.utils.errors import DatabaseError
+
 import albedo_bot.config as config
 
 
 class Database:
-    """[summary]
+    """
+    Database class that is used to manage database creation, initialization,
+        deletion and sessions
     """
 
     def __init__(self, user: str, password: str, address: str,
                  database_name: str = "postgres",
                  port: str = "5432"):
-        """[summary]
+        """        
+        Initialize all database connection values and connect to the database
 
         Args:
-            user (str): [description]
-            password (str): [description]
-            address (str): [description]
-            database_name (str, optional): [description]. Defaults to "postgres".
+            user (str): username to connect to database with
+            password (str): password to connect to database with
+            address (str): address of database to connect to
+            database_name (str, optional): name of database to connect to. 
+                Defaults to "postgres".
+            port (str, optional): port the database cluster is accepting 
+                connections on. Defaults to "5432".
         """
         self.user = user
         self.password = password
@@ -150,7 +158,7 @@ class Database:
 
     def session_callback(self, *args, **kwargs):
         """
-        Call the session callback from non async code 
+        Call the session callback from non async code
         """
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self._session_callback(*args, **kwargs))
@@ -173,7 +181,9 @@ class Database:
             if update:
                 await self.session.refresh(sql_object)
 
-    async def init_database(self, database_name: str, raise_error: bool = True):
+    async def init_database(self, database_name: str,
+                            hero_data: HeroData,
+                            raise_error: bool = True):
         """
         Creates a database with the current connection under the name
         'database_name'. If a database of that name already exists an exception
@@ -182,8 +192,12 @@ class Database:
 
         Args:
             database_name (str): new database name
+            hero_data (HeroData): data to initialize database with
             raise_error (bool, optional): Flag to raise an error when the
                 database being initialized already exists. Defaults to True.
+        Raises:
+            DatabaseError: raised when a database with database_name already
+                exists
         """
         if database_name not in await self.list_database():
             async with self.session:
@@ -192,23 +206,21 @@ class Database:
 
         else:
             if raise_error:
-                raise Exception((
+                raise DatabaseError((
                     f"Database with the name '{database_name}' already exists. "
                     "Choose a new name or delete the existing database before "
                     "creating a new one"))
         self.select_database(database_name)
 
         await self._init_tables()
-        await self._load_data()
+        await self._load_data(hero_data)
         # Load all hero data into database
 
-    async def _load_data(self):
+    async def _load_data(self, hero_data: HeroData):
         """
         Load HeroData into the database
         """
-        hero_data = HeroData.from_json(
-            config.HERO_JSON_PATH.absolute(), self._session_callback)
-        await hero_data.build()
+        await hero_data.build(self.session)
 
     async def drop_database(self, database_name: str):
         """
@@ -366,7 +378,6 @@ class Database:
                 commands fail or return a nonzero exit code
         """
 
-
         backup_configured = config.database_config.get(
             "database_backup_configured", False)
         if backup_configured:
@@ -407,10 +418,9 @@ class Database:
 
     def _generate_pgpass(self):
         """
-        Generate the .pgpass file to run pg_dump without a password
-        passed to it
+        Generate the .pgpass file that allows pg_dump to be run without a
+            password getting passed to it
         """
-
         pg_pass_str = (f"{self.address}:{self.port}:{self.database_name}:"
                        f"{self.user}:{self.password}")
 

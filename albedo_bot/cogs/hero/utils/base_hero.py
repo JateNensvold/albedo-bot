@@ -297,7 +297,7 @@ class BaseHeroCog(BaseCog):
 
             embed_wrapper = EmbedWrapper(
                 title=f"{hero.name} portraits - {required_status}",
-                description=(f"Image {portrait_iter_index}/"
+                description=(f"Image {portrait_iter_index+1}/"
                              f"{len(portrait_list)}"),
                 embed_fields=embed_field_list,
                 image=image)

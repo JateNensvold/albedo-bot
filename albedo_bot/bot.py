@@ -50,6 +50,8 @@ def bot_prefix_callable(bot: "AlbedoBot", ctx: commands.Context):
     bot_id = bot.user.id
 
     prefix_list = [f'<@!{bot_id}> ', f'<@{bot_id}> ']
+
+    # Configure guild specific prefixes here if desired...
     if ctx.guild is None:
         prefix_list.extend(default_bot_prefix)
     else:
@@ -136,25 +138,22 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
 
     @property
     def mention(self):
-        """_summary_
-
-        Raises:
-            RuntimeError: _description_
+        """
+        Returns a discord mention of the bot
 
         Returns:
-            _type_: _description_
-
-        Yields:
-            _type_: _description_
+            str: a discord bot mention
         """
         return f"<@!{self.user.id}>"
 
     @property
     def emoji_cache(self):
-        """_summary_
+        """
+        A dictionary that caches the bots emojis on startup so allow for quick
+            fetching of emojis by name
 
         Returns:
-            _type_: _description_
+            Dict[str, Emoji]: a dictionary of emojis
         """
         if len(self._emoji_cache) == 0:
             for emoji in self.emojis:
@@ -178,7 +177,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
 
     @property
     def cog_cache(self):
-        """_summary_
+        """
+        Cache that stores a mapping of cog names without the word "cog" in them
         """
 
         if len(self._cog_cache) == 0:
@@ -191,13 +191,14 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         return self._cog_cache
 
     def get_cog(self, name: str):
-        """_summary_
+        """
+        Get a cog by name
 
         Args:
-            name (str): _description_
+            name (str): name of cog to get
 
         Returns:
-            _type_: _description_
+            Cog: cog that matches `name`
         """
 
         if name in self.cog_cache:
@@ -232,7 +233,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
                     if sub_command.name not in original_command.all_commands:
                         print(("Adding subcommand to existing module "
                                f"{full_name}: {sub_command_name}"))
-                        # print(sub_command, type(sub_command), 
+                        # print(sub_command, type(sub_command),
                         #   sub_command.all_commands)
                         original_command.add_command(sub_command)
                 return
@@ -305,12 +306,16 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         except Exception as _exception:
             await self.bot.rollback()
 
-    def get_guild_prefixes(self, guild, *, local_inject: Callable = bot_prefix_callable):
-        """_summary_
+    def get_guild_prefixes(self, guild, *,
+                           local_inject: Callable = bot_prefix_callable):
+        """
+        Get the prefix that the bot should respond to for `guild`
 
         Args:
             guild (_type_): _description_
-            local_inject (_type_, optional): _description_. Defaults to bot_prefix_callable.
+            local_inject (_type_, optional): function that returns prefix
+                for a message.
+                 Defaults to bot_prefix_callable.
 
         Returns:
             _type_: _description_

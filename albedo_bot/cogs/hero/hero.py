@@ -127,7 +127,7 @@ class HeroCog(BaseHeroCog):
     async def remove_image(self, ctx: commands.Context, hero: HeroValue,
                            image_index: int):
         """
-        Remove an image from the database that is associated with a hero, any
+        Remove an optional HeroPortrait image from the database, any
         image that is marked as required cannot be removed
 
         Args:

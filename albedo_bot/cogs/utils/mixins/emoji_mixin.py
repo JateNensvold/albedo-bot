@@ -7,16 +7,18 @@ if TYPE_CHECKING:
 
 
 class EmojiMixin:
-    """_summary_
+    """
+    A mixin that implements utility commands for interacting with emojis 
     """
 
     bot: "AlbedoBot"
 
     def get_emoji(self, emoji_name: str):
-        """_summary_
+        """
+        Fetch an emoji by name
 
         Args:
-            emoji_name (str): _description_
+            emoji_name (str): name of emoji to get
         """
         try:
             return self.bot.emoji_cache[emoji_name]
