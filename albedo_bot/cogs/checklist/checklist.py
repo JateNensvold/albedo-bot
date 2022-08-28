@@ -168,10 +168,10 @@ class ChecklistCog(BaseChecklistCog):
         await self._remove_checklist(ctx, checklist.checklist)
 
 
-def setup(bot: "AlbedoBot"):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(ChecklistCog(bot))
+    await bot.add_cog(ChecklistCog(bot))

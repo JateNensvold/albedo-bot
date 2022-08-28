@@ -168,7 +168,6 @@ class DatabaseMixin:
     """_summary_
     """
 
-    # def __init__(self):
     bot: "AlbedoBot"
 
     def db_select(self, *schema: S) -> SelectWrapper[S]:

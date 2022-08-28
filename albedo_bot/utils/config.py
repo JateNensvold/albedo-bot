@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import uuid
 import asyncio
 
@@ -7,12 +8,12 @@ import asyncio
 class Config:
     """
     The "Config" object. Internally based on ``json``.
-    
+
     All commands that modify the Config file will prompt the file to be
         flushed to disk using async
     """
 
-    def __init__(self, name: str, **options):
+    def __init__(self, name: Path, **options):
         self.name = name
 
         self.loop = options.pop('loop', asyncio.get_event_loop())
@@ -27,7 +28,7 @@ class Config:
         Load config from file
         """
         try:
-            with open(self.name, 'r', encoding="utf-8") as config_file:
+            with self.name.open("r", encoding="utf-8") as config_file:
                 self._db = json.load(config_file)
         except FileNotFoundError:
             self._db = {}

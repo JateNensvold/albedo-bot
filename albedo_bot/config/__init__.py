@@ -47,12 +47,12 @@ check_value(DATABASE_USER, "DATABASE_USER")
 # Import json_paths before json_config so they can use the paths
 from .json_configs import *
 
-database_config_dir, database_config_name = os.path.split(
-    DATABASE_CONFIG_JSON_PATH)
+database_config_dir = DATABASE_CONFIG_JSON_PATH.parent
+database_config_name = DATABASE_CONFIG_JSON_PATH.name
 # Generate the database_config from the default
-copy_default(os.path.join(database_config_dir,
-                          f"default_{database_config_name}"),
-            DATABASE_CONFIG_JSON_PATH)
+copy_default(
+    database_config_dir.joinpath(f"default_{database_config_name}"),
+    DATABASE_CONFIG_JSON_PATH)
 from .json_config import (
     permissions, database_config, database, prefixes, blacklist, hero_alias)
 

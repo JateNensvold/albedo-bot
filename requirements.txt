@@ -6,4 +6,5 @@ asyncpg
 bidict
 emoji
 cachetools
+GitPython
 -e .

@@ -107,7 +107,6 @@ class RosterCog(BaseRosterCog):
         await self._upload(ctx)
         await self.update_player(ctx.author)
 
-    # pylint: disable=no-member
     @BaseRosterCog.roster_admin.command(name="clear")
     async def clear(self, ctx: commands.Context, discord_user: User):
         """
@@ -122,7 +121,6 @@ class RosterCog(BaseRosterCog):
 
         await self.clear_roster(ctx, discord_user)
 
-    # pylint: disable=no-member
     @BaseRosterCog.roster_admin.command(name="dump")
     async def dump(self, ctx: commands.Context):
         """_summary_
@@ -134,10 +132,10 @@ class RosterCog(BaseRosterCog):
         await self.dump_rosters(ctx)
 
 
-def setup(bot: "AlbedoBot"):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(RosterCog(bot))
+    await bot.add_cog(RosterCog(bot))

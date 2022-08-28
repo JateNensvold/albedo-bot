@@ -1,6 +1,7 @@
 
 import collections
 import json
+from pathlib import Path
 from typing import Any, Dict, List, NamedTuple
 from discord import Member, Role
 
@@ -79,14 +80,14 @@ class Permissions:
         return permission_level
 
     @ classmethod
-    def from_json(cls, json_path: str):
+    def from_json(cls, json_path: Path):
         """_summary_
 
         Args:
             json_path (str): _description_
         """
 
-        with open(json_path, "r", encoding="utf-8") as config_file:
+        with json_path.open("r", encoding="utf-8") as config_file:
             config_data = json.load(config_file)
             permissions = Permissions(config_data)
         return permissions

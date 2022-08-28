@@ -16,7 +16,7 @@ from albedo_bot.database.schema.guild import Guild
 from albedo_bot.database.schema.player.player import Player
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import (EmbedWrapper, send_embed)
+from albedo_bot.utils.message import (EmbedWrapper, edit_message, send_embed)
 from albedo_bot.cogs.hero.utils import (
     AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (
@@ -50,7 +50,7 @@ class BaseRosterCog(BaseCog):
     @BaseCog.admin.group(name="roster")
     async def roster_admin(self, ctx: commands.Context):
         """
-        A group of players commands that require elevated permissions to run
+        A group of roster commands that require elevated permissions to run
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -184,11 +184,11 @@ class BaseRosterCog(BaseCog):
                 description=(f"Currently processing image {image_number}"))
             if temporary_holdover_message is None:
                 temporary_holdover_message = await send_embed(
-                    ctx, embed_wrapper=embed_wrapper)
+                    ctx, embed_wrapper=embed_wrapper)[0]
             else:
-                await send_embed(ctx,
-                                 embed_wrapper=embed_wrapper,
-                                 edit_message=temporary_holdover_message)
+                await edit_message(ctx,
+                                   message=temporary_holdover_message,
+                                   embed_wrapper=embed_wrapper)
             command_list = [str(attachment)]
             if config.VERBOSE:
                 command_list.append("-v")
@@ -359,7 +359,7 @@ class BaseRosterCog(BaseCog):
             hero_instance_select).all_objects()
         temporary_message_description = "Fetching information from database..."
 
-        temporary_message = await send_embed(
+        temporary_messages = await send_embed(
             ctx, embed_wrapper=EmbedWrapper(
                 title="Dumping player rosters...",
                 description=temporary_message_description))
@@ -368,15 +368,13 @@ class BaseRosterCog(BaseCog):
             f"{temporary_message_description} selected "
             f"{len(player_roster_rows)} rows\n Generating CSV...")
 
-        await send_embed(
-            ctx,
-            embed_wrapper=EmbedWrapper(
-                title="Generating CSV...",
-                description=temporary_message_description),
-            edit_message=temporary_message)
+        await edit_message(ctx, message=temporary_messages[0],
+                           embed_wrapper=EmbedWrapper(
+                               title="Generating CSV...",
+                               description=temporary_message_description))
 
         hero_instance_strings: list[str] = []
-        player_set = set()
+        player_set: set[int] = set()
 
         for hero_row in player_roster_rows:
 
@@ -398,7 +396,7 @@ class BaseRosterCog(BaseCog):
         discord_file = File(
             buffer, filename=f"players_hero_dump_{str(datetime.now())}.csv")
 
-        await temporary_message.delete()
+        await temporary_messages[0].delete()
         await send_embed(ctx,
                          embed_wrapper=EmbedWrapper(description=(
                              f"Dumped {len(player_roster_rows)} lines, from "

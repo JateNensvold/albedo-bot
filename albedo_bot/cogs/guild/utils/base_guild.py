@@ -8,11 +8,10 @@ class BaseGuildCog(BaseCog):
     """_summary_
     """
 
-    # pylint: disable=no-member
     @BaseCog.admin.group(name="guild")
     async def guild_admin(self, ctx: commands.Context):
         """
-        A group of players commands that require elevated permissions to run
+        A group of guild commands that require elevated permissions to run
 
         Args:
             ctx (Context): invocation context containing information on how

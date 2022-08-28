@@ -1,4 +1,7 @@
+from io import BytesIO
+from albedo_bot.utils.files.image_util import ContentType, valid_image
 import requests
+import git
 
 from discord import File
 from discord.ext import commands
@@ -11,17 +14,18 @@ from albedo_bot.database.schema.hero.hero import (
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait
+from albedo_bot.config import HERO_JSON_PATH, AFK_HELPER_PATH
+from albedo_bot.utils.git_helper import git_update
 
 
 class BaseHeroCog(BaseCog):
     """_summary_
     """
 
-    # pylint: disable=no-member
     @BaseCog.admin.group(name="hero")
     async def hero_admin(self, ctx: commands.Context):
         """
-        A group of players commands that require elevated permissions to run
+        A group of hero commands that require elevated permissions to run
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -95,6 +99,20 @@ class BaseHeroCog(BaseCog):
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=(f"Removed hero `{hero_object}` from hero database")))
 
+    async def _auto_load(self, ctx: commands.Context):
+        """
+
+        Args:
+            ctx (commands.Context): _description_
+        """
+
+        # update_output = git_update(AFK_HELPER_PATH)
+
+        # hero_updates =
+
+        # with open(HERO_JSON_PATH, 'w', encoding='utf-8') as file_pointer:
+        #     file_pointer.write(jsonpickle.encode(self._db.copy()))
+
     async def _add_image(self, ctx: commands.Context, hero: Hero,
                          image_index: int):
         """_summary_
@@ -120,90 +138,27 @@ class BaseHeroCog(BaseCog):
                     "To add a hero portrait to the database ensure that only a "
                     "single image has been attached to this command"))
             raise CogCommandError(embed_wrapper=embed_wrapper)
-        file_types: list[str] = ["jpg", "jpeg", "png"]
-        if portrait_attachment.content_type.lower() not in file_types:
-            embed_wrapper = EmbedWrapper(
-                title="Invalid file type",
-                description=(
-                    f"The following attachment is invalid "
-                    f"{portrait_attachment.url}, Hero portraits only support "
-                    f"the following file types {', '.join(file_types)}"))
-            raise CogCommandError(embed_wrapper=embed_wrapper)
 
-        portraits_select = self.db_select(
-            HeroPortrait).where(hero.id == HeroPortrait.id)
+        content_type = ContentType.from_str(portrait_attachment.content_type)
 
-        hero_portraits = await self.db_execute(portraits_select).all()
+        valid_image(portrait_attachment.url, content_type)
 
-        required_portraits: list[HeroPortrait] = []
-        optional_portraits: list[HeroPortrait] = []
-
-        for hero_portrait in hero_portraits:
-            if hero_portrait.required:
-                required_portraits.append(hero_portrait)
-            else:
-                optional_portraits.append(hero_portrait)
-
-        optional_portraits.sort(key=lambda portrait: portrait.image_index)
-
-        update_portraits: list[HeroPortrait] = []
-
-        if image_index < 0:
-            image_index = len(optional_portraits)
-        elif image_index > len(optional_portraits):
-            image_index = len(optional_portraits)
-        else:
-            for hero_portrait in optional_portraits:
-                if hero_portrait.image_index >= image_index:
-                    hero_portrait.image_index += 1
-                    update_portraits.append(hero_portrait)
-
-        new_portrait = HeroPortrait()
-        portrait_name = f"{hero.name}_{len(optional_portraits)}"
-        portrait_directory_path = GV.IMAGE_PROCESSING_PORTRAITS
-
-        new_portrait.image_index = len(optional_portraits)
-        new_portrait.required = False
-        new_portrait.image_directory = portrait_directory_path
-        new_portrait.image_name = portrait_name
-        new_portrait.id = hero.id
-
-        full_portrait_path = portrait_directory_path.joinpath(
-            portrait_name)
-        if not portrait_directory_path.exists():
-            embed_wrapper = EmbedWrapper(
-                title="Portrait Path Failure",
-                description=(
-                    "The following path does not exist "
-                    f"{portrait_directory_path}.\n"
-                    f"Contact an admin or {self.bot.owner_string} with the "
-                    "above error"))
-            raise CogCommandError(embed_wrapper=embed_wrapper)
-        elif full_portrait_path.exists():
-            embed_wrapper = EmbedWrapper(
-                title="Portrait Path Failure",
-                description=(
-                    "The following path already exists"
-                    f"{full_portrait_path}.\n"
-                    f"Contact an admin or {self.bot.owner_string} with the "
-                    "above error"))
-            raise CogCommandError(embed_wrapper=embed_wrapper)
+        new_portrait = await HeroPortrait.add_optional(
+            self.bot, hero, GV.IMAGE_PROCESSING_PORTRAITS,
+            content_type, image_index)
 
         attachment_data = requests.get(portrait_attachment.url).content
-        with open(full_portrait_path, 'wb') as file:
-            file.write(attachment_data)
+        buffered_data = BytesIO(attachment_data)
+        portrait_image = File(buffered_data,
+                              filename=new_portrait.image_name)
 
-        await self.db_add(new_portrait)
+        with open(new_portrait.full_path(), 'wb') as file_pointer:
+            file_pointer.write(attachment_data)
 
-        for hero_portrait_update in update_portraits:
-            await self.db_add(hero_portrait_update)
-
-        portrait_image = File(full_portrait_path,
-                              filename=hero_portrait.image_name)
         embed_wrapper = EmbedWrapper(
             title="Image added successfully",
             description=(
-                f"The following image {hero_portrait.image_name} has been "
+                f"The following image `{new_portrait.image_name}` has been "
                 f"successfully added for hero `{hero.name}`"),
             image=portrait_image)
         await send_embed(ctx, embed_wrapper=embed_wrapper)
@@ -296,9 +251,12 @@ class BaseHeroCog(BaseCog):
 
         optional_portraits.sort(key=lambda portrait: portrait.image_index)
 
-        embed_wrapper_list = self.build_display(hero, [*required_portraits,
-                                                       *optional_portraits])
-        await send_embed(ctx, embed_wrapper=embed_wrapper_list)
+        required_portraits_list = self.build_display(
+            hero, [*required_portraits])
+        optional_portraits_list = self.build_display(
+            hero, [*optional_portraits])
+        await send_embed(ctx, embed_wrapper=[*required_portraits_list,
+                                             *optional_portraits_list])
 
     def build_display(self, hero: Hero,
                       portrait_list: list[HeroPortrait]):
@@ -325,9 +283,9 @@ class BaseHeroCog(BaseCog):
             else:
                 portrait_index = hero_portrait.image_index
             embed_field_list.append(EmbedField(
-                name="Index", value=f"{portrait_index}"))
+                name="Index", value=f"{portrait_index+1}"))
             embed_field_list.append(EmbedField(
-                name="Name", value=f"{hero_portrait.image_name}"))
+                name="Name", value=f"`{hero_portrait.image_name}`"))
 
             image = File(hero_portrait.full_path(),
                          filename=hero_portrait.image_name)
@@ -338,7 +296,7 @@ class BaseHeroCog(BaseCog):
                 required_status = "Optional"
 
             embed_wrapper = EmbedWrapper(
-                title=f"{hero.name} {required_status} portrait",
+                title=f"{hero.name} portraits - {required_status}",
                 description=(f"Image {portrait_iter_index}/"
                              f"{len(portrait_list)}"),
                 embed_fields=embed_field_list,

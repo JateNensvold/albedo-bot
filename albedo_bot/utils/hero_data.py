@@ -1,6 +1,5 @@
 
 import json
-import os
 from typing import Any, Callable, Dict, List
 
 from albedo_bot.database.schema.hero import (Hero)
@@ -30,9 +29,8 @@ def translate_afk_helper_path(path: str):
         (str): path to file in 'afk_helper' repo relative to 'albedo_bot'
             repo root
     """
-    output = os.path.abspath(os.path.join(
-        config.AFK_HELPER_IMAGE_PREFIX, path))
-    return output
+
+    return str(config.AFK_HELPER_IMAGE_PREFIX.joinpath(path))
 
 
 class JsonHero:

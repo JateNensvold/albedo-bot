@@ -25,7 +25,6 @@ class GuildCog(BaseGuildCog):
     """
     _summary_ = "A collections of commands for managing afk arena guilds"
 
-    # pylint: disable=no-member
     @BaseGuildCog.guild_admin.command(name="add", aliases=["register"])
     async def _add(self, ctx: commands.Context, guild_role: Role):
         """
@@ -54,7 +53,6 @@ class GuildCog(BaseGuildCog):
                 description=f"{guild_object} is already a registered guild")
             raise CogCommandError(embed_wrapper=embed_wrapper)
 
-    # pylint: disable=no-member
     @BaseGuildCog.guild_admin.command(name="delete", aliases=["remove"])
     async def delete(self, ctx: commands.Context, guild_role: Role):
         """
@@ -81,7 +79,6 @@ class GuildCog(BaseGuildCog):
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             description=f"Successfully removed guild {guild_object}"))
 
-    # pylint: disable=no-member
     @BaseGuildCog.guild_admin.command(name="list")
     async def _list(self, ctx: commands.Context):
         """
@@ -104,10 +101,10 @@ class GuildCog(BaseGuildCog):
             title="Guild List", description=guilds_str))
 
 
-def setup(bot: "AlbedoBot"):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(GuildCog(bot, False))
+    await bot.add_cog(GuildCog(bot, False))

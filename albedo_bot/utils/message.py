@@ -89,7 +89,7 @@ class EmbedWrapper:
 
         total = 0
         for item in fields:
-            str_item = str(item) if str(item) != Embed.Empty else ''
+            str_item = str(item) if str(item) != None else ''
             total += len(str_item)
 
         return total
@@ -334,15 +334,95 @@ async def _send_message(ctx: Context,
             return await ctx.send(message, **message_kwargs)
 
 
+def generate_embeds(ctx: Context,
+                    files: list[File],
+                    embed_wrapper: Union[EmbedWrapper,
+                                         list[EmbedWrapper]] = None,
+                    embed: Embed = None,
+                    embed_color: str = "green",
+                    emoji: str = white_check_mark):
+    """
+    Take a list of embed and embed_wrapper and generate all the embeds for a
+    message in a list
+
+    Will edit files list in place when embeds contain images
+
+    Args:
+        ctx (Context): _description_
+        files (list[File]): list of files to send alongside embeds,
+            images from embeds get added to this
+        embed_wrapper (Union[EmbedWrapper, list[EmbedWrapper]], optional): 
+            embed wrapper(s) to turn into embeds. Defaults to None.
+        embed (Embed, optional): optional embed that is already created.
+            Defaults to None.
+        embed_color (str, optional): Color to set embeds while generating them.
+            Defaults to "green".
+        emoji (str, optional): Emoji to send in embed title.
+            Defaults to white_check_mark.
+
+    Returns:
+        list[Embed]: list of embeds to send
+    """
+
+    embed_list: list[Embed] = []
+    if embed:
+        embed_list.append(embed)
+
+    color = MplColorHelper().get_unicode(embed_color)
+    if isinstance(embed_wrapper, EmbedWrapper):
+        _embed_wrappers = [embed_wrapper]
+    else:
+        _embed_wrappers = embed_wrapper
+
+    embed_wrapper_list: list[EmbedWrapper] = []
+    # Initialize any uninitialized content in the embed_wrappers and break
+    #   apart the content to fit inside the embed character limits
+    for _embed_wrapper in _embed_wrappers:
+        if _embed_wrapper.duration is None:
+            _embed_wrapper.duration = time() - ctx.start_time
+            _embed_wrapper.create_footer()
+
+        if not _embed_wrapper.check_char_limit():
+            generated_embed_wrappers = _embed_wrapper.split_embed()
+            embed_wrapper_list.extend(generated_embed_wrappers)
+        else:
+            embed_wrapper_list.append(_embed_wrapper)
+    message_list: list[Message] = []
+    embed_list: list[Embed] = []
+    for current_embed_wrapper in embed_wrapper_list:
+        current_embed = Embed(
+            color=color,
+            timestamp=datetime.fromtimestamp(time()))
+        if (current_embed_wrapper.title == "" or
+                current_embed_wrapper.title is None):
+            current_embed.title = f"{emoji} Success"
+        elif emoji:
+            current_embed.title = f"{emoji} {current_embed_wrapper.title}"
+        else:
+            current_embed.title = current_embed_wrapper.title
+        current_embed.description = current_embed_wrapper.description
+        current_embed.set_footer(text=current_embed_wrapper.footer)
+
+        for embed_field in current_embed_wrapper.embed_fields:
+            current_embed.add_field(name=embed_field.name,
+                                    value=embed_field.value)
+        if current_embed_wrapper.image:
+            current_embed.set_image(
+                url=("attachment://"
+                     f"{current_embed_wrapper.image.filename}"))
+            files.insert(0, current_embed_wrapper.image)
+        embed_list.append(current_embed)
+    return embed_list
+
+
 async def send_embed(ctx: Context,
                      embed_wrapper: Union[EmbedWrapper,
-                                          list[EmbedWrapper]] = None,
+                                          list[EmbedWrapper]],
                      embed: Embed = None,
                      reply: bool = True,
                      mention_author: bool = False,
                      embed_color: str = "green",
                      emoji: str = white_check_mark,
-                     edit_message: Message = None,
                      file: Union[File, list[File]] = None,
                      view: SelectView = None):
     """
@@ -373,78 +453,88 @@ async def send_embed(ctx: Context,
             Defaults to None.
 
     Returns:
-        (list[Message] | Message): returns the messages generated to send the
+        (list[Message]): returns the messages generated to send the
             embeds
     """
+
+    files: list[File] = []
     if isinstance(file, File):
         files = [file]
-    else:
+    elif isinstance(file, list):
         files = file
-    if not embed:
-        color = MplColorHelper().get_unicode(embed_color)
-        if isinstance(embed_wrapper, EmbedWrapper):
-            embed_wrappers = [embed_wrapper]
-        else:
-            embed_wrappers = embed_wrapper
 
-        embed_wrapper_list: list[EmbedWrapper] = []
-        for _embed_wrapper in embed_wrappers:
-            if _embed_wrapper.duration is None:
-                _embed_wrapper.duration = time() - ctx.start_time
-                _embed_wrapper.create_footer()
+    embed_list = generate_embeds(ctx, files, embed_wrapper=embed_wrapper,
+                                 embed=embed, embed_color=embed_color,
+                                 emoji=emoji)
 
-            if not _embed_wrapper.check_char_limit():
-                generated_embed_wrappers = _embed_wrapper.split_embed()
-                embed_wrapper_list.extend(generated_embed_wrappers)
-            else:
-                embed_wrapper_list.append(_embed_wrapper)
-        message_list: list[Message] = []
-        embed_list: list[Embed] = []
-        for current_embed_wrapper in embed_wrapper_list:
-            embed = Embed(
-                color=color,
-                timestamp=datetime.fromtimestamp(time()))
-            if (current_embed_wrapper.title == "" or
-                    current_embed_wrapper.title is None):
-                embed.title = f"{emoji} Success"
-            elif emoji:
-                embed.title = f"{emoji} {current_embed_wrapper.title}"
-            else:
-                embed.title = current_embed_wrapper.title
-            embed.description = current_embed_wrapper.description
-            embed.set_footer(text=current_embed_wrapper.footer)
+    message_list: list[Message] = []
+    while len(embed_list) > 0:
+        sent_message = await _send_embed(ctx, embeds=embed_list[:10],
+                                         reply=reply,
+                                         mention_author=mention_author,
+                                         view=view, files=files[:10])
+        files = files[10:]
+        embed_list = embed_list[10:]
+        message_list.append(sent_message)
+    return message_list
 
-            for embed_field in current_embed_wrapper.embed_fields:
-                embed.add_field(name=embed_field.name,
-                                value=embed_field.value)
-            if current_embed_wrapper.image:
-                embed.set_image(
-                    url=("attachment://"
-                         f"{current_embed_wrapper.image.filename}"))
-                files.insert(0, current_embed_wrapper.image)
-            embed_list.append(embed)
-            if len(embed_list) >= 10:
-                last_message = await _send_embed(
-                    ctx, embed, reply, edit_message,
-                    mention_author, view, files=files[:10])
-                message_list.append(last_message)
-                files = files[10:]
-        if len(embed_list) > 0:
-            last_message = await _send_embed(
-                ctx, embed, reply, edit_message,
-                mention_author, view, files=files[:10])
-        if len(message_list) == 1:
-            return message_list[0]
-        else:
-            return message_list
-    return await _send_embed(ctx, embed, reply, edit_message, mention_author,
-                             view, files)
+
+async def edit_message(ctx: Context,
+                       message: Message,
+                       content: str = None,
+                       embed_wrapper: Union[EmbedWrapper,
+                                            list[EmbedWrapper]] = None,
+                       embed: Embed = None,
+                       mention_author: bool = False,
+                       embed_color: str = "green",
+                       emoji: str = white_check_mark,
+                       file: Union[File, list[File]] = None,
+                       view: SelectView = None):
+    """
+    Edit a Message containing an `embed`. If an `embed_wrapper` is provided
+    an embed will be constructed from it.
+
+    Args:
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        message (Message, optional): Message getting edited
+        content(str, optional): text content to put in message
+            Defaults to None. 
+        embed_wrapper (EmbedWrapper, optional): Embed wrapper to construct an
+            embed out of. Defaults to None.
+        embed (Embed, optional): Embed to send. Defaults to None.
+        mention_author (bool, optional): mention discord users in the message
+            when True. Defaults to False.
+        embed_color (str, optional): Color to set the embed colors to.
+            Defaults to "green".
+        emoji (str, optional): Emoji to put at the start of the embed Title.
+            Defaults to white_check_mark.
+        file (Union[File, list[File]], optional): File or list of files to
+            send in message. Defaults to None.
+        view (SelectView, optional): Discord view object to send in
+            message(may contain selection or other discord embedded types).
+            Defaults to None.
+    Returns:
+        Message: the message sent in discord
+    """
+
+    files: list[File] = []
+    if isinstance(file, File):
+        files = [file]
+    elif isinstance(file, list):
+        files = file
+
+    embed_list = generate_embeds(ctx, files, embed_wrapper=embed_wrapper,
+                                 embed=embed, embed_color=embed_color,
+                                 emoji=emoji)
+
+    return await message.edit(content=content, embeds=embed_list, view=view,
+                              attachments=files)
 
 
 async def _send_embed(ctx: Context,
                       embeds: list[Embed],
                       reply: bool,
-                      edit_message: Message,
                       mention_author: bool,
                       view: SelectView,
                       files: list[File]) -> Message:
@@ -454,17 +544,15 @@ async def _send_embed(ctx: Context,
     Args:
         ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-        embed (Embed): _description_
-        reply (bool): _description_
-        edit_message (Message): _description_
-        mention_author (bool): _description_
-
+        embeds (list[Embed)): Discord Embeds to send in message
+        reply (bool): reply to the original message when true
+        mention_author (bool): mention discord users in the message
+            when True
+        file (list[File]): list of files to
+                    send in message
     Returns:
-        Message: _description_
+        Message: the message sent in discord
     """
-
-    if edit_message is not None:
-        return await edit_message.edit(embed=embeds[0])
 
     message_kwargs = {"embeds": embeds,
                       "mention_author": mention_author,

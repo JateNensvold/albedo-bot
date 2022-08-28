@@ -62,13 +62,13 @@ def setup_logging():
             log.removeHandler(handler)
 
 
-def run_bot():
+async def run_bot():
     """
     Create and run the the bot
     """
 
     bot = AlbedoBot()
-    bot.run()
+    await bot.start()
 
 
 class LaunchChoices(NamedTuple):
@@ -108,7 +108,7 @@ def main():
 
     if args.mode == launch_choices.run:
         with setup_logging():
-            run_bot()
+            loop.run_until_complete(run_bot())
     elif args.mode == launch_choices.init:
         database.select_database("postgres")
         loop.run_until_complete(database.init_database(

@@ -129,7 +129,8 @@ class Database:
 
     @property
     def session(self) -> AsyncSession:
-        """_summary_
+        """
+        Create/return a new session for the current scope
 
         Returns:
             : _description_
@@ -137,7 +138,9 @@ class Database:
         return self.session_producer()
 
     def update_scoped_session(self, scope_func: Callable):
-        """_summary_
+        """
+        Update the session producer to use a new scope_func to determine
+            session lifecycle
 
         Args:
             scope_func (Callable): _description_
@@ -204,7 +207,7 @@ class Database:
         Load HeroData into the database
         """
         hero_data = HeroData.from_json(
-            config.HERO_JSON_PATH, self._session_callback)
+            config.HERO_JSON_PATH.absolute(), self._session_callback)
         await hero_data.build()
 
     async def drop_database(self, database_name: str):

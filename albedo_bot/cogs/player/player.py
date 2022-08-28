@@ -195,10 +195,10 @@ class PlayerCog(BasePlayerCog):
         await self._set_timezone(ctx)
 
 
-def setup(bot: "AlbedoBot"):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(PlayerCog(bot, False))
+    await bot.add_cog(PlayerCog(bot, False))

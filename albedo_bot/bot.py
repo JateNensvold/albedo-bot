@@ -59,12 +59,14 @@ def bot_prefix_callable(bot: "AlbedoBot", ctx: commands.Context):
 
 
 class AlbedoBot(commands.Bot, DatabaseMixin):
-    """_summary_
+    """
+    AlbedoBot class that runs discord a discord bot for 
+        AFK Arena and discord Guild management utilities
 
     Args:
         commands (_type_): _description_
     """
-    # Owner Id for toshd
+    # Owner Id for tosh
     owner_string = "@tosh#8118"
     tosh_id = "<@270762725179654144>"
 
@@ -81,8 +83,13 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         intents = discord.Intents(
             guilds=True,
             members=True,
+            bans=True,
             emojis=True,
-            messages=True)
+            voice_states=True,
+            messages=True,
+            reactions=True,
+            message_content=True,
+        )
         allowed_mentions = discord.AllowedMentions(
             roles=False, everyone=False, users=True)
 
@@ -105,12 +112,6 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         self._emoji_cache: Dict[str, Emoji] = {}
         self._prev_events: Deque[Message] = deque(maxlen=10)
 
-        # Configured prefixes for each server/guild using the bot
-        self.prefixes = config.prefixes
-
-        # Users and guilds blacklisted from using bot
-        self.blacklist = config.blacklist
-
         # in case of even further spam, add a cooldown mapping
         # for people who excessively spam commands
         self.spam_control = commands.CooldownMapping.from_cooldown(
@@ -123,22 +124,15 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         # Cache that stores a mapping of cog names without the word "cog" in them
         self._cog_cache: dict[str, str] = {}
 
-        self.permissions = config.permissions
-
         self.database = config.database
         self.database.postgres_connect()
+
+        # Update the method used to scope database sessions
         self.database.update_scoped_session(self.get_current_scope)
 
         self.bot = self
 
         self.task_cache = {}
-
-        for extension in initial_extensions:
-            try:
-                self.load_extension(extension)
-            except DiscordException as _load_failure:
-                print(f"Failed to load extension {extension}", file=sys.stderr)
-                traceback.print_exc()
 
     @property
     def mention(self):
@@ -169,19 +163,16 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
 
     @property
     def session(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
+        """
+        Return the current database `AsyncSession`
         """
         return self.database.session
 
     @property
     def session_producer(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
+        """
+        Return the session_producer used to create and mange scope of the
+        current session
         """
         return self.database.session_producer
 
@@ -238,10 +229,11 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
                 original_command = self.command_cache[full_name]
                 # Remove previous command and replace with newest one
                 for sub_command_name, sub_command in command.all_commands.items():
-                    sub_command: commands.Command
                     if sub_command.name not in original_command.all_commands:
-                        print(
-                            f"adding subcommand {full_name}: {sub_command_name}")
+                        print(("Adding subcommand to existing module "
+                               f"{full_name}: {sub_command_name}"))
+                        # print(sub_command, type(sub_command), 
+                        #   sub_command.all_commands)
                         original_command.add_command(sub_command)
                 return
         else:
@@ -530,11 +522,13 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
             await self.invoke(ctx)
         finally:
             # Commit any changes to database to disk
-            await self.session_producer.commit()
-            # closes currently scoped session before disposing of it
-            #   i.e.(cleans up session database resources for command currently
-            #   being processed)
-            await self.session_producer.remove()
+            try:
+                await self.session_producer.commit()
+            finally:
+                # closes currently scoped session before disposing of it
+                #   i.e.(cleans up session database resources for command
+                #   currently being processed)
+                await self.session_producer.remove()
 
     async def on_message(self, message: Message):
         """_summary_
@@ -558,19 +552,26 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
     async def close(self):
         await super().close()
 
-    def run(self):  # pylint: disable=arguments-differ
+    async def setup_hook(self) -> None:
+
+        # Configured prefixes for each server/guild using the bot
+        self.prefixes = config.prefixes
+
+        # Users and guilds blacklisted from using bot
+        self.blacklist = config.blacklist
+
+        # Permissions config to check users permissions
+        self.permissions = config.permissions
+
+        for extension in initial_extensions:
+            try:
+                await self.load_extension(extension)
+            except DiscordException as _load_failure:
+                print(f"Failed to load extension {extension}", file=sys.stderr)
+                traceback.print_exc()
+
+    async def start(self):  # pylint: disable=arguments-differ
         """_summary_
         """
-        try:
-            super().run(config.TOKEN, reconnect=True)
-        finally:
-            with open('prev_events.log', 'w', encoding='utf-8') as file_pointer:
-                for data in self._prev_events:
-                    try:
-                        formatted_data = json.dumps(json.loads(data),
-                                                    ensure_ascii=True, indent=4)
-                    # pylint: disable=broad-except
-                    except Exception as _exception:
-                        file_pointer.write(f'{data}\n')
-                    else:
-                        file_pointer.write(f'{formatted_data}\n')
+
+        await super().start(config.TOKEN, reconnect=True)

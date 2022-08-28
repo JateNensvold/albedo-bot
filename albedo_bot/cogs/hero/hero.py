@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING
-from albedo_bot.cogs.hero.utils.converter.hero import HeroValue
 
 from discord.ext import commands
 
@@ -9,8 +8,8 @@ from albedo_bot.cogs.hero.utils.converter.hero_faction import HeroFaction
 from albedo_bot.cogs.hero.utils.converter.hero_type import HeroType
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.cogs.hero.utils.base_hero import BaseHeroCog
-from albedo_bot.utils.checks import check_config_permission
 from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.cogs.hero.utils.converter.hero import HeroValue
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -21,9 +20,7 @@ class HeroCog(BaseHeroCog):
     A group of commands used to manager a players AFK Arena roster
     """
 
-    # pylint: disable=no-member
     @BaseHeroCog.hero_admin.command(name="register", aliases=["add"])
-    @check_config_permission("guild_manager")
     async def register(self, ctx: commands.Context, hero_name: str,
                        hero_faction: HeroFaction, hero_class: HeroClass,
                        hero_type: HeroType, ascension_tier: AscensionType):
@@ -39,9 +36,7 @@ class HeroCog(BaseHeroCog):
         await self._add_hero(ctx, hero_name, hero_faction, hero_class,
                              hero_type, ascension_tier)
 
-    # pylint: disable=no-member
     @BaseHeroCog.hero_admin.command(name="remove", aliases=["delete"])
-    @check_config_permission("guild_manager")
     async def remove(self, ctx: commands.Context, hero_name: HeroValue):
         """
         Remove/delete an existing AFK Arena hero from the bot
@@ -53,7 +48,6 @@ class HeroCog(BaseHeroCog):
         """
         await self._remove_hero(ctx, hero_name.hero)
 
-    # pylint: disable=no-member
     @BaseHeroCog.hero_admin.command(name="show")
     async def show(self, ctx: commands.Context, hero_name: str = None):
         """
@@ -79,6 +73,21 @@ class HeroCog(BaseHeroCog):
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
             title="Hero List",
             description=hero_list))
+
+    @BaseHeroCog.hero_admin.command(name="autoload", aliases=[])
+    async def autoload(self, ctx: commands.Context):
+        """
+        Automatically check if any hero updates/additions have occurred in the
+        following git repo
+        https://github.com/Dae314/AFKBuilder/blob/main/src/stores/HeroData.js
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+            name (str): name of hero getting added
+        """
+
+        await self._auto_load(ctx)
 
     @BaseHeroCog.hero_admin.group(name="image")
     async def hero_image(self, ctx: commands.Context):
@@ -112,7 +121,7 @@ class HeroCog(BaseHeroCog):
                 displayed to players. Defaults to -1 which will be used to
                 append the hero to the image database instead of insert.
         """
-        self._add_image(ctx, hero.hero, insertion_index)
+        await self._add_image(ctx, hero.hero, insertion_index)
 
     @hero_image.command(name="remove", aliases=["delete"])
     async def remove_image(self, ctx: commands.Context, hero: HeroValue,
@@ -140,13 +149,13 @@ class HeroCog(BaseHeroCog):
             hero (Hero): the hero to display the images of
 
         """
-        self._show_image(ctx, hero.hero)
+        await self._show_image(ctx, hero.hero)
 
 
-def setup(bot: "AlbedoBot"):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (AlbedoBot): _description_
     """
-    bot.add_cog(HeroCog(bot, require_registration=False))
+    await bot.add_cog(HeroCog(bot))

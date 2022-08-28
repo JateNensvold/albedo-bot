@@ -43,7 +43,8 @@ class HelpCog(command_module.MinimalHelpCommand):
             command (commands.Command): _description_
         """
 
-        return f"{self.clean_prefix}{command.qualified_name} {command.signature}"
+        return (f"{self.context.clean_prefix}{command.qualified_name} "
+                f"{command.signature}")
 
     # pylint: disable=unused-argument
     def get_category(self, command: command_module.core.Group, *args):

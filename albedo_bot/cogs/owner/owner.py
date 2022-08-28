@@ -186,10 +186,10 @@ class OwnerCog(BaseOwnerCog):
             title=f"`{emoji}`", embed_fields=[embed_field1, embed_field2]))
 
 
-def setup(bot: commands.bot.Bot):
+async def setup(bot: "AlbedoBot"):
     """_summary_
 
     Args:
         bot (commands.bot.Bot): _description_
     """
-    bot.add_cog(OwnerCog(bot, require_registration=False))
+    await bot.add_cog(OwnerCog(bot, require_registration=False))

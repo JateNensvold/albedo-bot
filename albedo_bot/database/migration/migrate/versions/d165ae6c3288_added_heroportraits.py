@@ -1,8 +1,8 @@
-"""Added HeroPortrait table for tracking images in the hero database
+"""Added HeroPortraits
 
-Revision ID: a7fd51241282
+Revision ID: d165ae6c3288
 Revises: a644106254d1
-Create Date: 2022-08-22 08:03:21.544740
+Create Date: 2022-08-28 07:32:19.813996
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a7fd51241282'
+revision = 'd165ae6c3288'
 down_revision = 'a644106254d1'
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade() -> None:
     op.create_table('hero_portraits',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('image_index', sa.Integer(), nullable=False),
-    sa.Column('required', sa.Integer(), nullable=False),
+    sa.Column('required', sa.Boolean(), nullable=False),
     sa.Column('image_directory', sa.String(), nullable=True),
     sa.Column('image_name', sa.String(), nullable=True),
     sa.ForeignKeyConstraint(['id'], ['heroes.id'], ),

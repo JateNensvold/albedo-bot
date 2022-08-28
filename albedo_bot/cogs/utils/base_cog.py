@@ -14,30 +14,6 @@ if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-# def group(name: str = None, allow_duplicate: bool = False, **attrs):
-#     """A decorator that transforms a function into a :class:`.Group`.
-
-#     This is similar to the :func:`.command` decorator but the ``cls``
-#     parameter is set to :class:`Group` by default.
-
-#     .. versionchanged:: 1.1
-#         The ``cls`` parameter can now be passed.
-#     """
-
-#     def deduplication_decorator(func):
-#         command_object = commands.group(name, **attrs)
-#         output = command_object(func)
-#         output.allow_duplicate = allow_duplicate
-#         print(output, repr(output))
-#         print(output.allow_duplicate)
-
-#         # for attr in dir(output):
-#         #     print(attr)
-#         return output
-
-#     return deduplication_decorator
-
-
 class BaseCog(commands.Cog, DatabaseMixin):
     """_summary_
 
@@ -63,6 +39,22 @@ class BaseCog(commands.Cog, DatabaseMixin):
         """
         A group of commands that require elevated permissions to run
 
+        *Ensure that any commands/groups that inherit from this one are not
+            imported before their parent 
+            i.e 
+
+            //file1.py
+            Class GrandParentCog(ParentCog)
+
+            //file2.py
+            class ParentCog(BaseCog)
+
+            //file3.py
+            class BaseCog
+
+            ParentCog cannot get imported before GrandParentCog without
+                breaking any inherited admin commands
+
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
@@ -74,7 +66,7 @@ class BaseCog(commands.Cog, DatabaseMixin):
     #     for index, command in enumerate(self.__cog_commands__):
     #         print(index, command)
 
-    #     return super()._inject(bot)
+        # return super()._inject(bot)
 
     async def cog_after_invoke(self, ctx: commands.Context):
         """

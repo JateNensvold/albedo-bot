@@ -29,6 +29,9 @@ class MessageError(commands.CommandError):
             message (_type_, optional): _description_. Defaults to None.
             embed (Embed, optional): _description_. Defaults to None.
         """
+        if message is None:
+            message = f"{embed_wrapper.title}\n{embed_wrapper.description}"
+
         self.embed_wrapper = embed_wrapper
         super().__init__(message, *args)
 
