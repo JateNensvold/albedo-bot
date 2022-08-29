@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Union
 
 from discord.ext import commands as command_module
 
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed
 from albedo_bot.utils.emoji import page_with_curl
 from albedo_bot.utils.errors import DiscordPermissionError
 
@@ -126,7 +126,8 @@ class HelpCog(command_module.MinimalHelpCommand):
     def add_command_formatting(self,
                                command: Union[command_module.core.Group,
                                               command_module.core.Command]):
-        """A utility function to format commands and groups.
+        """
+        A utility function to format commands and groups.
 
         Parameters
         ------------

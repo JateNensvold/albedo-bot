@@ -7,4 +7,5 @@ bidict
 emoji
 cachetools
 GitPython
+regex
 -e .

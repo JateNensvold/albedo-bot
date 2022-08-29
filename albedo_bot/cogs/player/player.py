@@ -8,7 +8,7 @@ from albedo_bot.database.schema.guild import Guild
 from albedo_bot.database.schema.player.player import Player
 from albedo_bot.utils.errors import CogCommandError
 from albedo_bot.cogs.player.utils.base_player import BasePlayerCog
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed
 
 
 if TYPE_CHECKING:

@@ -6,7 +6,8 @@ from discord import PartialEmoji
 
 from albedo_bot.cogs.owner.utils.base_owner import BaseOwnerCog
 from albedo_bot.utils.checks import check_config_permission
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import send_embed
+from albedo_bot.utils.embeds import EmbedField, EmbedWrapper
 
 
 if TYPE_CHECKING:

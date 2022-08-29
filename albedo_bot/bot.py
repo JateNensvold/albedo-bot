@@ -18,7 +18,7 @@ from discord import Guild, Member, Message, Emoji
 from discord.errors import DiscordException
 
 import albedo_bot.config as config
-from albedo_bot.utils.message import send_embed_exception
+from albedo_bot.utils.message.message_send import send_embed_exception
 from albedo_bot.cogs.help.help_cog import HelpCog
 
 
@@ -515,7 +515,8 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
             if self._auto_spam_count[author_id] >= 5:
                 await self.add_to_blacklist(author_id)
                 del self._auto_spam_count[author_id]
-                await self.log_spammer(ctx, message, retry_after, autoblock=True)
+                await self.log_spammer(ctx, message, retry_after,
+                                       autoblock=True)
             else:
                 self.log_spammer(ctx, message, retry_after)
             return

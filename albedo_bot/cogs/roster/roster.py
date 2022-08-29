@@ -5,7 +5,7 @@ from albedo_bot.cogs.hero.utils.converter.hero import HeroValue
 from discord import User
 from discord.ext import commands
 
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed
 from albedo_bot.cogs.roster.utils.base_roster import BaseRosterCog
 from albedo_bot.utils.checks import is_registered
 from albedo_bot.cogs.hero.utils import (

@@ -4,32 +4,29 @@ from albedo_bot.database.schema.base import base
 
 
 class HeroFurniture(base):
-    """_summary_
-
-    Args:
-        base (_type_): _description_
+    """
+    A database representation of Heroes furniture
     """
 
     __tablename__ = "hero_furniture"
     id = Column(Integer, ForeignKey("heroes.id"),
-                     primary_key=True, nullable=False)
+                primary_key=True, nullable=False)
     furniture_name = Column(String)
     image = Column(String)
 
     def __repr__(self) -> str:
-        """[summary]
+        """
+        A quick str representation of a HeroFurniture
 
         Returns:
-            str: [description]
+            str: str representation of a HeroFurniture
         """
         return f"HeroFurniture<{self.id}, {self.furniture_name}>"
 
 
 class HeroFurnitureUpgrade(base):
-    """_summary_
-
-    Args:
-        base (_type_): _description_
+    """
+    A database representation of a Heroes furniture upgrades
     """
 
     __tablename__ = "hero_furniture_upgrade"
@@ -38,9 +35,10 @@ class HeroFurnitureUpgrade(base):
     furniture_unlock = Column(Integer, primary_key=True)
 
     def __repr__(self) -> str:
-        """[summary]
+        """
+        A quick str representation of a HeroFurnitureUpgrade
 
         Returns:
-            str: [description]
+            str: str representation of a HeroFurnitureUpgrade
         """
         return f"HeroFurnitureUpgrade<{self.id}, {self.furniture_unlock}>"

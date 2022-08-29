@@ -5,7 +5,7 @@ import discord
 from discord import Member
 
 from albedo_bot.utils.enums.timezone_enum import TIMEZONE_ENUM
-from albedo_bot.utils.select import Select, SelectOption
+from albedo_bot.utils.embeds.select import Select, SelectOption
 from albedo_bot.cogs.utils.mixins.player_mixin import PlayerMixin
 
 if TYPE_CHECKING:

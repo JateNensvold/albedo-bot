@@ -1,15 +1,18 @@
 from typing import Type
+
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import (
-    DatabaseMixin)
+    DatabaseMixin, ScalarWrapper)
 from albedo_bot.utils.enums.ascension_type_enum import HeroAscensionEnum
 from albedo_bot.utils.enums.hero_faction_enum import HeroFactionEnum
 from albedo_bot.utils.enums.hero_class_enum import HeroClassEnum
 from albedo_bot.utils.enums.hero_type_enum import HeroTypeEnum
+from albedo_bot.utils.config import Config
 
 
 ASCENSION_TYPE_ENUM = SQLEnum(HeroAscensionEnum)
@@ -20,7 +23,7 @@ HERO_TYPE_ENUM = SQLEnum(HeroTypeEnum)
 
 class Hero(base, DatabaseMixin):
     """
-    An AFK Arena hero
+    A database representation of an AFK Arena hero
     """
 
     __tablename__ = "heroes"
@@ -40,6 +43,33 @@ class Hero(base, DatabaseMixin):
     hero_signature_item_upgrade = relationship("HeroSignatureItemUpgrade")
     hero_skill = relationship("HeroSkill")
     hero_portrait = relationship("HeroPortrait")
+
+    @classmethod
+    def ilike(cls, session: AsyncSession, hero_name: str,
+              hero_alias: Config = None):
+        """
+        Return a ScalarWrapper for heroes with the most similar names
+        to `hero_name`. If a `hero_alias` config is provided then hero_name
+        will match against any hero_alias that have been configured
+
+        Args:
+            session (AsyncSession): connection with database
+            hero_name (str): name to match to most similar heroes name
+            hero_alias (Config, optional): Alias Config for a hero.
+                Defaults to None.
+
+        Returns:
+            ScalarWrapper[Type[Hero]]: a ScalarWrapper around a hero result
+        """
+
+        if hero_alias and hero_name in hero_alias:
+            hero_name = hero_alias.get(hero_name)
+
+        database_wrapper = DatabaseMixin()
+        database_wrapper.session = session
+        hero_select_statement = database_wrapper.db_select(
+            Hero).where(Hero.name.ilike(f"{hero_name}%"))
+        return database_wrapper.db_execute(hero_select_statement)
 
     def __repr__(self) -> str:
         """

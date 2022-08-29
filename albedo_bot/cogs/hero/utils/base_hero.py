@@ -1,21 +1,24 @@
 from io import BytesIO
 from albedo_bot.utils.files.image_util import ContentType, valid_image
+from albedo_bot.utils.hero_data import HeroData
 import requests
 import git
 
 from discord import File
 from discord.ext import commands
-import image_processing.globals as GV
+from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
 
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import (
     HeroAscensionEnum, HeroClassEnum, HeroFactionEnum, HeroTypeEnum)
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import EmbedField, EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import send_embed
+from albedo_bot.utils.embeds import EmbedField, EmbedWrapper
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait
-from albedo_bot.config import HERO_JSON_PATH, AFK_HELPER_PATH
-from albedo_bot.utils.git_helper import git_update
+from albedo_bot.config import AFK_HELPER_PATH
+from albedo_bot.utils.git_helper.git_update import update_repo
+import albedo_bot.config as config
 
 
 class BaseHeroCog(BaseCog):
@@ -101,28 +104,36 @@ class BaseHeroCog(BaseCog):
 
     async def _auto_load(self, ctx: commands.Context):
         """
+        Attempt to automatically load hero updates from  
+        https://github.com/Dae314/AFKBuilder/blob/main/src/stores/HeroData.js
+        and then rebuild/reload the hero database for image recognition
 
         Args:
             ctx (commands.Context): _description_
         """
 
-        # update_output = git_update(AFK_HELPER_PATH)
-
-        # hero_updates =
-
-        # with open(HERO_JSON_PATH, 'w', encoding='utf-8') as file_pointer:
-        #     file_pointer.write(jsonpickle.encode(self._db.copy()))
+        repo_update = update_repo(AFK_HELPER_PATH)
+        current_hero_data = config.hero_data
+        updated_hero_data_dict = HeroData.parse_file(
+            self.bot, config.AFK_HELPER_HERO_DATA_PATH)
 
     async def _add_image(self, ctx: commands.Context, hero: Hero,
                          image_index: int):
-        """_summary_
+        """
+        Add an image to the hero portrait database for `hero`
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            image_index (int): _description_
-        """
+            hero (Hero): hero to add portrait for
+            image_index (int): index to add portrait at
 
+        Raises:
+            CogCommandError: When no image was attached to the 
+                command invocation
+            CogCommandError: When more than one image was attached to the
+                command invocation
+        """
         portrait_attachment = ctx.message.attachments[0]
         if len(ctx.message.attachments) == 0:
             embed_wrapper = EmbedWrapper(
@@ -144,7 +155,7 @@ class BaseHeroCog(BaseCog):
         valid_image(portrait_attachment.url, content_type)
 
         new_portrait = await HeroPortrait.add_optional(
-            self.bot, hero, GV.IMAGE_PROCESSING_PORTRAITS,
+            self.bot, hero, IMAGE_PROCESSING_PORTRAITS,
             content_type, image_index)
 
         attachment_data = requests.get(portrait_attachment.url).content
@@ -171,9 +182,15 @@ class BaseHeroCog(BaseCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+            hero (Hero): _description_
             image_index (int): _description_
-        """
 
+        Raises:
+            CogCommandError: When no optional portraits are found for a `hero`
+            CogCommandError: When `image_index` is out of bounds
+            CogCommandError: When the image location in the database points to
+                a non existent file
+        """
         portraits_select = self.db_select(
             HeroPortrait).where(hero.id == HeroPortrait.id)
 
@@ -228,13 +245,14 @@ class BaseHeroCog(BaseCog):
             raise CogCommandError(embed_wrapper=embed_wrapper) from exception
 
     async def _show_image(self, ctx: commands.Context, hero: Hero):
-        """_summary_
+        """
+        Show all the portraits for `hero` 
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+            hero (Hero): hero to show portraits for
         """
-
         portraits_select = self.db_select(
             HeroPortrait).where(hero.id == HeroPortrait.id)
 
@@ -261,7 +279,7 @@ class BaseHeroCog(BaseCog):
     def build_display(self, hero: Hero,
                       portrait_list: list[HeroPortrait]):
         """
-        Build a list of EmbedWrappers for a list of portraits
+        Build a list of EmbedWrappers for `portrait_list`
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -270,7 +288,6 @@ class BaseHeroCog(BaseCog):
             portrait_list (list[HeroPortrait]): list of portraits to build a
                 display around
         """
-
         embed_wrapper_list: list[EmbedWrapper] = []
 
         for portrait_iter_index, hero_portrait in enumerate(portrait_list):
@@ -283,7 +300,7 @@ class BaseHeroCog(BaseCog):
             else:
                 portrait_index = hero_portrait.image_index
             embed_field_list.append(EmbedField(
-                name="Index", value=f"{portrait_index+1}"))
+                name="Index", value=f"{portrait_index}"))
             embed_field_list.append(EmbedField(
                 name="Name", value=f"`{hero_portrait.image_name}`"))
 

@@ -1,76 +1,81 @@
-from typing import TYPE_CHECKING
-
 from discord.ext import commands
 
-if TYPE_CHECKING:
-    from albedo_bot.utils.message import EmbedWrapper
-
-
-class UnregisteredUserError(commands.CheckFailure):
-    """_summary_
-
-    Args:
-        commands (_type_): _description_
-    """
+from albedo_bot.utils.embeds.embed_wrapper import EmbedWrapper
 
 
 class MessageError(commands.CommandError):
-    """_summary_
-
-    Args:
-        commands (_type_): _description_
+    """
+    A base error message for all discord.py relate errors that need
+    to be raised
     """
 
     #pylint: disable=keyword-arg-before-vararg
-    def __init__(self, message=None, *args, embed_wrapper: "EmbedWrapper" = None):
-        """_summary_
+    def __init__(self, message: str = None, *args,
+                 embed_wrapper: EmbedWrapper = None):
+        """
+        Initialize the exception error `message` and `EmbedWrapper` from 
+            `message` or  the `embed_wrapper` passed in
 
         Args:
-            message (_type_, optional): _description_. Defaults to None.
-            embed (Embed, optional): _description_. Defaults to None.
+            message (str, optional): The description of the error. 
+                Defaults to None.
+            embed_wrapper (EmbedWrapper, optional): An embed Wrapper 
+                around an exception. Defaults to None.
         """
         if message is None:
             message = f"{embed_wrapper.title}\n{embed_wrapper.description}"
 
-        self.embed_wrapper = embed_wrapper
+        if embed_wrapper is None:
+            self.embed_wrapper = EmbedWrapper(title=self.__class__.__name__,
+                                              description=message)
+        else:
+            self.embed_wrapper = embed_wrapper
         super().__init__(message, *args)
 
 
 class DiscordPermissionError(MessageError, commands.CheckFailure):
-    """_summary_
+    """
+    Raised when any discord.py permissions issues occur 
+    """
 
-    Args:
-        commands (_type_): _description_
+
+class UnregisteredUserError(MessageError, commands.CheckFailure):
+    """
+    Raised when an unregistered user attempts attempt to use a command
     """
 
 
 class CogCommandError(MessageError):
-    """_summary_
+    """
+    Raised when an issue occurs in a discord.py cog 
+    """
 
-    Args:
-        MessageError (_type_): _description_
+
+class FileParsingError(MessageError):
+    """
+    Raised when an issue occurs while parsing an external File
     """
 
 
 class ConversionError(MessageError):
-    """_summary_
-
-    Args:
-        MessageError (_type_): _description_
+    """
+    Raised when a discord.py Conversion error occurs
     """
 
 
 class DatabaseError(MessageError):
-    """_summary_
+    """
+    A general error for all database related issues
+    """
 
-    Args:
-        SQLAlchemyError (_type_): _description_
+
+class PreCommitException(DatabaseError):
+    """
+    Raised when a Pre Commit hook fails while adding an object to the database
     """
 
 
 class DatabaseSessionError(DatabaseError):
-    """_summary_
-
-    Args:
-        DatabaseError (_type_): _description_
+    """
+    Raised when any database session errors issues occur
     """

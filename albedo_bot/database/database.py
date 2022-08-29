@@ -183,7 +183,8 @@ class Database:
 
     async def init_database(self, database_name: str,
                             hero_data: HeroData,
-                            raise_error: bool = True):
+                            portrait_folders: list[Path],
+                            raise_error: bool = True,):
         """
         Creates a database with the current connection under the name
         'database_name'. If a database of that name already exists an exception
@@ -193,6 +194,8 @@ class Database:
         Args:
             database_name (str): new database name
             hero_data (HeroData): data to initialize database with
+            portrait_folders (list[Path]): list of paths to folders
+                containing hero portraits
             raise_error (bool, optional): Flag to raise an error when the
                 database being initialized already exists. Defaults to True.
         Raises:
@@ -202,7 +205,8 @@ class Database:
         if database_name not in await self.list_database():
             async with self.session:
                 await self.session.execute("commit")
-                await self.session.execute(f'CREATE DATABASE "{database_name}"')
+                await self.session.execute(
+                    f'CREATE DATABASE "{database_name}"')
 
         else:
             if raise_error:
@@ -212,15 +216,25 @@ class Database:
                     "creating a new one"))
         self.select_database(database_name)
 
-        await self._init_tables()
-        await self._load_data(hero_data)
         # Load all hero data into database
+        await self._init_tables()
+        await self._load_data(hero_data, portrait_folders)
+        # Commit transaction to database and remove connection
+        await self.session_producer.commit()
+        await self.session_producer.flush()
+        await self.session_producer.remove()
 
-    async def _load_data(self, hero_data: HeroData):
+    async def _load_data(self, hero_data: HeroData,
+                         portrait_folders: list[Path]):
         """
         Load HeroData into the database
+
+        Args:
+            hero_data (HeroData): data to initialize database with
+            portrait_folders (list[Path]): list of paths to folders
+                containing hero portraits
         """
-        await hero_data.build(self.session)
+        await hero_data.build(self.session, portrait_folders)
 
     async def drop_database(self, database_name: str):
         """
@@ -290,7 +304,6 @@ class Database:
             check_action (bool, optional): Flag to prompt the user to
                 confirm they want to drop the tables. Defaults to True.
         """
-
         if (check_action and
                 not self._confirm_action(
                     f"drop tables in '{self.database_name}'")):
@@ -301,7 +314,8 @@ class Database:
         async with self.engine.begin() as conn:
             await conn.run_sync(self.base.metadata.drop_all)
 
-    async def reset_database(self):
+    async def reset_database(self, hero_data: HeroData,
+                             portrait_folders: list[Path]):
         """
         Reset a database by dropping all the tables and then
             re-initializing the database with the default data
@@ -310,13 +324,12 @@ class Database:
             return
         await self._drop_tables(check_action=False)
         await self._init_tables()
-        await self._load_data()
+        await self._load_data(hero_data, portrait_folders)
 
     async def list_database(self):
         """
         List all the databases in a cluster
         """
-
         async with self.session:
             session_result: CursorResult = await self.session.execute(
                 'SELECT datname FROM pg_database;')

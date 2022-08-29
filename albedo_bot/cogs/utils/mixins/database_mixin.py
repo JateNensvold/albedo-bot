@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import Select
 from sqlalchemy.engine.result import ChunkedIteratorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from albedo_bot.utils.message import EmbedWrapper
+from albedo_bot.utils.message.message_send import EmbedWrapper
 from albedo_bot.utils.errors import DatabaseSessionError
 
 if TYPE_CHECKING:
@@ -195,7 +195,7 @@ class DatabaseMixin:
         Returns:
             AsyncSession: a session object connect to the database
         """
-        if self.bot:
+        if hasattr(self, "bot"):
             return self.bot.session
         else:
             return self._session
@@ -230,8 +230,14 @@ class DatabaseMixin:
         Add/Update an Sqlalchemy object so its persisted in the database
 
         Args:
-            database_object (Any): _description_
+            database_object (Any): object getting persisted to database
         """
+        # Check if the database object has a pre_commit command to run before
+        #   adding to database
+        pre_commit = getattr(database_object, "pre_commit", None)
+
+        if pre_commit is not None:
+            database_object.pre_commit()
 
         self.session.add(database_object)
         await self.session.commit()

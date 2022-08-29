@@ -7,6 +7,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from typing import NamedTuple
 
+from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
 
 from albedo_bot.bot import AlbedoBot
 import albedo_bot.config as config
@@ -110,16 +111,20 @@ def main():
         with setup_logging():
             loop.run_until_complete(run_bot())
     elif args.mode == launch_choices.init:
-        database.select_database("postgres")
+        database.select_database(database_name="postgres")
         loop.run_until_complete(database.init_database(
-            database.database_name, config.hero_data,
-            raise_error=False))
+            database_name=config.database_config["name"],
+            hero_data=config.hero_data,
+            portrait_folders=[IMAGE_PROCESSING_PORTRAITS], raise_error=False))
     elif args.mode == launch_choices.drop:
         loop.run_until_complete(database.drop_database(
-            database.database_name))
+            database_name=config.database_config["name"]))
     elif args.mode == launch_choices.reset:
-        database.select_database(database.database_name)
-        loop.run_until_complete(database.reset_database())
+        database.select_database(
+            database_name=config.database_config["name"])
+        loop.run_until_complete(database.reset_database(
+            config.hero_data,
+            [IMAGE_PROCESSING_PORTRAITS]))
     elif args.mode == launch_choices.migrate:
         migration_execution_location = os.path.dirname(
             os.path.abspath(albedo_bot.database.migration.__file__))

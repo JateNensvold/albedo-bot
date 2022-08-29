@@ -8,7 +8,7 @@ from discord import Member
 from albedo_bot.cogs.utils.mixins.player_mixin import PlayerMixin
 from albedo_bot.utils.enums.availability_enum import (
     AVAILABILITY_ENUM, NORMAL_TIME_FORMAT)
-from albedo_bot.utils.select import Select, SelectOption
+from albedo_bot.utils.embeds.select import Select, SelectOption
 from albedo_bot.database.schema.player import PlayerAvailability
 
 if TYPE_CHECKING:

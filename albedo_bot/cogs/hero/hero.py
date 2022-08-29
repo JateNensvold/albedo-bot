@@ -8,7 +8,7 @@ from albedo_bot.cogs.hero.utils.converter.hero_faction import HeroFaction
 from albedo_bot.cogs.hero.utils.converter.hero_type import HeroType
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.cogs.hero.utils.base_hero import BaseHeroCog
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed
 from albedo_bot.cogs.hero.utils.converter.hero import HeroValue
 
 if TYPE_CHECKING:
@@ -84,7 +84,6 @@ class HeroCog(BaseHeroCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            name (str): name of hero getting added
         """
 
         await self._auto_load(ctx)
@@ -158,4 +157,4 @@ async def setup(bot: "AlbedoBot"):
     Args:
         bot (AlbedoBot): _description_
     """
-    await bot.add_cog(HeroCog(bot))
+    await bot.add_cog(HeroCog(bot, require_registration=False))

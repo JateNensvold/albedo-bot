@@ -8,9 +8,9 @@ from sqlalchemy import Column, String, Integer, ForeignKey, Boolean
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.database.schema.hero.hero import Hero
-from albedo_bot.utils.errors import MessageError
+from albedo_bot.utils.errors import MessageError, PreCommitException
 from albedo_bot.utils.files.image_util import ContentType
-from albedo_bot.utils.message import EmbedWrapper
+from albedo_bot.utils.message.message_send import EmbedWrapper
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -53,9 +53,9 @@ class PortraitNameInfo(NamedTuple):
         Returns:
             PortraitNameInfo: a newly initialized PortraitNameInfo
         """
-
         hero_name, required, image_index, extension = image_name.split(".")
         required = PortraitRequired[required].value
+        image_index = int(image_index)
         return PortraitNameInfo(hero_name, required, image_index, extension)
 
 
@@ -70,6 +70,32 @@ class HeroPortrait(base, DatabaseMixin):
     required = Column(Boolean, primary_key=True)
     image_directory = Column(String)
     image_name = Column(String)
+
+    def pre_commit(self):
+        """
+        A pre commit hook that runs before a HeroPortrait is added 
+        to the database
+        """
+
+        full_path = self.full_path()
+        if not full_path.exists():
+            raise PreCommitException(f"`{full_path}` does not exist")
+
+    @property
+    def hero_name(self):
+        """
+        Attempt to parse the hero_name from image_name
+        """
+        name_info = PortraitNameInfo.from_str(self.image_name)
+        return name_info.hero_name
+
+    def __str__(self):
+        """
+        A str representation for a HeroPortrait object
+        """
+
+        return (f"HeroPortrait<{self.full_path()} - "
+                f"R={self.required},I={self.image_index}>")
 
     def full_path(self):
         """

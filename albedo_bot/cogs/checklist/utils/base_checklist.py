@@ -5,7 +5,7 @@ from discord import User
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.checklist import Checklist, ChecklistHero
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import EmbedWrapper, send_embed
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed
 from albedo_bot.cogs.hero.utils.converter.ascension import AscensionValue
 from albedo_bot.cogs.hero.utils.converter.engraving import EngravingValue
 from albedo_bot.cogs.hero.utils.converter.furniture import FurnitureValue

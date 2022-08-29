@@ -7,7 +7,7 @@ from discord import User
 from albedo_bot.database.schema.player.player import Player
 from albedo_bot.utils.checks import _is_registered, check_config_permission
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import EmbedWrapper, send_embed_exception
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed_exception
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 
 if TYPE_CHECKING:

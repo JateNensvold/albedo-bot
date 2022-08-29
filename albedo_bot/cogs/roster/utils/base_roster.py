@@ -16,7 +16,7 @@ from albedo_bot.database.schema.guild import Guild
 from albedo_bot.database.schema.player.player import Player
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message import (EmbedWrapper, edit_message, send_embed)
+from albedo_bot.utils.message.message_send import (EmbedWrapper, edit_message, send_embed)
 from albedo_bot.cogs.hero.utils import (
     AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (

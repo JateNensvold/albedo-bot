@@ -1,6 +1,6 @@
 from typing import NamedTuple
 from albedo_bot.utils.errors import MessageError
-from albedo_bot.utils.message import EmbedWrapper
+from albedo_bot.utils.message.message_send import EmbedWrapper
 
 
 SITE_PREFIX = "https://cdn.discordapp.com"

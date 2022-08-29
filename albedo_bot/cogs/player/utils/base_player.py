@@ -1,13 +1,13 @@
 from albedo_bot.cogs.player.utils.availability_select import AvailabilitySelect
 from albedo_bot.cogs.player.utils.timezone_select import TimezoneSelect
-from albedo_bot.utils.select import SelectView
+from albedo_bot.utils.embeds.select import SelectView
 import discord
 from discord.ext import commands
 from discord import Role, Member
 
 from albedo_bot.database.schema import Player, Guild
 from albedo_bot.cogs.utils.base_cog import BaseCog
-from albedo_bot.utils.message import EmbedWrapper, send_embed, send_message
+from albedo_bot.utils.message.message_send import EmbedWrapper, send_embed, send_message
 from albedo_bot.utils.errors import CogCommandError, DatabaseSessionError
 
 
