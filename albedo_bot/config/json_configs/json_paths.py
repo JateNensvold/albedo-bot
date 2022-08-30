@@ -16,11 +16,12 @@ HERO_ALIAS_JSON_PATH = JSON_CONFIG_FOLDER_PATH.joinpath("hero_alias.json")
 PREFIX_JSON_PATH = JSON_CONFIG_FOLDER_PATH.joinpath("prefixes.json")
 BLACKLIST_JSON_PATH = JSON_CONFIG_FOLDER_PATH.joinpath("blacklist.json")
 AFK_HELPER_PATH = _albedo_bot_utils_path.joinpath("afk_helper")
-AFK_HELPER_HERO_DATA_PATH = AFK_HELPER_PATH.joinpath("src/stores/HeroData.js")
-AFK_HELPER_IMAGE_PREFIX = AFK_HELPER_PATH
+AFK_HELPER_HERO_DATA_PATH = AFK_HELPER_PATH.joinpath(
+    "src", "stores", "HeroData.js")
+AFK_HELPER_IMAGE_PREFIX = AFK_HELPER_PATH.joinpath("public")
 
 # Currently not used
 GUILD_JSON_PATH = JSON_CONFIG_FOLDER_PATH.joinpath("guild_config.json")
-AFK_HELPER_IMAGE_DIRECTORY = AFK_HELPER_IMAGE_PREFIX.joinpath("img")
+AFK_HELPER_IMAGE_DIRECTORY = AFK_HELPER_PATH.joinpath("public", "img")
 AFK_HELPER_PORTRAITS_DIRECTORY = AFK_HELPER_IMAGE_DIRECTORY.joinpath(
     "portraits")

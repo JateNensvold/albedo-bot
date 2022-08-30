@@ -1,4 +1,4 @@
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import IntEnum
 
 
 ascension_values = {"E": 1,
@@ -15,4 +15,4 @@ ascension_values = {"E": 1,
                     "A5": 12}
 
 # pylint: disable=unexpected-keyword-arg
-AscensionValues = EnumMixin(value="AscensionValues", names=ascension_values)
+AscensionValues = IntEnum(value="AscensionValues", names=ascension_values)

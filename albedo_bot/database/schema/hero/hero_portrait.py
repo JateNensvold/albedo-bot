@@ -1,9 +1,11 @@
 from enum import Enum
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
+import cv2
+from image_processing.afk.hero.hero_data import HeroImage
 from sqlalchemy import Column, String, Integer, ForeignKey, Boolean
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
@@ -119,6 +121,48 @@ class HeroPortrait(base, DatabaseMixin):
 
         hero_portraits = await self.db_execute(portraits_select).all()
         return hero_portraits
+
+    async def build_hero_image(self, session: AsyncSession):
+        """
+        Build a HeroImage object from 
+
+        Args:
+            session (AsyncSession): session connection to databases
+
+        Returns:
+            HeroImage: HeroImage that was built
+        """
+        self.session = session
+
+        hero_select = self.db_select(Hero).where(Hero.id == self.id)
+        hero_object = await self.db_execute(hero_select).first()
+
+        hero_image = cv2.imread(str(self.full_path()))
+        hero_name = hero_object.name.lower()
+        return HeroImage(hero_name, hero_image, self.full_path())
+
+    @classmethod
+    async def get_portrait(cls, hero: Hero, session: AsyncSession):
+        """
+        Get the first "required" portrait associated with a hero
+
+        Args:
+            hero (Hero): hero to get portrait for
+            session (AsyncSession): connection with database
+
+        Returns:
+            HeroPortrait: a HerPortrait of the hero
+        """
+
+        hero_portrait = HeroPortrait()
+        hero_portrait.session = session
+
+        select_portrait = hero_portrait.db_select(
+            HeroPortrait).where(HeroPortrait.id == hero.id,
+                                HeroPortrait.required == True,
+                                HeroPortrait.image_index == 0)
+
+        return await hero_portrait.db_execute(select_portrait).first()
 
     @classmethod
     async def add_optional(cls, bot: "AlbedoBot", hero: Hero,

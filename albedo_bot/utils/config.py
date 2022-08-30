@@ -47,7 +47,7 @@ class Config:
         temp = f"{self.name}-{uuid.uuid4()}.tmp"
         with open(temp, 'w', encoding='utf-8') as tmp:
             json.dump(self._db.copy(), tmp, ensure_ascii=True,
-                      separators=(',', ':'))
+                      separators=(',', ': '), indent=4)
 
         # atomically move the file
         os.replace(temp, self.name)
@@ -79,6 +79,15 @@ class Config:
 
     def __getitem__(self, item):
         return self._db[str(item)]
+
+    def __iter__(self):
+        """
+        Object to iterate over
+        """
+        return iter(self.all())
+
+    def __next__(self):
+        return next(self.all())
 
     def __len__(self):
         return len(self._db)

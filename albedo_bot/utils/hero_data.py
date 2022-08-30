@@ -1,16 +1,15 @@
-from enum import Enum
 import os
 import regex
 import json
 import yaml
+from enum import Enum
 
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, TYPE_CHECKING
-from albedo_bot.utils.errors import FileParsingError
-
+from typing import Any, Awaitable, Callable, TYPE_CHECKING
 from sqlalchemy.ext.asyncio import AsyncSession
-import image_processing.globals as GV
 
+import albedo_bot.config as config
+from albedo_bot.utils.errors import FileParsingError
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.database.schema.hero import (Hero)
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait, PortraitNameInfo
@@ -21,8 +20,11 @@ from albedo_bot.database.schema.hero.hero_skill import (
 from albedo_bot.database.schema.hero.hero_furniture import (
     HeroFurniture, HeroFurnitureUpgrade)
 from albedo_bot.utils.config import Config
-
-import albedo_bot.config as config
+from albedo_bot.utils.enums.ascension_type_enum import HeroAscensionEnum
+from albedo_bot.utils.enums.hero_class_enum import HeroClassEnum
+from albedo_bot.utils.enums.hero_faction_enum import HeroFactionEnum
+from albedo_bot.utils.enums.hero_type_enum import HeroTypeEnum
+from albedo_bot.utils.enums.skill_unlock_type_enum import HeroSkillUnlockTypeEnum
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
@@ -34,7 +36,7 @@ AsyncCallable = Callable[[Any], Awaitable[Any]]
 def translate_afk_helper_path(partial_image_path: str):
     """
     Translate paths from the root of 'afk_helper' repo into the sub module it
-        exist under in 'albedo_bot', also resolving all parts of the path that 
+        exist under in 'albedo_bot', also resolving all parts of the path that
         use relative pathing or symlinks
 
     Args:
@@ -50,22 +52,88 @@ def translate_afk_helper_path(partial_image_path: str):
         partial_image_path).resolve()
 
 
+class JsonHeroFurniture:
+    """
+    A json representation of a Heroes Furniture
+    """
+
+    def __init__(self, furniture_dict: dict[str, Any]) -> None:
+        """
+        Create a JsonHeroFurniture from a dictionary
+        """
+
+        self.furniture_dict = furniture_dict
+        self.furniture_name: str = furniture_dict["name"]
+        self.furniture_image_path = translate_afk_helper_path(
+            furniture_dict["image"])
+        self.furniture_upgrades = furniture_dict["upgrades"]
+
+
+class JsonHeroSignatureItem:
+    """
+    A json representation of a Heroes Signature Item
+    """
+
+    def __init__(self, hero_si_dict: dict[str, Any]):
+        """
+        Create a JsonHeroSignatureItem from a dictionary
+        """
+        self.signature_item_dict = hero_si_dict
+        self.signature_item_name: str = hero_si_dict["name"]
+        self.signature_item_image_path = translate_afk_helper_path(
+            hero_si_dict["image"])
+        self.signature_item_description: str = hero_si_dict["desc"]
+        self.signature_item_upgrades: dict[str, Any] = hero_si_dict["upgrades"]
+
+
+class JsonHeroSkill(DatabaseMixin):
+    """
+    A json representation of a Heroes Skills
+    """
+
+    def __init__(self, hero_skill: dict[str, Any]):
+        """
+        Create a JsonHeroSkill from a dictionary
+        """
+
+        self.skill_dict = hero_skill
+        self.skill_name: str = hero_skill["name"]
+        self.skill_description: str = hero_skill["desc"]
+        self.skill_image_path = translate_afk_helper_path(hero_skill["image"])
+        self.skill_type = HeroSkillUnlockTypeEnum(hero_skill["type"])
+        self.skill_unlock = str(hero_skill["unlock"])
+        self.skill_upgrades: dict[str, Any] = hero_skill["upgrades"]
+
+
 class JsonHero(DatabaseMixin):
     """
     A json representation of a hero
     """
     _count = 0
 
-    def __init__(self, hero_dict: Dict[str, Any]):
+    def __init__(self, hero_dict: dict[str, Any]):
         """
         Create a json hero from a dictionary and accept a session_callback so
         the hero can be added to a hero database when `build` is called
 
         Args:
-            hero_dict (Dict[str, Any]): dictionary representing the heroes data
+            hero_dict (dict[str, Any]): dictionary representing the heroes data
         """
 
         self.hero_dict = hero_dict
+        self.hero_id: str = hero_dict["id"]
+        self.hero_name: str = hero_dict["name"]
+
+        self.hero_faction = HeroFactionEnum(hero_dict["faction"])
+        self.hero_class = HeroClassEnum(hero_dict["class"])
+        self.hero_type = HeroTypeEnum(hero_dict["type"])
+        self.hero_tier = HeroAscensionEnum(hero_dict["tier"])
+        self.hero_portrait_path: str = hero_dict["portrait"]
+        self.hero_skills = [JsonHeroSkill(hero_skill)
+                            for hero_skill in hero_dict["skills"]]
+
+        self.signature_item = JsonHeroSignatureItem(hero_dict["sig_item"])
+        self.furniture = JsonHeroFurniture(hero_dict["furniture"])
 
     @classmethod
     @property
@@ -81,53 +149,52 @@ class JsonHero(DatabaseMixin):
 
     async def build(self, session: AsyncSession):
         """
-        Build the JsonHero with all its components in the database
+        Build the `JsonHero` with all its components in the database
+
+        Args:
+            session (AsyncSession): session connection to databases
+        Returns:
+            Hero: the `Hero` that is associated with this JsonHero
         """
-        hero_dict = self.hero_dict
         self.session = session
-        new_hero_name: str = hero_dict["name"]
 
         hero_select = self.db_select(
-            Hero).where(Hero.name.ilike(f"{new_hero_name}%"))
+            Hero).where(Hero.name.ilike(f"{self.hero_name}%"))
         hero_object = await self.db_execute(hero_select).first()
 
+        # Increment the class count
         hero_count = self.count
 
-        hero_faction = hero_dict["faction"]
-        hero_class = hero_dict["class"]
-        hero_type = hero_dict["type"]
-        hero_tier = hero_dict["tier"]
-
         if hero_object:
-            hero_object.hero_faction = hero_faction
-            hero_object.hero_class = hero_class
-            hero_object.hero_type = hero_type
-            hero_object.ascension_tier = hero_tier
+            hero_object.hero_faction = self.hero_faction.value
+            hero_object.hero_class = self.hero_class.value
+            hero_object.hero_type = self.hero_type.value
+            hero_object.ascension_tier = self.hero_tier.value
 
-            if (hero_object.hero_faction != hero_faction or
-                hero_object.hero_class != hero_class or
-                hero_object.hero_type != hero_type or
-                    hero_object.ascension_tier != hero_tier):
-                print(
-                    f"Updating Hero #{hero_count} - {new_hero_name} to database")
+            if (hero_object.hero_faction != self.hero_faction.value or
+                hero_object.hero_class != self.hero_class.value or
+                hero_object.hero_type != self.hero_type.value or
+                    hero_object.ascension_tier != self.hero_tier.value):
+                print((f"Updating Hero #{hero_count} - "
+                       f"{self.hero_name} to database"))
                 await self.db_add(hero_object)
         else:
-            print(f"Adding Hero #{hero_count} - {new_hero_name} to database")
-            hero_object = Hero(name=new_hero_name,
-                               hero_faction=hero_faction,
-                               hero_class=hero_class,
-                               hero_type=hero_type,
-                               ascension_tier=hero_tier)
+            print(f"Adding Hero #{hero_count} - {self.hero_name} to database")
+            hero_object = Hero(name=self.hero_name,
+                               hero_faction=self.hero_faction.value,
+                               hero_class=self.hero_class.value,
+                               hero_type=self.hero_type.value,
+                               ascension_tier=self.hero_tier.value)
 
         await self.db_add(hero_object)
-        portrait_path = translate_afk_helper_path(hero_dict["portrait"])
+        portrait_path = translate_afk_helper_path(self.hero_portrait_path)
 
         portrait_select = self.db_select(
             HeroPortrait).where(HeroPortrait.id == hero_object.id,
                                 HeroPortrait.image_index == 0,
                                 HeroPortrait.required == True)
         portrait_object = await self.db_execute(portrait_select).first()
-
+# ./img/portraits/thane_aw.jpg
         if not portrait_object:
             hero_portrait = HeroPortrait(
                 id=hero_object.id, image_index=0,
@@ -136,29 +203,29 @@ class JsonHero(DatabaseMixin):
                 image_name=portrait_path.name)
             await self.db_add(hero_portrait)
 
-        for skill_dict in hero_dict["skills"]:
-            skill_name = skill_dict["name"]
+        for json_hero_skill in self.hero_skills:
 
             skill_select = self.db_select(HeroSkill).where(
                 HeroSkill.hero_id == hero_object.id,
-                HeroSkill.skill_name == skill_name)
+                HeroSkill.skill_name == json_hero_skill.skill_name)
             hero_skill = await self.db_execute(skill_select).first()
 
             if hero_skill:
-                hero_skill.description = skill_dict["desc"]
-                hero_skill.skill_image = skill_dict["image"]
-                hero_skill.skill_type = skill_dict["type"]
-                hero_skill.skill_unlock = str(skill_dict["unlock"])
+                hero_skill.description = json_hero_skill.skill_description
+                hero_skill.skill_image = str(json_hero_skill.skill_image_path)
+                hero_skill.skill_type = json_hero_skill.skill_type.value
+                hero_skill.skill_unlock = json_hero_skill.skill_unlock
             else:
-                hero_skill = HeroSkill(hero_id=hero_object.id,
-                                       skill_name=skill_name,
-                                       description=skill_dict["desc"],
-                                       skill_image=skill_dict["image"],
-                                       skill_type=skill_dict["type"],
-                                       skill_unlock=str(skill_dict["unlock"]))
+                hero_skill = HeroSkill(
+                    hero_id=hero_object.id,
+                    skill_name=json_hero_skill.skill_name,
+                    description=json_hero_skill.skill_description,
+                    skill_image=str(json_hero_skill.skill_image_path),
+                    skill_type=json_hero_skill.skill_type.value,
+                    skill_unlock=json_hero_skill.skill_unlock)
             await self.db_add(hero_skill)
 
-            for skill_upgrade_dict in skill_dict["upgrades"]:
+            for skill_upgrade_dict in json_hero_skill.skill_upgrades:
 
                 skill_unlock = str(skill_upgrade_dict["unlock"])
                 unlock_type = skill_upgrade_dict["type"]
@@ -184,29 +251,24 @@ class JsonHero(DatabaseMixin):
 
                 await self.db_add(skill_upgrade)
 
-        hero_si_dict = hero_dict["sig_item"]
-
         hero_si_select = self.db_select(HeroSignatureItem).where(
             HeroSignatureItem.id == hero_object.id)
 
         hero_si = await self.db_execute(hero_si_select).first()
 
-        si_name = hero_si_dict["name"]
-        si_image = hero_si_dict["image"]
-        si_description = hero_si_dict["desc"]
-
         if hero_si:
-            hero_si.si_name = si_name
-            hero_si.image = si_image
-            hero_si.description = si_description
+            hero_si.si_name = self.signature_item.signature_item_name
+            hero_si.image = str(self.signature_item.signature_item_image_path)
+            hero_si.description = self.signature_item.signature_item_description
         else:
-            hero_si = HeroSignatureItem(id=hero_object.id,
-                                        si_name=si_name,
-                                        image=si_image,
-                                        description=si_description)
+            hero_si = HeroSignatureItem(
+                id=hero_object.id,
+                si_name=self.signature_item.signature_item_name,
+                image=str(self.signature_item.signature_item_image_path),
+                description=self.signature_item.signature_item_description)
         await self.db_add(hero_si)
 
-        for si_upgrade_dict in hero_si_dict["upgrades"]:
+        for si_upgrade_dict in self.signature_item.signature_item_upgrades:
             si_upgrade_description = si_upgrade_dict["desc"]
             si_upgrade_level = si_upgrade_dict["unlock"]
 
@@ -231,22 +293,17 @@ class JsonHero(DatabaseMixin):
             HeroFurniture.id == hero_object.id)
         hero_furniture = await self.db_execute(hero_furniture_select).first()
 
-        hero_furniture_dict = hero_dict["furniture"]
-        furniture_name = hero_furniture_dict["name"]
-        furniture_image = hero_furniture_dict["image"]
-
         if hero_furniture:
-            hero_furniture.furniture_name = furniture_name
-            hero_furniture.image = furniture_image
+            hero_furniture.furniture_name = self.furniture.furniture_name
+            hero_furniture.image = str(self.furniture.furniture_image_path)
         else:
             hero_furniture = HeroFurniture(
                 id=hero_object.id,
-                furniture_name=furniture_name,
-                image=furniture_image)
+                furniture_name=self.furniture.furniture_name,
+                image=str(self.furniture.furniture_image_path))
         await self.db_add(hero_furniture)
 
-        for furniture_upgrade_dict in hero_furniture_dict["upgrades"]:
-
+        for furniture_upgrade_dict in self.furniture.furniture_upgrades:
             furniture_upgrade_desc = furniture_upgrade_dict["desc"]
             furniture_upgrade_unlock = furniture_upgrade_dict["unlock"]
 
@@ -266,6 +323,7 @@ class JsonHero(DatabaseMixin):
                     description=furniture_upgrade_desc,
                     furniture_unlock=furniture_upgrade_unlock)
             await self.db_add(hero_furniture_upgrade)
+        return hero_object
 
 
 class ParseMethod(Enum):
@@ -274,6 +332,9 @@ class ParseMethod(Enum):
     """
     yaml: str = "yaml"
     json: str = "json"
+
+
+HeroDataType = list[dict[str, Any]]
 
 
 class HeroData(Config, DatabaseMixin):
@@ -286,13 +347,29 @@ class HeroData(Config, DatabaseMixin):
         Create HeroData from a list of dictionaries
 
         Args:
-            hero_data (List[Dict[str, Any]]): json hero data
+            hero_data (list[dict[str, Any]]): json hero data
         """
         super().__init__(file_path)
-        self.hero_data: List[Dict[str, Any]] = self._db
+        self.hero_data: list[dict[str, Any]] = self._db
+
+    def __iter__(self):
+        self._iter = super().__iter__()
+        return self
+
+    def __next__(self):
+        """
+        Wrap the iteration result in a JsonHero to provide easy access to the
+            hero information getting iterated over
+
+        Returns:
+            JsonHero: a JsonHero representation of a hero
+        """
+        next_result = self._iter.__next__()
+        return JsonHero(next_result)
 
     @staticmethod
-    def parse_file(bot: "AlbedoBot", file_path: Path,
+    def parse_file(bot: "AlbedoBot",
+                   file_path: Path,
                    parse_method: ParseMethod = ParseMethod.json):
         """
         Parse the file found at `file_path` for HeroData contents
@@ -319,7 +396,7 @@ class HeroData(Config, DatabaseMixin):
         content_start = "\(\["
         content_end = "\]\)"
 
-        hero_data = {}
+        hero_data: list[dict[str, Any]] = []
         try:
             with file_path.open("r", encoding="utf-8") as file_pointer:
                 file_contents = file_pointer.read()

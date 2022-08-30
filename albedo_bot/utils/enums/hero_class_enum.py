@@ -1,9 +1,10 @@
 
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
-class HeroClassEnum(EnumMixin):
-    """_summary_
+class HeroClassEnum(StrEnum):
+    """
+    An enumeration of all Hero Classes in Afk Arena
     """
     Mage = "Mage"
     Tank = "Tank"

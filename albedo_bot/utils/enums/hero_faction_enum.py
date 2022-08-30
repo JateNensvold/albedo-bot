@@ -1,8 +1,8 @@
 
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
-class HeroFactionEnum(EnumMixin):
+class HeroFactionEnum(StrEnum):
     """_summary_
     """
     Graveborn = "Graveborn"

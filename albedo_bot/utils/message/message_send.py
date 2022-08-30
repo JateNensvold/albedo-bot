@@ -138,7 +138,7 @@ def generate_embeds(ctx: Context,
             embed_wrapper_list.extend(generated_embed_wrappers)
         else:
             embed_wrapper_list.append(_embed_wrapper)
-    message_list: list[Message] = []
+
     embed_list: list[Embed] = []
     for current_embed_wrapper in embed_wrapper_list:
         current_embed = Embed(
@@ -161,7 +161,7 @@ def generate_embeds(ctx: Context,
             current_embed.set_image(
                 url=("attachment://"
                      f"{current_embed_wrapper.image.filename}"))
-            files.insert(0, current_embed_wrapper.image)
+            files.append(current_embed_wrapper.image)
         embed_list.append(current_embed)
     return embed_list
 
@@ -217,6 +217,19 @@ async def send_embed(ctx: Context,
     embed_list = generate_embeds(ctx, files, embed_wrapper=embed_wrapper,
                                  embed=embed, embed_color=embed_color,
                                  emoji=emoji)
+
+    for embed in embed_list:
+        fields = [embed.title, embed.description, embed.footer.text, embed.author.name]
+
+        fields.extend([field.name for field in embed.fields])
+        fields.extend([field.value for field in embed.fields])
+
+        total = ""
+        for item in fields:
+            # If we str(discord.Embed.Empty) we get 'Embed.Empty', when
+            # we just want an empty string...
+            total += str(item) if item is not None else ''
+        print(embed.title, len(total))
 
     message_list: list[Message] = []
     while len(embed_list) > 0:
@@ -280,6 +293,7 @@ async def edit_message(ctx: Context,
                                  emoji=emoji)
 
     return await message.edit(content=content, embeds=embed_list, view=view,
+                              allowed_mentions=mention_author,
                               attachments=files)
 
 

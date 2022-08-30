@@ -150,10 +150,11 @@ class BaseRosterCog(BaseCog):
         return await self.fetch_heroes(hero_instance_tuples)
 
     async def fetch_heroes(self, hero_list: List[HeroInstanceData]):
-        """_summary_
+        """
+        Fetch the hero strings for the heroes found in hero_list
 
         Args:
-            hero_list (List[HeroInstance]): _description_
+            hero_list (List[HeroInstance]): list of heroes to fetch strings for
         """
         heroes_message_object = HeroList(self.bot, hero_list)
         output = await heroes_message_object.async_str()
@@ -183,8 +184,9 @@ class BaseRosterCog(BaseCog):
                 title="Processing Roster... ",
                 description=(f"Currently processing image {image_number}"))
             if temporary_holdover_message is None:
-                temporary_holdover_message = await send_embed(
-                    ctx, embed_wrapper=embed_wrapper)[0]
+                temporary_holdover_messages = await send_embed(
+                    ctx, embed_wrapper=embed_wrapper)
+                temporary_holdover_message = temporary_holdover_messages[0]
             else:
                 await edit_message(ctx,
                                    message=temporary_holdover_message,
@@ -289,7 +291,7 @@ class BaseRosterCog(BaseCog):
                 final_hero_instance.update_from_instance(new_hero_instance)
             else:
                 continue
-            self.bot.session.add(final_hero_instance)
+            await self.db_add(final_hero_instance)
 
         if len(updated_hero_list) == 0:
             heroes_result_str = "No Hero updates detected"

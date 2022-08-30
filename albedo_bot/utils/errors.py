@@ -33,6 +33,13 @@ class MessageError(commands.CommandError):
         super().__init__(message, *args)
 
 
+class RemoteProcessingError(MessageError):
+    """
+    Raised when an issue occurs while interacting with a
+    remote/external process
+    """
+
+
 class DiscordPermissionError(MessageError, commands.CheckFailure):
     """
     Raised when any discord.py permissions issues occur 

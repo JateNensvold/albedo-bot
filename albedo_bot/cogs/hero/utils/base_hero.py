@@ -1,28 +1,35 @@
-from io import BytesIO
-from albedo_bot.utils.files.image_util import ContentType, valid_image
-from albedo_bot.utils.hero_data import HeroData
-import requests
-import git
 
+import requests
+from io import BytesIO
+
+import jsonpickle
 from discord import File
 from discord.ext import commands
 from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
+from image_processing.build_db import build_database
+from image_processing.afk.hero.hero_data import HeroImage
+from image_processing.processing_client import remote_compute_results
+from image_processing.processing_server import (
+    DATABASE_LOAD_MESSAGE, RELOAD_COMMAND_LIST)
 
+import albedo_bot.config as config
 from albedo_bot.cogs.utils.base_cog import BaseCog
 from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import (
     HeroAscensionEnum, HeroClassEnum, HeroFactionEnum, HeroTypeEnum)
-from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message.message_send import send_embed
+from albedo_bot.utils.errors import CogCommandError, RemoteProcessingError
+from albedo_bot.utils.message.message_send import edit_message, send_embed
 from albedo_bot.utils.embeds import EmbedField, EmbedWrapper
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait
 from albedo_bot.config import AFK_HELPER_PATH
 from albedo_bot.utils.git_helper.git_update import update_repo
-import albedo_bot.config as config
+from albedo_bot.utils.files.image_util import ContentType, valid_image
+from albedo_bot.utils.hero_data import HeroData, JsonHero
 
 
 class BaseHeroCog(BaseCog):
-    """_summary_
+    """
+    A discord.py cog that contains all the helper functions for the `Hero` Cog
     """
 
     @BaseCog.admin.group(name="hero")
@@ -104,18 +111,154 @@ class BaseHeroCog(BaseCog):
 
     async def _auto_load(self, ctx: commands.Context):
         """
-        Attempt to automatically load hero updates from  
+        Attempt to automatically load hero updates from
         https://github.com/Dae314/AFKBuilder/blob/main/src/stores/HeroData.js
         and then rebuild/reload the hero database for image recognition
 
         Args:
             ctx (commands.Context): _description_
         """
+        embed_list: list[EmbedWrapper] = []
+
+        embed_wrapper = EmbedWrapper(
+            title="Auto Loading hero updates... ",
+            description=(
+                f"Currently detecting updates for `AFK_Helper`..."))
+        holdover_message_list = await send_embed(ctx,
+                                                 embed_wrapper=embed_wrapper)
+        holdover_message = holdover_message_list[0]
 
         repo_update = update_repo(AFK_HELPER_PATH)
-        current_hero_data = config.hero_data
-        updated_hero_data_dict = HeroData.parse_file(
+
+        if len(repo_update.commit_info) == 0:
+            embed_wrapper = EmbedWrapper(
+                title="No updates detected",
+                description=(
+                    f"No hero updates were detected in `AFK_Helper`"))
+            await send_embed(ctx, embed_wrapper=embed_wrapper)
+            await holdover_message.delete()
+            return
+
+        repo_update_list: list[str] = []
+        for commit_info in repo_update.commit_info:
+            repo_update_list.append(f"```\n{commit_info.message}\n```")
+
+        embed_wrapper = EmbedWrapper(title="AFK Helper changelog",
+                                     description=("\n".join(repo_update_list)))
+        embed_list.append(embed_wrapper)
+
+        # removed_heroes: list[JsonHero] = []
+        added_heroes: list[JsonHero] = []
+        modified_heroes: list[JsonHero] = []
+
+        hero_dict: dict[str, JsonHero] = {}
+        for hero_entry in config.hero_data:
+            hero_dict[hero_entry.hero_name] = hero_entry
+
+        new_hero_data = HeroData.parse_file(
             self.bot, config.AFK_HELPER_HERO_DATA_PATH)
+
+        for new_hero_dict in new_hero_data:
+            new_json_hero = JsonHero(new_hero_dict)
+            if new_json_hero.hero_name in hero_dict:
+                if not hero_dict[new_json_hero.hero_name
+                                 ].hero_dict == new_json_hero.hero_dict:
+                    modified_heroes.append(new_json_hero)
+                del hero_dict[new_json_hero.hero_name]
+            else:
+                added_heroes.append(new_json_hero)
+
+        # Any heroes leftover in the hero_dict are heroes that have
+        #   been removed.
+
+        # Flush hero config to database
+        config.hero_data._db = new_hero_data
+        await config.hero_data.save()
+
+        for json_hero in modified_heroes:
+            modified_hero = await json_hero.build(self.bot.session)
+            hero_portrait = await HeroPortrait.get_portrait(modified_hero,
+                                                            self.bot.session)
+            modified_hero_embed = self.build_display(
+                modified_hero, [hero_portrait])[0]
+            modified_hero_embed.title = f"Modified hero - {modified_hero.name}"
+            modified_hero_embed.description = (
+                f"`{modified_hero.name}` has been modified in the Hero "
+                "Database")
+            embed_list.append(modified_hero_embed)
+
+        for json_hero in added_heroes:
+            added_hero = await json_hero.build(self.bot.session)
+            hero_portrait = await HeroPortrait.get_portrait(added_hero,
+                                                            self.bot.session)
+            added_hero_embed = self.build_display(
+                added_hero, [hero_portrait])[0]
+            added_hero_embed.title = f"Added hero - {added_hero.name}"
+            added_hero_embed.description = (
+                f"`{added_hero.name}` has been added to the Hero Database")
+            embed_list.append(added_hero_embed)
+
+        embed_wrapper = EmbedWrapper(
+            title="Auto Loading hero updates... ",
+            description=(
+                f"Rebuilding Hero Database in `afk_image_processing`..."))
+        holdover_message = await edit_message(ctx, message=holdover_message,
+                                              embed_wrapper=embed_wrapper)
+
+        base_hero_list: list[HeroImage] = []
+
+        hero_portrait_select = self.db_select(HeroPortrait)
+
+        hero_portrait_objects = await self.db_execute(
+            hero_portrait_select).all()
+
+        for hero_portrait_object in hero_portrait_objects:
+            hero_image = await hero_portrait_object.build_hero_image(
+                self.bot.session)
+            base_hero_list.append(hero_image)
+
+        # Rebuild here
+        build_database(enriched_db=True, base_images=base_hero_list)
+        embed_wrapper = EmbedWrapper(
+            title="Auto Loading hero updates... ",
+            description=(
+                f"Refreshing Hero Database in remote process, if others are "
+                f"using the bot this could take a while..."))
+        holdover_message = await edit_message(ctx, message=holdover_message,
+                                              embed_wrapper=embed_wrapper)
+
+        # Refresh here
+        await self.remote_reload_database(ctx)
+
+        await send_embed(ctx, embed_list)
+        await holdover_message.delete()
+
+    async def remote_reload_database(self, ctx: commands.Context):
+        """
+        Refresh/reload the database on the remote process
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+        command_list: list[str] = RELOAD_COMMAND_LIST
+        roster_json_str = remote_compute_results(
+            config.PROCESSING_SERVER_ADDRESS,
+            config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+            command_list)
+        roster_json_str = jsonpickle.decode(roster_json_str)
+
+        error_message = (
+            f"Unable to refresh database on the remote process. Contact an "
+            f"admin or `{self.bot.owner_string}` for more information")
+        try:
+            if roster_json_str["message"] != DATABASE_LOAD_MESSAGE:
+                raise RemoteProcessingError(
+                    (f"{error_message}\nExpected \n"
+                     f"```{DATABASE_LOAD_MESSAGE}```\nfound\n"
+                     f"```{roster_json_str['message']}```\n instead"))
+        except KeyError as exception:
+            raise RemoteProcessingError(error_message) from exception
 
     async def _add_image(self, ctx: commands.Context, hero: Hero,
                          image_index: int):

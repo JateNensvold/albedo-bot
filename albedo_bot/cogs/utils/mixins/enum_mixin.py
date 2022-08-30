@@ -1,10 +1,14 @@
 
+from datetime import datetime
 from enum import Enum
+from enum import IntEnum as BaseIntEnum
 
 
-class EnumMixin(Enum):
-    """_summary_
+class EnumMixin:
     """
+    A wrapper around an Enum that provides several helper methods
+    """
+    name: str
 
     @classmethod
     def v_list(cls):
@@ -35,5 +39,28 @@ class EnumMixin(Enum):
 
     def __str__(self):
         """
+        Return a string representation of the enum that consists of 
+            the enum name
         """
         return f"{self._name_}"
+
+
+class IntEnum(EnumMixin, BaseIntEnum):
+    """
+    A wrapper around EnumMixin that type hints value as a int
+    """
+    value: int
+
+
+class StrEnum(EnumMixin, Enum):
+    """
+    A wrapper around EnumMixin that type hints value as a str
+    """
+    value: str
+
+
+class DatetimeEnum(EnumMixin, Enum):
+    """
+    A wrapper around EnumMixin that type hints value as a datetime
+    """
+    value: datetime

@@ -1,4 +1,4 @@
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
 # Timezone values are pulled from the following website
@@ -32,5 +32,5 @@ timezone_enum_values = {
 }
 
 # pylint: disable=unexpected-keyword-arg
-TIMEZONE_ENUM = EnumMixin(value="TimeZoneEnum",
-                          names=timezone_enum_values)
+TIMEZONE_ENUM = StrEnum(value="TimeZoneEnum",
+                        names=timezone_enum_values)

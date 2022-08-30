@@ -12,7 +12,8 @@ class EmbedWrapper:
     A wrapper around a discord.py embed
     """
 
-    def __init__(self, title: str = None,
+    def __init__(self,
+                 title: str = None,
                  description: str = "",
                  footer: str = "",
                  embed_fields: list[EmbedField] = None,
@@ -86,7 +87,7 @@ class EmbedWrapper:
 
         total = 0
         for item in fields:
-            str_item = str(item) if str(item) != None else ''
+            str_item = str(item) if item is not None else ''
             total += len(str_item)
 
         return total

@@ -221,9 +221,9 @@ class HeroList(DatabaseMixin, EmojiMixin):
             hero_result = await self.db_execute(hero_select).first()
 
             try:
-                portrait_name, _portrait_extension = os.path.splitext(
-                    os.path.basename(hero_result.hero_portrait))
-                hero_emoji = str(self.get_emoji(portrait_name))
+                # portrait_name, _portrait_extension = os.path.splitext(
+                #     os.path.basename(hero_result.hero_portrait))
+                hero_emoji = str(self.get_emoji(hero_result.emoji_name()))
             # pylint: disable=broad-except
             except Exception as _exception:
                 hero_emoji = emoji.grey_question
@@ -280,7 +280,8 @@ class HeroList(DatabaseMixin, EmojiMixin):
         return f"HeroList<{len(self.heroes)} heroes long>"
 
     async def async_str(self):
-        """_summary_
+        """
+        Create a string all all the heroes in HeroList
         """
         output = await self.format_heroes()
         return output

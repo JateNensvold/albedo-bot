@@ -1,6 +1,6 @@
 import datetime
 
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import DatetimeEnum
 
 
 NORMAL_TIME_FORMAT = "%I:%M:%S %p"
@@ -14,5 +14,5 @@ for availability_offset in range(0, 24):
     availability_enum_values[str(availability_offset)] = timestamp
 
 # pylint: disable=unexpected-keyword-arg
-AVAILABILITY_ENUM = EnumMixin(
+AVAILABILITY_ENUM = DatetimeEnum(
     value="AvailabilityEnum", names=availability_enum_values)

@@ -41,7 +41,7 @@ class CommitInfo:
             commit.message.strip()]
         change_messages = self.generate_diff(diff)
         self.messages.extend(change_messages)
-        self.message = "\n".join(self.messages)
+        self.message: str = "\n".join(self.messages)
 
     def generate_diff(self, diff: DiffIndex):
         """
@@ -92,6 +92,8 @@ class RepoUpdate:
             self.commit_info.append(latest_commit_info)
             self.file_changes.update(latest_commit_info.file_changes)
             last_commit = commit
+        self.message = "\n".join(
+            [commit_info.message for commit_info in self.commit_info])
 
 
 def pull_repo(repo_path: Path, remote: Remote = None, branch: Head = None):

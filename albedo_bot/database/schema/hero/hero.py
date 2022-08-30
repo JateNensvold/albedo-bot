@@ -1,5 +1,3 @@
-from typing import Type
-
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Column, String, Integer, Sequence
 from sqlalchemy.orm import relationship
@@ -7,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import (
-    DatabaseMixin, ScalarWrapper)
+    DatabaseMixin)
 from albedo_bot.utils.enums.ascension_type_enum import HeroAscensionEnum
 from albedo_bot.utils.enums.hero_faction_enum import HeroFactionEnum
 from albedo_bot.utils.enums.hero_class_enum import HeroClassEnum
@@ -70,6 +68,16 @@ class Hero(base, DatabaseMixin):
         hero_select_statement = database_wrapper.db_select(
             Hero).where(Hero.name.ilike(f"{hero_name}%"))
         return database_wrapper.db_execute(hero_select_statement)
+
+    def emoji_name(self):
+        """
+        Create an emoji name from the hero name
+        """
+
+        name: str = self.name
+        new_name = name.replace(" ", "_")
+
+        return new_name.lower()
 
     def __repr__(self) -> str:
         """

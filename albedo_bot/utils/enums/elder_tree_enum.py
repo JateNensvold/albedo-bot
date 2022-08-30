@@ -1,7 +1,7 @@
-from albedo_bot.cogs.utils.mixins.enum_mixin import EnumMixin
+from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
-class ElderTreeTypesEnum(EnumMixin):
+class ElderTreeTypesEnum(StrEnum):
     """
     The different branch types of Duras Elder Tree
     """
