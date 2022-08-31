@@ -18,13 +18,14 @@ from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import (
     HeroAscensionEnum, HeroClassEnum, HeroFactionEnum, HeroTypeEnum)
 from albedo_bot.utils.errors import CogCommandError, RemoteProcessingError
-from albedo_bot.utils.message.message_send import edit_message, send_embed
+from albedo_bot.utils.message.message_send import edit_message, send_embed, send_embed_exception
 from albedo_bot.utils.embeds import EmbedField, EmbedWrapper
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait
 from albedo_bot.config import AFK_HELPER_PATH
 from albedo_bot.utils.git_helper.git_update import update_repo
 from albedo_bot.utils.files.image_util import ContentType, valid_image
 from albedo_bot.utils.hero_data import HeroData, JsonHero
+from albedo_bot.utils.emoji import white_check_mark
 
 
 class BaseHeroCog(BaseCog):
@@ -120,57 +121,68 @@ class BaseHeroCog(BaseCog):
         """
         embed_list: list[EmbedWrapper] = []
 
-        embed_wrapper = EmbedWrapper(
+        holdover_wrapper = EmbedWrapper(
             title="Auto Loading hero updates... ",
             description=(
                 f"Currently detecting updates for `AFK_Helper`..."))
-        holdover_message_list = await send_embed(ctx,
-                                                 embed_wrapper=embed_wrapper)
+        holdover_message_list = await send_embed(
+            ctx, embed_wrapper=holdover_wrapper)
         holdover_message = holdover_message_list[0]
 
-        repo_update = update_repo(AFK_HELPER_PATH)
+        try:
+            repo_update = update_repo(AFK_HELPER_PATH)
 
-        if len(repo_update.commit_info) == 0:
-            embed_wrapper = EmbedWrapper(
-                title="No updates detected",
-                description=(
-                    f"No hero updates were detected in `AFK_Helper`"))
-            await send_embed(ctx, embed_wrapper=embed_wrapper)
-            await holdover_message.delete()
-            return
+            if len(repo_update.commit_info) == 0:
+                embed_wrapper = EmbedWrapper(
+                    title="No updates detected",
+                    description=(
+                        f"No hero updates were detected in `AFK_Helper`"))
+                await send_embed(ctx, embed_wrapper=embed_wrapper)
+                await holdover_message.delete()
+                return
 
-        repo_update_list: list[str] = []
-        for commit_info in repo_update.commit_info:
-            repo_update_list.append(f"```\n{commit_info.message}\n```")
+            repo_update_list: list[str] = []
+            for commit_info in repo_update.commit_info:
+                repo_update_list.append(f"```\n{commit_info.message}\n```")
 
-        embed_wrapper = EmbedWrapper(title="AFK Helper changelog",
-                                     description=("\n".join(repo_update_list)))
-        embed_list.append(embed_wrapper)
+            embed_wrapper = EmbedWrapper(title="AFK Helper changelog",
+                                         description=("\n".join(repo_update_list)))
+            embed_list.append(embed_wrapper)
 
-        # removed_heroes: list[JsonHero] = []
-        added_heroes: list[JsonHero] = []
-        modified_heroes: list[JsonHero] = []
+            # removed_heroes: list[JsonHero] = []
+            added_heroes: list[JsonHero] = []
+            modified_heroes: list[JsonHero] = []
 
-        hero_dict: dict[str, JsonHero] = {}
-        for hero_entry in config.hero_data:
-            hero_dict[hero_entry.hero_name] = hero_entry
+            hero_dict: dict[str, JsonHero] = {}
+            for hero_entry in config.hero_data:
+                hero_dict[hero_entry.hero_name] = hero_entry
 
-        new_hero_data = HeroData.parse_file(
-            self.bot, config.AFK_HELPER_HERO_DATA_PATH)
+            new_hero_data = HeroData.parse_file(
+                self.bot, config.AFK_HELPER_HERO_DATA_PATH)
 
-        for new_hero_dict in new_hero_data:
-            new_json_hero = JsonHero(new_hero_dict)
-            if new_json_hero.hero_name in hero_dict:
-                if not hero_dict[new_json_hero.hero_name
-                                 ].hero_dict == new_json_hero.hero_dict:
-                    modified_heroes.append(new_json_hero)
-                del hero_dict[new_json_hero.hero_name]
-            else:
-                added_heroes.append(new_json_hero)
+            for new_hero_dict in new_hero_data:
+                new_json_hero = JsonHero(new_hero_dict)
+                if new_json_hero.hero_name in hero_dict:
+                    if not hero_dict[new_json_hero.hero_name
+                                     ].hero_dict == new_json_hero.hero_dict:
+                        modified_heroes.append(new_json_hero)
+                    del hero_dict[new_json_hero.hero_name]
+                else:
+                    added_heroes.append(new_json_hero)
+        except Exception as exception:
+            await holdover_message.delete
+            await send_embed_exception(ctx, exception, description=(
+                "An error occurred while attempting to fetch hero updates ",
+                "command is being aborted..."))
 
         # Any heroes leftover in the hero_dict are heroes that have
         #   been removed.
 
+        holdover_wrapper.title = "Updating hero information... "
+        holdover_wrapper.description += (
+            f"{white_check_mark}\nUpdating hero information in database...")
+        holdover_message = await edit_message(ctx, message=holdover_message,
+                                              embed_wrapper=holdover_wrapper)
         # Flush hero config to database
         config.hero_data._db = new_hero_data
         await config.hero_data.save()
@@ -198,12 +210,12 @@ class BaseHeroCog(BaseCog):
                 f"`{added_hero.name}` has been added to the Hero Database")
             embed_list.append(added_hero_embed)
 
-        embed_wrapper = EmbedWrapper(
-            title="Auto Loading hero updates... ",
-            description=(
-                f"Rebuilding Hero Database in `afk_image_processing`..."))
+        holdover_wrapper.title = "Auto Loading hero updates... "
+        holdover_wrapper.description += (
+            f"{white_check_mark}\n"
+            f"Rebuilding Hero Database in `afk_image_processing`...")
         holdover_message = await edit_message(ctx, message=holdover_message,
-                                              embed_wrapper=embed_wrapper)
+                                              embed_wrapper=holdover_wrapper)
 
         base_hero_list: list[HeroImage] = []
 
@@ -219,13 +231,13 @@ class BaseHeroCog(BaseCog):
 
         # Rebuild here
         build_database(enriched_db=True, base_images=base_hero_list)
-        embed_wrapper = EmbedWrapper(
-            title="Auto Loading hero updates... ",
-            description=(
-                f"Refreshing Hero Database in remote process, if others are "
-                f"using the bot this could take a while..."))
+        holdover_wrapper.title = "Auto Loading hero updates... "
+        holdover_wrapper.description += (
+            f"{white_check_mark}\n"
+            f"Refreshing Hero Database in remote process, if others are "
+            f"using the bot this could take a while...")
         holdover_message = await edit_message(ctx, message=holdover_message,
-                                              embed_wrapper=embed_wrapper)
+                                              embed_wrapper=holdover_wrapper)
 
         # Refresh here
         await self.remote_reload_database(ctx)

@@ -6,6 +6,9 @@ from albedo_bot.utils.message.message_util import wrap_message
 
 from albedo_bot.utils.embeds.embed_field import EmbedField
 
+MAX_EMBED_LENGTH = 6000
+MAX_EMBED_COUNT = 10
+
 
 class EmbedWrapper:
     """

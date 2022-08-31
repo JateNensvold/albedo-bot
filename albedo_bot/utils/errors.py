@@ -33,6 +33,12 @@ class MessageError(commands.CommandError):
         super().__init__(message, *args)
 
 
+class MessageSendError(MessageError):
+    """
+    Raised when there is some sort of issue sending a message to discord
+    """
+
+
 class RemoteProcessingError(MessageError):
     """
     Raised when an issue occurs while interacting with a

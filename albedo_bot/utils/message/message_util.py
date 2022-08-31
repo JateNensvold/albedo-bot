@@ -1,3 +1,10 @@
+
+from albedo_bot.utils.embeds.select import SelectView
+
+from discord.ext.commands.context import Context
+from discord import Embed, Message, File
+
+
 def wrap_message(message: str,
                  max_message_length: int = 2000,
                  wrapper: str = "",
@@ -36,3 +43,37 @@ def wrap_message(message: str,
         message_list.append(f"{header}{new_message}")
         message_itr_index += len(new_message)
     return message_list
+
+
+async def _send_message(ctx: Context,
+                        content: str | None,
+                        embeds: list[Embed],
+                        reply: bool,
+                        mention_author: bool,
+                        view: SelectView,
+                        files: list[File]) -> Message:
+    """
+    Do the sending of all message contents return the response
+
+    Args:
+        ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        content (str | None): text to send in a message
+        embeds (list[Embed)): Discord Embeds to send in message
+        reply (bool): reply to the original message when true
+        mention_author (bool): when replying to a message mention the user 
+            when this is true
+        file (list[File]): list of files to send in message
+    Returns:
+        Message: the message sent in discord
+    """
+
+    message_kwargs = {"content": content,
+                      "embeds": embeds,
+                      "mention_author": mention_author,
+                      "view": view,
+                      "files": files}
+    if reply:
+        return await ctx.reply(**message_kwargs)
+    else:
+        return await ctx.send(**message_kwargs)
