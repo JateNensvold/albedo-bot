@@ -1,4 +1,5 @@
 
+from image_processing.processing.async_processing.processing_status import ProcessingStatus
 import requests
 from io import BytesIO
 
@@ -8,8 +9,8 @@ from discord.ext import commands
 from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
 from image_processing.build_db import build_database
 from image_processing.afk.hero.hero_data import HeroImage
-from image_processing.processing_client import remote_compute_results
-from image_processing.processing_server import (
+from image_processing.processing.processing_client import ProcessingClient
+from image_processing.processing.processing_server import (
     DATABASE_LOAD_MESSAGE, RELOAD_COMMAND_LIST)
 
 import albedo_bot.config as config
@@ -252,25 +253,29 @@ class BaseHeroCog(BaseCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+        Returns:
+            (ProcessingResult): the response from calling the remote 
+                processing server
         """
         command_list: list[str] = RELOAD_COMMAND_LIST
-        roster_json_str = remote_compute_results(
+        processing_result = ProcessingClient().remote_compute_results(
             config.PROCESSING_SERVER_ADDRESS,
             config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
             command_list)
-        roster_json_str = jsonpickle.decode(roster_json_str)
 
-        error_message = (
-            f"Unable to refresh database on the remote process. Contact an "
-            f"admin or `{self.bot.owner_string}` for more information")
-        try:
-            if roster_json_str["message"] != DATABASE_LOAD_MESSAGE:
+        if processing_result.status == ProcessingStatus.reload:
+            if processing_result.message != DATABASE_LOAD_MESSAGE:
                 raise RemoteProcessingError(
                     (f"{error_message}\nExpected \n"
                      f"```{DATABASE_LOAD_MESSAGE}```\nfound\n"
-                     f"```{roster_json_str['message']}```\n instead"))
-        except KeyError as exception:
-            raise RemoteProcessingError(error_message) from exception
+                     f"```{ processing_result.message}```\n instead"))
+        else:
+            error_message = (
+                f"Unable to refresh database on the remote process due to"
+                f"\n```\n{processing_result.message}\n```\nContact an "
+                f"admin or `{self.bot.owner_string}` for more information")
+            raise RemoteProcessingError(error_message)
+        return processing_result
 
     async def _add_image(self, ctx: commands.Context, hero: Hero,
                          image_index: int):

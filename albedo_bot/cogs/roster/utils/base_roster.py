@@ -4,19 +4,21 @@ import pprint
 import io
 
 from typing import TYPE_CHECKING, List
+from image_processing.processing.async_processing.processing_status import ProcessingStatus
 import jsonpickle
 from discord.ext import commands
 from discord import Member, User, Message, File
 
 from image_processing.afk.hero.hero_data import RosterJson
-from image_processing.processing_client import remote_compute_results
+from image_processing.processing.processing_client import ProcessingClient
 
 import albedo_bot.config as config
 from albedo_bot.database.schema.guild import Guild
 from albedo_bot.database.schema.player.player import Player
 from albedo_bot.cogs.utils.base_cog import BaseCog
-from albedo_bot.utils.errors import CogCommandError
-from albedo_bot.utils.message.message_send import (EmbedWrapper, edit_message, send_embed)
+from albedo_bot.utils.errors import CogCommandError, RemoteProcessingError
+from albedo_bot.utils.message.message_send import (
+    EmbedWrapper, edit_message, send_embed)
 from albedo_bot.cogs.hero.utils import (
     AscensionValue, SignatureItemValue, EngravingValue, FurnitureValue)
 from albedo_bot.database.schema.hero import (
@@ -195,15 +197,23 @@ class BaseRosterCog(BaseCog):
             if config.VERBOSE:
                 command_list.append("-v")
             try:
-                roster_json_str = remote_compute_results(
+                processing_response = ProcessingClient().remote_compute_results(
                     config.PROCESSING_SERVER_ADDRESS,
                     config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
                     command_list)
-                try:
-                    roster_json = RosterJson.from_json(roster_json_str)
-                except Exception as serialization_exception:
-                    error_message = jsonpickle.decode(roster_json_str)
-                    raise Exception(error_message) from serialization_exception
+                if processing_response.status == ProcessingStatus.success:
+                    roster_json = processing_response.result
+                elif processing_response.status == ProcessingStatus.failure:
+                    error_message = processing_response.message
+                    raise RemoteProcessingError(error_message)
+                else:
+                    raise RemoteProcessingError(
+                        embed_wrapper=EmbedWrapper(
+                            tittle="Unknown Processing Response",
+                            description=(
+                                f"Received unknown processing response of: "
+                                f"`{processing_response.status} with a message "
+                                f"of\n{processing_response.message}")))
             except Exception as exception:
                 embed_wrapper = EmbedWrapper(
                     title="Roster Detection Failed",
