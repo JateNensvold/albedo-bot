@@ -81,7 +81,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         f"with `{default_bot_prefix[0]}help roster`.\n To view more commands "
         "check out the categories below.")
 
-    def __init__(self):
+    def __init__(self, event_loop=None):
         intents = discord.Intents(
             guilds=True,
             members=True,
@@ -102,6 +102,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
                                  Union[commands.Command, commands.Group]] = {}
 
         super().__init__(command_prefix=bot_prefix_callable,
+                        #  event_loop=event_loop,
                          description=self.description,
                          intents=intents,
                          allowed_mentions=allowed_mentions,
@@ -126,7 +127,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         # Cache that stores a mapping of cog names without the word "cog" in them
         self._cog_cache: dict[str, str] = {}
 
-        self.database = config.database
+        self.database = config.objects.database
         self.database.postgres_connect()
 
         # Update the method used to scope database sessions
@@ -561,13 +562,13 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
     async def setup_hook(self) -> None:
 
         # Configured prefixes for each server/guild using the bot
-        self.prefixes = config.prefixes
+        self.prefixes = config.objects.prefixes
 
         # Users and guilds blacklisted from using bot
-        self.blacklist = config.blacklist
+        self.blacklist = config.objects.blacklist
 
         # Permissions config to check users permissions
-        self.permissions = config.permissions
+        self.permissions = config.objects.permissions
 
         for extension in initial_extensions:
             try:
@@ -579,5 +580,22 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
     async def start(self):  # pylint: disable=arguments-differ
         """_summary_
         """
+
+
+        # # Configured prefixes for each server/guild using the bot
+        # self.prefixes = config.objects.prefixes
+
+        # # Users and guilds blacklisted from using bot
+        # self.blacklist = config.objects.blacklist
+
+        # # Permissions config to check users permissions
+        # self.permissions = config.objects.permissions
+
+        # for extension in initial_extensions:
+        #     try:
+        #         await self.load_extension(extension)
+        #     except DiscordException as _load_failure:
+        #         print(f"Failed to load extension {extension}", file=sys.stderr)
+        #         traceback.print_exc()
 
         await super().start(config.TOKEN, reconnect=True)

@@ -1,8 +1,10 @@
 
-from albedo_bot.utils.embeds.select import SelectView
+from typing import Callable, NamedTuple
 
 from discord.ext.commands.context import Context
 from discord import Embed, Message, File
+
+from albedo_bot.utils.embeds.select import SelectView
 
 
 def wrap_message(message: str,

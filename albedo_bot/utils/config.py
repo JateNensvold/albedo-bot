@@ -16,7 +16,7 @@ class Config:
     def __init__(self, name: Path, **options):
         self.name = name
 
-        self.loop = options.pop('loop', asyncio.get_event_loop())
+        self.loop = options.pop('loop') #, asyncio.get_event_loop())
         self.lock = asyncio.Lock()
         if options.pop('load_later', False):
             self.loop.create_task(self.load())

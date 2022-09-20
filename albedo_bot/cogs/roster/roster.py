@@ -44,15 +44,13 @@ class RosterCog(BaseRosterCog):
                 of whoever invoked the command when no user is provided.
         """
 
-        user_id = ctx.author.id
+        discord_user = ctx.author
         if guild_member:
-            user_id = guild_member.id
+            discord_user = guild_member
 
-        user_object: User = await self.bot.fetch_user(user_id)
-
-        heroes_result = await self.fetch_roster(user_id)
+        heroes_result = await self.fetch_roster(discord_user)
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            title=f"{user_object.name}'s roster",
+            title=f"{discord_user.name}'s roster",
             description=heroes_result))
 
     @roster.command(name="add", aliases=["update"])

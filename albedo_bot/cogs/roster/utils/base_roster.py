@@ -1,16 +1,16 @@
 
-from datetime import datetime
 import pprint
 import io
+from datetime import datetime
+from typing import TYPE_CHECKING, Callable, List, NamedTuple
+from uuid import uuid4
 
-from typing import TYPE_CHECKING, List
-from image_processing.processing.async_processing.processing_status import ProcessingStatus
-import jsonpickle
 from discord.ext import commands
 from discord import Member, User, Message, File
-
-from image_processing.afk.hero.hero_data import RosterJson
-from image_processing.processing.processing_client import ProcessingClient
+from image_processing.processing.async_processing \
+    .async_processing_client import (CallbackWrapper, QueueTimeout)
+from image_processing.processing.async_processing.processing_status import (
+    ProcessingStatus)
 
 import albedo_bot.config as config
 from albedo_bot.database.schema.guild import Guild
@@ -32,23 +32,43 @@ if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-class BaseRosterCog(BaseCog):
-    """_summary_
+GetPositionCallback = Callable[[str], int]
+GetLengthCallback = Callable[[], int]
+GetQueueTimeoutCallback = Callable[[], QueueTimeout]
+GetMessageTimeoutCallback = Callable[[str], float]
 
-    Args:
-        commands (_type_): _description_
+
+class AsyncQueueMessageArgs(NamedTuple):
+    """
+    All the args passed to a callback function that updates a message with
+    attributes from a queue. 
+
+    Ex. a callback in async_processing_client to update a discord message
+    """
+    ctx: commands.Context
+    message: Message
+    task_uuid: str
+    base_message_text: str
+    queue_position_callback: GetPositionCallback
+    queue_length_callback: GetLengthCallback
+    queue_timeout_callback: GetQueueTimeoutCallback
+    message_timeout_callback: GetMessageTimeoutCallback
+
+
+class BaseRosterCog(BaseCog):
+    """
+    A Base class for all the utility and helper methods for the RosterCog
     """
 
     def __init__(self, bot: "AlbedoBot"):
-        self.hero_alias = config.hero_alias
+        self.hero_alias = config.objects.hero_alias
         super().__init__(bot)
 
-        self.failed_roster_str = (
+        self.failed_roster_template_str = (
             f"Please contact an admin or {bot.owner_string} "
             f"and give them the image that failed, or upload the "
             "failed image into any debugging channels available")
 
-    # pylint: disable=no-member
     @BaseCog.admin.group(name="roster")
     async def roster_admin(self, ctx: commands.Context):
         """
@@ -59,17 +79,25 @@ class BaseRosterCog(BaseCog):
                 a discord event/command was invoked
         """
 
-    async def add_hero(self, ctx: commands.Context, player: Member, hero: Hero,
+    async def add_hero(self, ctx: commands.Context,
+                       player: Member,
+                       hero: Hero,
                        ascension: AscensionValue,
                        signature_item: SignatureItemValue,
                        furniture: FurnitureValue,
                        engraving: EngravingValue):
-        """[summary]
+        """
+        A utility method for adding a HeroInstance to the database
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            name (str): [description]
+            player (Member): player to add hero for
+            hero (Hero): hero getting added
+            ascension (AscensionValue): ascension level of hero
+            signature_item (SignatureItemValue): signature item level of hero
+            furniture (FurnitureValue): furniture level of hero
+            engraving (EngravingValue): engraving level of hero
         """
 
         hero_instance_select = self.db_select(HeroInstance).where(
@@ -103,12 +131,18 @@ class BaseRosterCog(BaseCog):
 
     async def remove_hero(self, ctx: commands.Context, player: User,
                           hero: Hero,):
-        """[summary]
+        """
+        Remove a HeroInstance from the database
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            name (str): [description]
+            player (User): player to remove hero for
+            hero (Hero): hero to remove
+
+        Raises:
+            CogCommandError: raised when a player does not have the hero 
+                passed in
         """
 
         hero_instance_select = self.db_select(HeroInstance).where(
@@ -134,15 +168,18 @@ class BaseRosterCog(BaseCog):
                 description=(f"The following heroes have been successfully "
                              f"removed from your roster\n {removed_heroes}")))
 
-    async def fetch_roster(self, discord_id: int):
-        """_summary_
+    async def fetch_roster(self, discord_user: User):
+        """
+        Fetch a roster for a player
 
         Args:
-            discord_id (int): _description_
-        """
+            discord_user (User): user to fetch roster for
 
+        Returns:
+            (str): a string representing a player roster
+        """
         hero_instance_select = self.db_select(HeroInstance).where(
-            HeroInstance.player_id == discord_id)
+            HeroInstance.player_id == discord_user.id)
 
         roster_results = await self.db_execute(hero_instance_select).all()
 
@@ -157,11 +194,54 @@ class BaseRosterCog(BaseCog):
 
         Args:
             hero_list (List[HeroInstance]): list of heroes to fetch strings for
+
+        Returns:
+            (str): a string representing all the heroes in `hero_list`
         """
         heroes_message_object = HeroList(self.bot, hero_list)
         output = await heroes_message_object.async_str()
 
         return output
+
+    @staticmethod
+    def _build_queue_message(base_message_text: str,
+                             position: int,
+                             queue_length: int,
+                             queue_timeout_str: str):
+        """
+        Create a temporary processing queue message/str that will be sent on
+        discord as a holdover while processing occurs 
+
+        * Useful for passing to callbacks that need to build a queue message.
+            Ex. callbacks in the processing_client used for processing image
+                uploads
+
+        Args:
+            base_message_text(str): base text to build message on top of
+            position (int): position of argument in queue
+            queue_length (int): length of queue
+            queue_timeout_str (str): string to add to message describing queue
+                timeout progress Ex. (Have waited x seconds/y total) 
+
+        Returns:
+            (EmbedWrapper): an EmbedWrapper represent a temporary 
+                processing queue message
+        """
+
+        processing_queue_message_append = (
+            "`Your image is in position "
+            f"{position}/{queue_length} in the "
+            f"processing queue{queue_timeout_str}`"
+            "\n\nThis message will be updated as your position in "
+            "the queue changes")
+        processing_queue_message = (f"{base_message_text}\n\n"
+                                    f"{processing_queue_message_append}")
+
+        embed_wrapper = EmbedWrapper(
+            title="Processing Queue...",
+            description=processing_queue_message)
+
+        return embed_wrapper
 
     async def _upload(self, ctx: commands.Context):
         """
@@ -184,23 +264,45 @@ class BaseRosterCog(BaseCog):
         for image_number, attachment in enumerate(ctx.message.attachments):
             embed_wrapper = EmbedWrapper(
                 title="Processing Roster... ",
-                description=(f"Currently processing image {image_number}"))
+                description=(
+                    f"Currently processing image {image_number+1}/"
+                    f"{len(ctx.message.attachments)}"))
             if temporary_holdover_message is None:
                 temporary_holdover_messages = await send_embed(
                     ctx, embed_wrapper=embed_wrapper)
                 temporary_holdover_message = temporary_holdover_messages[0]
             else:
-                await edit_message(ctx,
-                                   message=temporary_holdover_message,
-                                   embed_wrapper=embed_wrapper)
+                temporary_holdover_message = await edit_message(
+                    ctx, message=temporary_holdover_message,
+                    embed_wrapper=embed_wrapper)
             command_list = [str(attachment)]
             if config.VERBOSE:
                 command_list.append("-v")
             try:
-                processing_response = ProcessingClient().remote_compute_results(
+                task_uuid = str(uuid4())
+                processing_task = config.processing_client.async_compute(
+                    command_list,
                     config.PROCESSING_SERVER_ADDRESS,
-                    config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
-                    command_list)
+                    15000,
+                    # config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+                    CallbackWrapper(
+                        self.update_message,
+                        AsyncQueueMessageArgs(
+                            ctx=ctx,
+                            message=temporary_holdover_message,
+                            task_uuid=task_uuid,
+                            base_message_text=embed_wrapper.description,
+                            queue_position_callback=(
+                                config.processing_client.get_position),
+                            queue_length_callback=(
+                                config.processing_client.get_queue_length),
+                            queue_timeout_callback=(
+                                config.processing_client.get_queue_timeout),
+                            message_timeout_callback=(
+                                config.processing_client.get_message_timeout)
+                        )),
+                    task_uuid=task_uuid)
+                processing_response = await processing_task
                 if processing_response.status == ProcessingStatus.success:
                     roster_json = processing_response.result
                 elif processing_response.status == ProcessingStatus.failure:
@@ -219,7 +321,7 @@ class BaseRosterCog(BaseCog):
                     title="Roster Detection Failed",
                     description=(
                         f"Roster detection has failed due to `{exception}`.\n\n"
-                        f"{self.failed_roster_str}"))
+                        f"{self.failed_roster_template_str}"))
                 raise CogCommandError(
                     embed_wrapper=embed_wrapper) from exception
 
@@ -316,7 +418,7 @@ class BaseRosterCog(BaseCog):
             description = (
                 f"{description}\n\n"
                 "```The following unknown heroes were found in your roster\n"
-                f"{self.failed_roster_str}```\n"
+                f"{self.failed_roster_template_str}```\n"
                 f"{unknown_heroes_result_str}")
             send_embed_kwargs["embed_color"] = "yellow"
             send_embed_kwargs["emoji"] = emoji.warning
@@ -328,13 +430,49 @@ class BaseRosterCog(BaseCog):
                          embed_wrapper=EmbedWrapper(description=description),
                          **send_embed_kwargs)
 
+    async def update_message(self, function_args: AsyncQueueMessageArgs):
+        """
+        A utility function for updating a message with a tasks position in a
+        processing queue
+
+        Args:
+            function_args (AsyncQueueMessageArgs): arguments needed to update
+                the message with the latest info on the task in the 
+                processing queue
+        """
+        task_uuid = function_args.task_uuid
+        position = function_args.queue_position_callback(task_uuid)
+        processing_queue_len = function_args.queue_length_callback()
+
+        queue_timeout = function_args.queue_timeout_callback()
+        message_timeout = function_args.message_timeout_callback(task_uuid)
+
+        if queue_timeout is not None:
+            timeout_message = (f", and has waited {message_timeout}s/"
+                               f"{queue_timeout}s of its timeout")
+        else:
+            timeout_message = ""
+
+        base_text = function_args.base_message_text
+
+        # Add 1 to position so position is not 0 indexed
+        embed_wrapper = self._build_queue_message(base_text,
+                                                  position + 1,
+                                                  processing_queue_len,
+                                                  timeout_message)
+
+        await edit_message(
+            function_args.ctx, message=function_args.message,
+            embed_wrapper=embed_wrapper)
+
     async def clear_roster(self, ctx: commands.Context, discord_user: User):
-        """_summary_
+        """
+        Clear a discord users roster
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            discord_user (User): _description_
+            discord_user (User): user to clear roster for
         """
 
         hero_instances_select = self.db_select(HeroInstance).where(
@@ -350,7 +488,8 @@ class BaseRosterCog(BaseCog):
             description=(f"Roster cleared for {discord_user.mention}")))
 
     async def dump_rosters(self, ctx: commands.Context):
-        """_summary_
+        """
+        Dump all the rosters in the database
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -380,10 +519,11 @@ class BaseRosterCog(BaseCog):
             f"{temporary_message_description} selected "
             f"{len(player_roster_rows)} rows\n Generating CSV...")
 
-        await edit_message(ctx, message=temporary_messages[0],
-                           embed_wrapper=EmbedWrapper(
-                               title="Generating CSV...",
-                               description=temporary_message_description))
+        temporary_message = await edit_message(
+            ctx, message=temporary_messages[0],
+            embed_wrapper=EmbedWrapper(
+                title="Generating CSV...",
+                description=temporary_message_description))
 
         hero_instance_strings: list[str] = []
         player_set: set[int] = set()
@@ -408,7 +548,7 @@ class BaseRosterCog(BaseCog):
         discord_file = File(
             buffer, filename=f"players_hero_dump_{str(datetime.now())}.csv")
 
-        await temporary_messages[0].delete()
+        await temporary_message.delete()
         await send_embed(ctx,
                          embed_wrapper=EmbedWrapper(description=(
                              f"Dumped {len(player_roster_rows)} lines, from "

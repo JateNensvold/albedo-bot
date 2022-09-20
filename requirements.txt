@@ -9,4 +9,5 @@ cachetools
 GitPython
 regex
 opencv-python
+dpytest
 -e .

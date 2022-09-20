@@ -5,13 +5,13 @@ import asyncio
 import contextlib
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import NamedTuple
 
 from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
 
 from albedo_bot.bot import AlbedoBot
 import albedo_bot.config as config
 import albedo_bot.database.migration
+from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
 class RemoveNoise(logging.Filter):
@@ -33,7 +33,8 @@ class RemoveNoise(logging.Filter):
 
 @contextlib.contextmanager
 def setup_logging():
-    """_summary_
+    """
+    Setup discord logging
     """
     try:
         # __enter__
@@ -72,7 +73,7 @@ async def run_bot():
     await bot.start()
 
 
-class LaunchChoices(NamedTuple):
+class LaunchChoices(StrEnum):
     """
     The available runtime types for the bot
     """
@@ -89,43 +90,43 @@ def main():
     Provides all the launch implementations for the bot
     """
 
-    launch_choices = LaunchChoices()
-
     parser = argparse.ArgumentParser(
         description='AFK arena Roster management Bot')
 
     parser.add_argument("mode", type=str, nargs="?",
-                        default=launch_choices.run,
-                        choices=launch_choices,
+                        default=LaunchChoices.run.value,
+                        choices=LaunchChoices.v_list(),
                         help="Mode to launch Albedo Bot with")
     parser.add_argument("-v", "--verbose", help="Increase verbosity of output"
                         "from discord commands", action='count', default=0)
 
     args = parser.parse_args()
+    args.mode = LaunchChoices(args.mode)
 
     config.VERBOSE = args.verbose
     loop = asyncio.new_event_loop()
-    database = config.database
+    database = config.objects.database
+    config.reload_loop(loop)
 
-    if args.mode == launch_choices.run:
+    if args.mode == LaunchChoices.run:
         with setup_logging():
             loop.run_until_complete(run_bot())
-    elif args.mode == launch_choices.init:
+    elif args.mode == LaunchChoices.init:
         database.select_database(database_name="postgres")
         loop.run_until_complete(database.init_database(
             database_name=config.database_config["name"],
             hero_data=config.hero_data,
             portrait_folders=[IMAGE_PROCESSING_PORTRAITS], raise_error=False))
-    elif args.mode == launch_choices.drop:
+    elif args.mode == LaunchChoices.drop:
         loop.run_until_complete(database.drop_database(
             database_name=config.database_config["name"]))
-    elif args.mode == launch_choices.reset:
+    elif args.mode == LaunchChoices.reset:
         database.select_database(
             database_name=config.database_config["name"])
         loop.run_until_complete(database.reset_database(
             config.hero_data,
             [IMAGE_PROCESSING_PORTRAITS]))
-    elif args.mode == launch_choices.migrate:
+    elif args.mode == LaunchChoices.migrate:
         migration_execution_location = os.path.dirname(
             os.path.abspath(albedo_bot.database.migration.__file__))
         migration_commands: str = (
@@ -138,7 +139,7 @@ def main():
         print(f"Go to {migration_execution_location} and run the "
               f"following instructions\n{migration_commands}\nor checkout the "
               "Readme.MD for more information")
-    elif args.mode == launch_choices.backup:
+    elif args.mode == LaunchChoices.backup:
         backup_location = os.path.join(
             os.path.dirname(__file__), os.path.pardir)
         backup_output = loop.run_until_complete(

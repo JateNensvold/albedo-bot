@@ -153,12 +153,6 @@ class HeroList(DatabaseMixin, EmojiMixin):
         Args:
             bot (AlbedoBot): current discord bot
             heroes (List[HeroInstanceData]): list of hero information
-            longest_name (int, optional): An optional parameter that represents
-                a new longest name length to use when generating the spacing
-                for hero attributes in the formatted string. Defaults to None.
-            skip_header (bool, optional): An optional flag that will skip
-                adding the formatted string header when generating the hero
-                string. Defaults to False.
         """
 
         # Set self.bot for DatabaseMixin
@@ -172,7 +166,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
             longest_name_list = [hero.hero_name for hero in heroes]
         longest_name_list.append(self.heroes_title_str)
 
-        self.longest_name = len(max(longest_name_list, key=len))
+        self.longest_name_len = len(max(longest_name_list, key=len))
         self.longest_prefix_len = 0
         self.heroes = heroes
 
@@ -205,7 +199,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
         formatted_heroes.append(
             (f"{header_prefix_str}"
              f"{busts_in_silhouette}{hero_update_space}`"
-             f"{self.heroes_title_str: <{self.longest_name}} "
+             f"{self.heroes_title_str: <{self.longest_name_len}} "
              "ASC SI FI ENGRAVING`")
         )
 
@@ -267,7 +261,7 @@ class HeroList(DatabaseMixin, EmojiMixin):
             f"{prefix_str}"
             f"{emoji_str} "
             # f"{hero_tuple.hero_update_status.value} "
-            f"`{hero_tuple.hero_name: <{self.longest_name}} "
+            f"`{hero_tuple.hero_name: <{self.longest_name_len}} "
             f"{hero_tuple.ascension_level.name: <{3}} "
             f"{hero_tuple.signature_level: <2} "
             f"{hero_tuple.furniture_level: <2} "

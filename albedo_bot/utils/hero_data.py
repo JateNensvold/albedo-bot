@@ -342,14 +342,14 @@ class HeroData(Config, DatabaseMixin):
     A wrapper around the json Representation of a Hero
     """
 
-    def __init__(self, file_path: Path):
+    def __init__(self, file_path: Path, **kwargs):
         """
         Create HeroData from a list of dictionaries
 
         Args:
             hero_data (list[dict[str, Any]]): json hero data
         """
-        super().__init__(file_path)
+        super().__init__(file_path, **kwargs)
         self.hero_data: list[dict[str, Any]] = self._db
 
     def __iter__(self):

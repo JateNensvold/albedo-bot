@@ -9,7 +9,6 @@ from discord.ext import commands
 from image_processing.globals import IMAGE_PROCESSING_PORTRAITS
 from image_processing.build_db import build_database
 from image_processing.afk.hero.hero_data import HeroImage
-from image_processing.processing.processing_client import ProcessingClient
 from image_processing.processing.processing_server import (
     DATABASE_LOAD_MESSAGE, RELOAD_COMMAND_LIST)
 
@@ -258,10 +257,16 @@ class BaseHeroCog(BaseCog):
                 processing server
         """
         command_list: list[str] = RELOAD_COMMAND_LIST
-        processing_result = ProcessingClient().remote_compute_results(
+        # processing_result = ProcessingClient().remote_compute_results(
+        #     config.PROCESSING_SERVER_ADDRESS,
+        #     config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+        #     command_list)
+
+        processing_result = await config.processing_client.async_compute(
+            command_list,
             config.PROCESSING_SERVER_ADDRESS,
             config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
-            command_list)
+        )
 
         if processing_result.status == ProcessingStatus.reload:
             if processing_result.message != DATABASE_LOAD_MESSAGE:

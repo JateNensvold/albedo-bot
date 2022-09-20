@@ -8,9 +8,6 @@ from discord import Member, Role
 
 class UserPermission(NamedTuple):
     """_summary_
-
-    Args:
-        NamedTuple (_type_): _description_
     """
     user_id: int
     name: str
@@ -20,9 +17,6 @@ class UserPermission(NamedTuple):
 
 class RolePermission(NamedTuple):
     """_summary_
-
-    Args:
-        NamedTuple (_type_): _description_
     """
     role_id: int
     name: str

@@ -54,7 +54,22 @@ database_config_name = DATABASE_CONFIG_JSON_PATH.name
 copy_default(
     database_config_dir.joinpath(f"default_{database_config_name}"),
     DATABASE_CONFIG_JSON_PATH)
-from .json_config import (
-    permissions, database_config, database, prefixes, blacklist, hero_alias,
-    hero_data)
 
+from albedo_bot.config.config_objects import ConfigObjects
+# Import module as object to allow the following objects to be used
+#   as singletons
+
+_config_objects = ConfigObjects()
+
+permissions = _config_objects.permissions
+# database_config = _config_objects.database_config
+# prefixes = _config_objects.prefixes
+# blacklist = _config_objects.blacklist
+# hero_alias = _config_objects.hero_alias
+# hero_data = _config_objects.hero_data
+processing_client = _config_objects.processing_client
+reload_loop = _config_objects.reload_loop
+# database = _config_objects.database
+# get_database = config_objects.get_database
+# config_objects.get_hero_data = config_objects.get_hero_data
+objects = _config_objects
