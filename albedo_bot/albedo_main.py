@@ -103,8 +103,9 @@ def main():
 
     config.VERBOSE = args.verbose
     loop = asyncio.new_event_loop()
-    database = config.objects.database
     config.reload_loop(loop)
+
+    database = config.objects.database
 
     if args.mode == LaunchChoices.run:
         with setup_logging():
