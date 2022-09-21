@@ -409,9 +409,16 @@ class Database:
         crontab_list_command = ["crontab", "-l"]
 
         crontab_list_contents = subprocess.run(
-            crontab_list_command, shell=False, text=True, check=True,
+            crontab_list_command, shell=False, text=True, check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
+        if (crontab_list_contents.returncode == 1 and
+                "no crontab for vscode" not in crontab_list_contents.stderr):
+            raise subprocess.CalledProcessError(
+                returncode=crontab_list_contents.returncode,
+                cmd=crontab_list_command,
+                output=crontab_list_contents.stdout,
+                stderr=crontab_list_contents.stderr)
 
         cron_tab_commands = crontab_list_contents.stdout
         if cron_command not in cron_tab_commands:
