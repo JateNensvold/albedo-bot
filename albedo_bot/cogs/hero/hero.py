@@ -88,6 +88,19 @@ class HeroCog(BaseHeroCog):
 
         await self._auto_load(ctx)
 
+    @BaseHeroCog.hero_admin.command(name="rebuild", aliases=[])
+    async def rebuild(self, ctx: commands.Context):
+        """
+        Rebuild the hero image database used by the remote image_processing
+        server
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+
+        await self.rebuild_hero_database(ctx)
+
     @BaseHeroCog.hero_admin.group(name="image")
     async def hero_image(self, ctx: commands.Context):
         """

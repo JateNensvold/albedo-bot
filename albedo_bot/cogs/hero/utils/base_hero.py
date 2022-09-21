@@ -1,4 +1,7 @@
 
+from uuid import uuid4
+from albedo_bot.cogs.roster.utils.base_roster import AsyncQueueMessageArgs
+from image_processing.processing.async_processing.async_processing_client import CallbackWrapper
 from image_processing.processing.async_processing.processing_status import ProcessingStatus
 import requests
 from io import BytesIO
@@ -245,6 +248,54 @@ class BaseHeroCog(BaseCog):
         await send_embed(ctx, embed_list)
         await holdover_message.delete()
 
+    async def rebuild_hero_database(self, ctx: commands.Context):
+        """
+        Utility function for rebuilding and refreshing hero database for
+        remote image processing server
+
+        Args:
+            ctx (Context): invocation context containing information on how
+                a discord event/command was invoked
+        """
+        base_hero_list: list[HeroImage] = []
+
+        holdover_wrapper = EmbedWrapper(
+            title="Auto Loading hero updates... ",
+            description=(
+                f"Refreshing Hero Database in remote process, if others are "
+                f"using the bot this could take a while..."))
+
+        holdover_message_list = await send_embed(
+            ctx, embed_wrapper=holdover_wrapper)
+        holdover_message = holdover_message_list[0]
+
+        hero_portrait_select = self.db_select(HeroPortrait)
+
+        hero_portrait_objects = await self.db_execute(
+            hero_portrait_select).all()
+
+        for hero_portrait_object in hero_portrait_objects:
+            hero_image = await hero_portrait_object.build_hero_image(
+                self.bot.session)
+            base_hero_list.append(hero_image)
+
+        # Rebuild database and flush to disk
+        build_database(enriched_db=True, base_images=base_hero_list)
+
+        # Refresh here
+        await self.remote_reload_database(ctx)
+
+        await holdover_message.delete()
+
+        embed_wrapper = EmbedWrapper(
+            title="Successfully rebuilt database ",
+            description=(
+                f"Hero Database has been rebuilt and refreshed in remote "
+                "process!"))
+
+        holdover_message_list = await send_embed(
+            ctx, embed_wrapper=embed_wrapper)
+
     async def remote_reload_database(self, ctx: commands.Context):
         """
         Refresh/reload the database on the remote process
@@ -262,11 +313,16 @@ class BaseHeroCog(BaseCog):
         #     config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
         #     command_list)
 
-        processing_result = await config.processing_client.async_compute(
+        task_uuid = str(uuid4())
+        processing_task = config.processing_client.async_compute(
             command_list,
             config.PROCESSING_SERVER_ADDRESS,
-            config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
-        )
+            15000,
+            # config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+            None,
+            task_uuid=task_uuid)
+
+        processing_result = await processing_task
 
         if processing_result.status == ProcessingStatus.reload:
             if processing_result.message != DATABASE_LOAD_MESSAGE:
