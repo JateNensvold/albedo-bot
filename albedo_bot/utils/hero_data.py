@@ -536,7 +536,7 @@ class HeroData(Config, DatabaseMixin):
 
                 hero_object = await Hero.ilike(self.session,
                                                name_info.hero_name,
-                                               config.hero_alias).first()
+                                               config.objects.hero_alias).first()
 
                 if hero_object:
                     hero_portrait_select = self.db_select(HeroPortrait).where(

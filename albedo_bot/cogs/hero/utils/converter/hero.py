@@ -58,7 +58,7 @@ class HeroValue(HeroValueMixin, DatabaseMixin):
             Hero: returns the hero associated with the conversion argument that
                 was provided
         """
-        hero_alias = config.hero_alias
+        hero_alias = config.objects.hero_alias
 
         try:
             try:

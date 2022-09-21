@@ -154,7 +154,7 @@ class BaseHeroCog(BaseCog):
             modified_heroes: list[JsonHero] = []
 
             hero_dict: dict[str, JsonHero] = {}
-            for hero_entry in config.hero_data:
+            for hero_entry in config.objects.hero_data:
                 hero_dict[hero_entry.hero_name] = hero_entry
 
             new_hero_data = HeroData.parse_file(
@@ -184,8 +184,8 @@ class BaseHeroCog(BaseCog):
         holdover_message = await edit_message(ctx, message=holdover_message,
                                               embed_wrapper=holdover_wrapper)
         # Flush hero config to database
-        config.hero_data._db = new_hero_data
-        await config.hero_data.save()
+        config.objects.hero_data._db = new_hero_data
+        await config.objects.hero_data.save()
 
         for json_hero in modified_heroes:
             modified_hero = await json_hero.build(self.bot.session)

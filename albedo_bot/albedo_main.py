@@ -112,17 +112,17 @@ def main():
     elif args.mode == LaunchChoices.init:
         database.select_database(database_name="postgres")
         loop.run_until_complete(database.init_database(
-            database_name=config.database_config["name"],
-            hero_data=config.hero_data,
+            database_name=config.objects.database_config["name"],
+            hero_data=config.objects.hero_data,
             portrait_folders=[IMAGE_PROCESSING_PORTRAITS], raise_error=False))
     elif args.mode == LaunchChoices.drop:
         loop.run_until_complete(database.drop_database(
-            database_name=config.database_config["name"]))
+            database_name=config.objects.database_config["name"]))
     elif args.mode == LaunchChoices.reset:
         database.select_database(
-            database_name=config.database_config["name"])
+            database_name=config.objects.database_config["name"])
         loop.run_until_complete(database.reset_database(
-            config.hero_data,
+            config.objects.hero_data,
             [IMAGE_PROCESSING_PORTRAITS]))
     elif args.mode == LaunchChoices.migrate:
         migration_execution_location = os.path.dirname(

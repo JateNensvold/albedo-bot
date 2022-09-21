@@ -391,7 +391,7 @@ class Database:
                 commands fail or return a nonzero exit code
         """
 
-        backup_configured = config.database_config.get(
+        backup_configured = config.objects.database_config.get(
             "database_backup_configured", False)
         if backup_configured:
             return
@@ -424,7 +424,8 @@ class Database:
             input=cron_tab_commands,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE)
-        await config.database_config.put("database_backup_configured", True)
+        await config.objects.database_config.put(
+            "database_backup_configured", True)
 
         print((f"Out: [{update_crontab_output.stdout}]\nErr: "
                f"[{update_crontab_output.stderr}]"))
