@@ -231,13 +231,14 @@ class HeroPortrait(base, DatabaseMixin):
         return str(portrait_name_info)
 
     @ classmethod
-    async def add_optional(cls, bot: "AlbedoBot", hero: Hero,
+    async def add_portrait(cls, bot: "AlbedoBot", hero: Hero,
                            portrait_directory_path: Path,
                            content_type: ContentType,
                            hero_index: int,
-                           image_data: bytes):
+                           image_data: bytes,
+                           is_required: bool):
         """
-        Create an optional hero portrait and add it into the portrait database.
+        Create a hero portrait and adds it into the portrait database.
         Also flushes image_data to location referred to by new HeroPortrait that
         is created. When need will adjust the index of all other portraits that
         get their position bumped by the new portrait
@@ -249,6 +250,8 @@ class HeroPortrait(base, DatabaseMixin):
             hero_index (int): index to create portrait at
             image_data (bytes): image/image data to associate with the new
                 HeroPortrait
+            is_required (bool): boolean flag signifying if the portrait getting
+                added is required(true) or optional(false)
 
         Raises:
             MessageError: If image already exists at portrait path generated
@@ -266,22 +269,29 @@ class HeroPortrait(base, DatabaseMixin):
 
         update_portraits: list[HeroPortrait] = []
 
-        optional_portrait_len = len(portrait_results.optional_portraits)
-        if hero_index < 0:
-            hero_index = optional_portrait_len
-        elif hero_index > optional_portrait_len:
-            hero_index = optional_portrait_len
+        if is_required:
+            portrait_count = len(portrait_results.required_portraits)
+            portrait_list = portrait_results.required_portraits
+            portrait_type = PortraitType.required
         else:
-            for hero_portrait in portrait_results.optional_portraits:
+            portrait_count = len(portrait_results.optional_portraits)
+            portrait_list = portrait_results.optional_portraits
+            portrait_type = PortraitType.optional
+        if hero_index < 0:
+            hero_index = portrait_count
+        elif hero_index > portrait_count:
+            hero_index = portrait_count
+        else:
+            for hero_portrait in portrait_list:
                 if hero_portrait.image_index >= hero_index:
                     hero_portrait.image_index += 1
                     update_portraits.append(hero_portrait)
 
         portrait_name = cls.build_name(hero, portrait_results, content_type,
-                                       PortraitType.optional)
+                                       portrait_type)
 
         new_portrait.image_index = hero_index
-        new_portrait.required = False
+        new_portrait.required = is_required
         new_portrait.image_directory = str(portrait_directory_path)
         new_portrait.image_name = portrait_name
         new_portrait.id = hero.id

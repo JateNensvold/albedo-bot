@@ -527,7 +527,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
         try:
             await self.invoke(ctx)
         finally:
-            # Commit any changes to database to disk
+            # Commit any uncommited changes to database
             try:
                 await self.session_producer.commit()
             finally:

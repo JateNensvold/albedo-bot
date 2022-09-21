@@ -25,12 +25,22 @@ class HeroCog(BaseHeroCog):
                        hero_faction: HeroFaction, hero_class: HeroClass,
                        hero_type: HeroType, ascension_tier: AscensionType):
         """
-        Add/Register a new AFK Arena hero with the bot
+        Add/Register a new AFK Arena hero with the bot.
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            name (str): name of hero getting added
+            hero_name (str): name of hero getting added
+            hero_faction (HeroFaction): faction of hero getting added
+            hero_class (HeroClass): Class of hero getting added
+            hero_type (HeroType): Type of hero getting
+                added (Str, Agility etc...)
+            ascension_tier (AscensionType): ascension type of hero
+                getting added
+
+        Attachments:
+            HeroImage: an image to register this hero with in the image
+                processing database 
         """
 
         await self._add_hero(ctx, hero_name, hero_faction, hero_class,
@@ -113,7 +123,7 @@ class HeroCog(BaseHeroCog):
 
     @hero_image.command(name="add", aliases=["upload"])
     async def add_images(self, ctx: commands.Context, hero: HeroValue,
-                         is_required: bool,
+                         is_required: bool = False,
                          insertion_index: int = -1):
         """
         Add a hero image to the hero Database, this will also update the image
@@ -136,7 +146,7 @@ class HeroCog(BaseHeroCog):
                 displayed to players. Defaults to -1 which will be used to
                 append the hero to the image database instead of insert.
         """
-        await self._add_image(ctx, hero.hero, insertion_index)
+        await self._add_image(ctx, hero.hero, is_required, insertion_index)
 
     @hero_image.command(name="remove", aliases=["delete"])
     async def remove_image(self, ctx: commands.Context, hero: HeroValue,
@@ -151,7 +161,7 @@ class HeroCog(BaseHeroCog):
             hero (Hero): the hero to add an image for
             image_index (int): the image index of the image to remove
         """
-        self._remove_image(ctx, hero.hero, image_index)
+        await self._remove_image(ctx, hero.hero, image_index)
 
     @hero_image.command(name="display", aliases=["show"])
     async def show_images(self, ctx: commands.Context, hero: HeroValue):

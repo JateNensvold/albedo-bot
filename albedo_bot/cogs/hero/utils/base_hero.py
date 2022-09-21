@@ -75,7 +75,8 @@ class BaseHeroCog(BaseCog):
                         hero_type: HeroTypeEnum,
                         ascension_tier: HeroAscensionEnum):
         """
-        Add a hero to the hero database
+        Add a hero to the hero database, this also automatically adds the
+        hero image to the database as well
 
         Args:
             ctx (Context): invocation context containing information on how
@@ -91,8 +92,11 @@ class BaseHeroCog(BaseCog):
 
             await send_embed(ctx, embed_wrapper=EmbedWrapper(
                 description=(f"Added new hero `{hero_name}` as `{new_hero}`")))
-        else:
 
+            await self._add_image(ctx, new_hero,
+                                  is_required=True, image_index=-1)
+
+        else:
             embed_wrapper = EmbedWrapper(
                 title="Hero Already Registered",
                 description=(
@@ -313,10 +317,6 @@ class BaseHeroCog(BaseCog):
                 processing server
         """
         command_list: list[str] = RELOAD_COMMAND_LIST
-        # processing_result = ProcessingClient().remote_compute_results(
-        #     config.PROCESSING_SERVER_ADDRESS,
-        #     config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
-        #     command_list)
 
         task_uuid = str(uuid4())
         processing_task = config.processing_client.async_compute(
@@ -342,6 +342,27 @@ class BaseHeroCog(BaseCog):
             raise RemoteProcessingError(error_message)
         return processing_result
 
+    def _check_portrait_requirements(self, ctx: commands.Context):
+
+        if len(ctx.message.attachments) == 0:
+            embed_wrapper = EmbedWrapper(
+                title="No Hero portrait found",
+                description=(
+                    "To add a hero portrait to the database ensure that an "
+                    "image has been attached to this command"))
+            raise CogCommandError(embed_wrapper=embed_wrapper)
+        elif len(ctx.message.attachments) > 1:
+            embed_wrapper = EmbedWrapper(
+                title="Too many Hero portraits found",
+                description=(
+                    "To add a hero portrait to the database ensure that only a "
+                    "single image has been attached to this command"))
+            raise CogCommandError(embed_wrapper=embed_wrapper)
+
+        portrait_attachment = ctx.message.attachments[0]
+        content_type = ContentType.from_str(portrait_attachment.content_type)
+        valid_image(portrait_attachment.url, content_type)
+
     async def _add_image(self, ctx: commands.Context, hero: Hero,
                          is_required: bool,
                          image_index: int):
@@ -362,37 +383,39 @@ class BaseHeroCog(BaseCog):
             CogCommandError: When more than one image was attached to the
                 command invocation
         """
+        # if len(ctx.message.attachments) == 0:
+        #     embed_wrapper = EmbedWrapper(
+        #         title="No Hero portrait found",
+        #         description=(
+        #             "To add a hero portrait to the database ensure that an "
+        #             "image has been attached to this command"))
+        #     raise CogCommandError(embed_wrapper=embed_wrapper)
+        # elif len(ctx.message.attachments) > 1:
+        #     embed_wrapper = EmbedWrapper(
+        #         title="Too many Hero portraits found",
+        #         description=(
+        #             "To add a hero portrait to the database ensure that only a "
+        #             "single image has been attached to this command"))
+        #     raise CogCommandError(embed_wrapper=embed_wrapper)
+
+        # content_type = ContentType.from_str(portrait_attachment.content_type)
+        # valid_image(portrait_attachment.url, content_type)
+
+        self._check_portrait_requirements(ctx)
         portrait_attachment = ctx.message.attachments[0]
-        if len(ctx.message.attachments) == 0:
-            embed_wrapper = EmbedWrapper(
-                title="No Hero portrait found",
-                description=(
-                    "To add a hero portrait to the database ensure that an "
-                    "image has been attached to this command"))
-            raise CogCommandError(embed_wrapper=embed_wrapper)
-        elif len(ctx.message.attachments) > 1:
-            embed_wrapper = EmbedWrapper(
-                title="Too many Hero portraits found",
-                description=(
-                    "To add a hero portrait to the database ensure that only a "
-                    "single image has been attached to this command"))
-            raise CogCommandError(embed_wrapper=embed_wrapper)
-
         content_type = ContentType.from_str(portrait_attachment.content_type)
-
-        valid_image(portrait_attachment.url, content_type)
 
         attachment_data = requests.get(portrait_attachment.url).content
 
-        new_portrait = await HeroPortrait.add_optional(
+        new_portrait = await HeroPortrait.add_portrait(
             self.bot, hero, IMAGE_PROCESSING_PORTRAITS,
-            content_type, image_index, image_data=attachment_data)
+            content_type, image_index, attachment_data, is_required)
 
         buffered_data = BytesIO(attachment_data)
         portrait_image = File(buffered_data,
                               filename=new_portrait.image_name)
 
-        await self.rebuild_hero_database(ctx)
+        await self.rebuild_hero_database(ctx, send_success=False)
 
         embed_wrapper = EmbedWrapper(
             title="Image added successfully",
@@ -411,8 +434,8 @@ class BaseHeroCog(BaseCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            hero (Hero): _description_
-            image_index (int): _description_
+            hero (Hero): hero to remove portrait for
+            image_index (int): index of portrait to remove
 
         Raises:
             CogCommandError: When no optional portraits are found for a `hero`
@@ -420,21 +443,10 @@ class BaseHeroCog(BaseCog):
             CogCommandError: When the image location in the database points to
                 a non existent file
         """
-        portraits_select = self.db_select(
-            HeroPortrait).where(hero.id == HeroPortrait.id)
+        portrait_results = await HeroPortrait().get_hero_portraits(
+            hero, session=self.session)
 
-        hero_portraits = await self.db_execute(portraits_select).all()
-
-        required_portraits: list[HeroPortrait] = []
-        optional_portraits: list[HeroPortrait] = []
-
-        for hero_portrait in hero_portraits:
-            if hero_portrait.required:
-                required_portraits.append(hero_portrait)
-            else:
-                optional_portraits.append(hero_portrait)
-
-        optional_portraits.sort(key=lambda portrait: portrait.image_index)
+        optional_portraits = portrait_results.optional_portraits
 
         if len(optional_portraits) == 0:
             embed_wrapper = EmbedWrapper(
