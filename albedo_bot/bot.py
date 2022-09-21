@@ -102,7 +102,7 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
                                  Union[commands.Command, commands.Group]] = {}
 
         super().__init__(command_prefix=bot_prefix_callable,
-                        #  event_loop=event_loop,
+                         #  event_loop=event_loop,
                          description=self.description,
                          intents=intents,
                          allowed_mentions=allowed_mentions,
@@ -525,7 +525,6 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
             self._auto_spam_count.pop(author_id, None)
 
         try:
-            ctx.start_time = time.time()
             await self.invoke(ctx)
         finally:
             # Commit any changes to database to disk
@@ -580,7 +579,6 @@ class AlbedoBot(commands.Bot, DatabaseMixin):
     async def start(self):  # pylint: disable=arguments-differ
         """_summary_
         """
-
 
         # # Configured prefixes for each server/guild using the bot
         # self.prefixes = config.objects.prefixes

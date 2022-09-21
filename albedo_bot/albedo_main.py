@@ -15,10 +15,8 @@ from albedo_bot.cogs.utils.mixins.enum_mixin import StrEnum
 
 
 class RemoveNoise(logging.Filter):
-    """_summary_
-
-    Args:
-        logging (_type_): _description_
+    """
+    Remove certain discord noise from logging 
     """
 
     def __init__(self):

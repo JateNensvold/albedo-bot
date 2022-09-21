@@ -1,6 +1,6 @@
 import itertools
 import re
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from discord.ext import commands as command_module
 
@@ -138,12 +138,13 @@ class HelpCog(command_module.MinimalHelpCommand):
         if command.description:
             self.paginator.add_line(command.description, empty=True)
 
-        signature = self.get_command_signature(command)
+        raw_function_signature = self.get_command_signature(command)
+        function_signature = f"`{raw_function_signature}`"
         if command.aliases:
-            self.paginator.add_line(signature)
+            self.paginator.add_line(function_signature)
             self.add_aliases_formatting(command.aliases)
         else:
-            self.paginator.add_line(signature, empty=True)
+            self.paginator.add_line(function_signature, empty=True)
 
         if command.help:
 
@@ -164,8 +165,37 @@ class HelpCog(command_module.MinimalHelpCommand):
                     "If you believe you should have access to this command "
                     f"please contact the bot owner {self.bot.owner_id}"))
             raise DiscordPermissionError(embed_wrapper=embed_wrapper)
+        print(f"group command {group}")
 
         return await super().send_group_help(group)
+
+    def add_subcommand_formatting(
+            self, command: command_module.Command[Any, ..., Any], /) -> None:
+        """Adds formatting information on a subcommand.
+
+        The formatting should be added to the :attr:`paginator`.
+
+        The default implementation is the prefix and the 
+        :attr:`Command.qualified_name` optionally followed by an En dash and
+        the command's :attr:`Command.short_doc`.
+
+        .. versionchanged:: 2.0
+
+            ``command`` parameter is now positional-only.
+
+        Parameters
+        -----------
+        command: :class:`Command`
+            The command to show information of.
+        """
+        fmt = '`{0}{1}` \N{EN DASH} {2}' if command.short_doc else '`{0}{1}`'
+        self.paginator.add_line(fmt.format(
+            self.context.clean_prefix, command.qualified_name, command.short_doc))
+
+    async def send_command_help(
+            self, command: command_module.Command[Any, ..., Any], /) -> None:
+        print(f"normal command {command}")
+        return await super().send_command_help(command)
 
     def add_bot_commands_formatting(self, commands: command_module.core.Group,
                                     heading: str):

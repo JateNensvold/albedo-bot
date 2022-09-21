@@ -56,13 +56,13 @@ def generate_embeds(ctx: Context,
     else:
         _embed_wrappers = []
 
-
     embed_wrapper_list: list[EmbedWrapper] = []
     # Initialize any uninitialized content in the embed_wrappers and break
     #   apart the content to fit inside the embed character limits
     for _embed_wrapper in _embed_wrappers:
         if _embed_wrapper.duration is None:
-            _embed_wrapper.duration = time() - ctx.start_time
+            _embed_wrapper.duration = (
+                time() - ctx.message.created_at.timestamp())
             _embed_wrapper.create_footer()
 
         if not _embed_wrapper.check_char_limit():

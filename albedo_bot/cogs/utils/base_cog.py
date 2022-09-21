@@ -39,26 +39,29 @@ class BaseCog(commands.Cog, DatabaseMixin):
         """
         A group of commands that require elevated permissions to run
 
-        *Ensure that any commands/groups that inherit from this one are not
-            imported before their parent 
-            i.e 
-
-            //file1.py
-            Class GrandParentCog(ParentCog)
-
-            //file2.py
-            class ParentCog(BaseCog)
-
-            //file3.py
-            class BaseCog
-
-            ParentCog cannot get imported before GrandParentCog without
-                breaking any inherited admin commands
-
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
         """
+
+        # *Ensure that any commands/groups that inherit from this one are not
+        # imported/defined before their parent otherwise the admin command
+        # cannot be used across multiple cogs
+        # i.e 
+
+        # //file1.py
+        # Class GrandParentCog(ParentCog)
+
+        # //file2.py
+        # class ParentCog(BaseCog)
+
+        # //file3.py
+        # class BaseCog
+                    
+        # ParentCog cannot get imported before GrandParentCog without
+        # breaking any inherited admin commands
+
+        # TL;DR: Always import the topmost cog first
 
     # def _inject(self, bot):
     #     command_list: list[commands.Group,
