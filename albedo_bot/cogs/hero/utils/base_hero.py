@@ -170,7 +170,7 @@ class BaseHeroCog(BaseCog):
                 else:
                     added_heroes.append(new_json_hero)
         except Exception as exception:
-            await holdover_message.delete
+            await holdover_message.delete()
             await send_embed_exception(ctx, exception, description=(
                 "An error occurred while attempting to fetch hero updates ",
                 "command is being aborted..."))
