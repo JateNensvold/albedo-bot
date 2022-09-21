@@ -205,6 +205,7 @@ class BasePlayerCog(BaseCog):
 
         await send_message(
             ctx,
-            message=("Select your timezone and availability for when you can "
+            text=("Select your timezone and availability for when you can "
                      "play AFK Arena!"),
+            embed_wrapper=None,
             view=await self.build_view(ctx.author))

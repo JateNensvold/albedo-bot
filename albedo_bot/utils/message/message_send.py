@@ -72,7 +72,7 @@ async def send_message(ctx: Context,
                                      emoji=emoji,
                                      embed_color=embed_color)
 
-    return await message_wrapper.send(repl=reply,
+    return await message_wrapper.send(reply=reply,
                                       mention_author=mention_author)
 
 

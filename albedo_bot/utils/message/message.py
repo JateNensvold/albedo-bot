@@ -107,7 +107,11 @@ class MessageWrapper:
         current_text = None
 
         while embed_queue or text_queue:
-            current_embed = embed_queue[0]
+            if embed_queue:
+                current_embed = embed_queue[0]
+            else:
+                current_embed = None
+
             if len(text_queue) > 1:
                 current_text = text_queue.popleft()
                 # Send messages up until the last text message
@@ -121,6 +125,9 @@ class MessageWrapper:
                 current_text = text_queue.popleft()
             else:
                 current_text = None
+
+            if current_embed is None:
+                break
 
             if len(current_embed) > MAX_EMBED_LENGTH:
                 # Embed splitting is done in generate_embeds
