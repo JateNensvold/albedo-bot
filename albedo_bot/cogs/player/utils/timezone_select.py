@@ -87,9 +87,9 @@ class TimezoneSelect(Select, PlayerMixin):
         """
 
         timezone_selection_options: list[SelectOption] = []
-        plater_util = PlayerMixin()
-        plater_util.bot = bot
-        player_object = await plater_util.get_player(author)
+        player_util = PlayerMixin()
+        player_util.bot = bot
+        player_object = await player_util.get_player(author)
 
         current_timezone = player_object.timezone
 

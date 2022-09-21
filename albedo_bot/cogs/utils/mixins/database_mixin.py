@@ -187,6 +187,17 @@ class DatabaseMixin:
 
     _session: AsyncSession
 
+    def has_session(self):
+        """
+        A check for if the current object has a method of acquiring a valid
+        session for connecting to the database
+
+        Returns:
+            bool: True when session is found, False otherwise
+        """
+
+        return self.session is not None
+
     @property
     def session(self):
         """

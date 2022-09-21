@@ -283,8 +283,7 @@ class BaseRosterCog(BaseCog):
                 processing_task = config.processing_client.async_compute(
                     command_list,
                     config.PROCESSING_SERVER_ADDRESS,
-                    15000,
-                    # config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+                    config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
                     CallbackWrapper(
                         self.update_message,
                         AsyncQueueMessageArgs(

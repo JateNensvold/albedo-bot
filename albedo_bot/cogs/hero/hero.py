@@ -113,6 +113,7 @@ class HeroCog(BaseHeroCog):
 
     @hero_image.command(name="add", aliases=["upload"])
     async def add_images(self, ctx: commands.Context, hero: HeroValue,
+                         is_required: bool,
                          insertion_index: int = -1):
         """
         Add a hero image to the hero Database, this will also update the image
@@ -126,7 +127,9 @@ class HeroCog(BaseHeroCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
-            hero (Hero): the hero to add an image fro
+            hero (Hero): the hero to add an image for
+            is_required (bool): boolean flag signifying if the portrait getting
+                added is required(true) or optional(false)
             insertion_index (int, optional): The index that the image should be
                 assigned in the hero image database, the image with the lowest
                 index will be the emoji that is shown when a hero is

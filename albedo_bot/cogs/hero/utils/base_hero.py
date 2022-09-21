@@ -1,4 +1,5 @@
 
+from typing import Iterable
 from uuid import uuid4
 from albedo_bot.cogs.roster.utils.base_roster import AsyncQueueMessageArgs
 from image_processing.processing.async_processing.async_processing_client import CallbackWrapper
@@ -21,7 +22,7 @@ from albedo_bot.database.schema.hero import Hero
 from albedo_bot.database.schema.hero.hero import (
     HeroAscensionEnum, HeroClassEnum, HeroFactionEnum, HeroTypeEnum)
 from albedo_bot.utils.errors import CogCommandError, RemoteProcessingError
-from albedo_bot.utils.message.message_send import edit_message, send_embed, send_embed_exception
+from albedo_bot.utils.message.message_send import edit_message, send_embed, send_embed_exception, send_message
 from albedo_bot.utils.embeds import EmbedField, EmbedWrapper
 from albedo_bot.database.schema.hero.hero_portrait import HeroPortrait
 from albedo_bot.config import AFK_HELPER_PATH
@@ -132,6 +133,9 @@ class BaseHeroCog(BaseCog):
             ctx, embed_wrapper=holdover_wrapper)
         holdover_message = holdover_message_list[0]
 
+        added_heroes: list[JsonHero] = []
+        modified_heroes: list[JsonHero] = []
+
         try:
             repo_update = update_repo(AFK_HELPER_PATH)
 
@@ -153,8 +157,6 @@ class BaseHeroCog(BaseCog):
             embed_list.append(embed_wrapper)
 
             # removed_heroes: list[JsonHero] = []
-            added_heroes: list[JsonHero] = []
-            modified_heroes: list[JsonHero] = []
 
             hero_dict: dict[str, JsonHero] = {}
             for hero_entry in config.objects.hero_data:
@@ -248,7 +250,8 @@ class BaseHeroCog(BaseCog):
         await send_embed(ctx, embed_list)
         await holdover_message.delete()
 
-    async def rebuild_hero_database(self, ctx: commands.Context):
+    async def rebuild_hero_database(self, ctx: commands.Context,
+                                    send_success: bool = True):
         """
         Utility function for rebuilding and refreshing hero database for
         remote image processing server
@@ -256,6 +259,8 @@ class BaseHeroCog(BaseCog):
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+            send_success (bool, optional): when True send a success message
+                after the database has been rebuilt. Defaults to True
         """
         base_hero_list: list[HeroImage] = []
 
@@ -287,14 +292,14 @@ class BaseHeroCog(BaseCog):
 
         await holdover_message.delete()
 
-        embed_wrapper = EmbedWrapper(
-            title="Successfully rebuilt database ",
-            description=(
-                f"Hero Database has been rebuilt and refreshed in remote "
-                "process!"))
+        if send_success:
+            embed_wrapper = EmbedWrapper(
+                title="Successfully rebuilt database ",
+                description=(
+                    f"Hero Database has been rebuilt and refreshed in remote "
+                    "process!"))
 
-        holdover_message_list = await send_embed(
-            ctx, embed_wrapper=embed_wrapper)
+            await send_embed(ctx, embed_wrapper=embed_wrapper)
 
     async def remote_reload_database(self, ctx: commands.Context):
         """
@@ -317,8 +322,7 @@ class BaseHeroCog(BaseCog):
         processing_task = config.processing_client.async_compute(
             command_list,
             config.PROCESSING_SERVER_ADDRESS,
-            15000,
-            # config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
+            config.PROCESSING_SERVER_TIMEOUT_MILLISECONDS,
             None,
             task_uuid=task_uuid)
 
@@ -339,6 +343,7 @@ class BaseHeroCog(BaseCog):
         return processing_result
 
     async def _add_image(self, ctx: commands.Context, hero: Hero,
+                         is_required: bool,
                          image_index: int):
         """
         Add an image to the hero portrait database for `hero`
@@ -347,6 +352,8 @@ class BaseHeroCog(BaseCog):
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
             hero (Hero): hero to add portrait for
+            is_required (bool): boolean flag signifying if the portrait getting
+                added is required(true) or optional(false)
             image_index (int): index to add portrait at
 
         Raises:
@@ -375,23 +382,24 @@ class BaseHeroCog(BaseCog):
 
         valid_image(portrait_attachment.url, content_type)
 
+        attachment_data = requests.get(portrait_attachment.url).content
+
         new_portrait = await HeroPortrait.add_optional(
             self.bot, hero, IMAGE_PROCESSING_PORTRAITS,
-            content_type, image_index)
+            content_type, image_index, image_data=attachment_data)
 
-        attachment_data = requests.get(portrait_attachment.url).content
         buffered_data = BytesIO(attachment_data)
         portrait_image = File(buffered_data,
                               filename=new_portrait.image_name)
 
-        with open(new_portrait.full_path(), 'wb') as file_pointer:
-            file_pointer.write(attachment_data)
+        await self.rebuild_hero_database(ctx)
 
         embed_wrapper = EmbedWrapper(
             title="Image added successfully",
             description=(
                 f"The following image `{new_portrait.image_name}` has been "
-                f"successfully added for hero `{hero.name}`"),
+                f"successfully added for hero `{hero.name}` and will now be "
+                "detected by image processing"),
             image=portrait_image)
         await send_embed(ctx, embed_wrapper=embed_wrapper)
 
@@ -474,31 +482,31 @@ class BaseHeroCog(BaseCog):
                 a discord event/command was invoked
             hero (Hero): hero to show portraits for
         """
-        portraits_select = self.db_select(
-            HeroPortrait).where(hero.id == HeroPortrait.id)
+        portrait_results = await HeroPortrait().get_hero_portraits(
+            hero, session=self.session)
 
-        hero_portraits = await self.db_execute(portraits_select).all()
+        if len(portrait_results) == 0:
+            embed_wrapper = EmbedWrapper(
+                title="No Portraits found",
+                description=(
+                    f"Unable to find a portrait associated with {hero.name}"
+                    "\n\nNote: This means that any image processing attempts "
+                    "for this hero will fail not match an image"
+                ))
 
-        required_portraits: list[HeroPortrait] = []
-        optional_portraits: list[HeroPortrait] = []
+            await send_embed(ctx, embed_wrapper=embed_wrapper)
+        else:
+            required_portraits_list = self.build_display(
+                hero, portrait_results.required_portraits)
+            optional_portraits_list = self.build_display(
+                hero, portrait_results.optional_portraits)
 
-        for hero_portrait in hero_portraits:
-            if hero_portrait.required:
-                required_portraits.append(hero_portrait)
-            else:
-                optional_portraits.append(hero_portrait)
-
-        optional_portraits.sort(key=lambda portrait: portrait.image_index)
-
-        required_portraits_list = self.build_display(
-            hero, [*required_portraits])
-        optional_portraits_list = self.build_display(
-            hero, [*optional_portraits])
-        await send_embed(ctx, embed_wrapper=[*required_portraits_list,
-                                             *optional_portraits_list])
+            embed_list = [*required_portraits_list, *optional_portraits_list]
+            await send_message(ctx, text=f"{len(embed_list)} image(s) found",
+                               embed_wrapper=embed_list)
 
     def build_display(self, hero: Hero,
-                      portrait_list: list[HeroPortrait]):
+                      portrait_list: Iterable[HeroPortrait]):
         """
         Build a list of EmbedWrappers for `portrait_list`
 

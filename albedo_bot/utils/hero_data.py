@@ -194,7 +194,7 @@ class JsonHero(DatabaseMixin):
                                 HeroPortrait.image_index == 0,
                                 HeroPortrait.required == True)
         portrait_object = await self.db_execute(portrait_select).first()
-# ./img/portraits/thane_aw.jpg
+
         if not portrait_object:
             hero_portrait = HeroPortrait(
                 id=hero_object.id, image_index=0,

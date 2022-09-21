@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from albedo_bot.database.schema.base import base
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.database.schema.hero.hero import Hero
-from albedo_bot.utils.errors import MessageError, PreCommitException
+from albedo_bot.utils.errors import DatabaseError, MessageError, PreCommitException
 from albedo_bot.utils.files.image_util import ContentType
 from albedo_bot.utils.message.message_send import EmbedWrapper
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-class PortraitRequired(Enum):
+class PortraitType(Enum):
     """
     An enumeration of all the ways that a portraits requirement status can be
     specified in a file name
@@ -27,12 +27,24 @@ class PortraitRequired(Enum):
     optional: bool = False
 
 
+class PortraitResults(NamedTuple):
+    """
+    A wrapper class for portrait results fetched from the database
+    """
+
+    required_portraits: tuple["HeroPortrait"]
+    optional_portraits: tuple["HeroPortrait"]
+
+    def __len__(self):
+        return len(self.required_portraits) + len(self.optional_portraits)
+
+
 class PortraitNameInfo(NamedTuple):
     """
     A wrapper class for all the information stored in a HeroPortraits name
     """
     hero_name: str
-    required: bool
+    required: str
     image_index: int
     extension: str
 
@@ -41,8 +53,8 @@ class PortraitNameInfo(NamedTuple):
         Generate a file name from all the stored information
         """
 
-        return ".".join([self.hero_name, self.required,
-                         self.image_index, self.extension])
+        return ".".join([self.hero_name, str(self.required),
+                         str(self.image_index), str(self.extension)])
 
     @classmethod
     def from_str(cls, image_name: str):
@@ -55,8 +67,9 @@ class PortraitNameInfo(NamedTuple):
         Returns:
             PortraitNameInfo: a newly initialized PortraitNameInfo
         """
+        print(image_name)
         hero_name, required, image_index, extension = image_name.split(".")
-        required = PortraitRequired[required].value
+        required = PortraitType[required].value
         image_index = int(image_index)
         return PortraitNameInfo(hero_name, required, image_index, extension)
 
@@ -75,7 +88,7 @@ class HeroPortrait(base, DatabaseMixin):
 
     def pre_commit(self):
         """
-        A pre commit hook that runs before a HeroPortrait is added 
+        A pre commit hook that runs before a HeroPortrait is added
         to the database
         """
 
@@ -106,25 +119,47 @@ class HeroPortrait(base, DatabaseMixin):
 
         return Path(self.image_directory, self.image_name)
 
-    async def get_hero_portraits(self, hero: Hero):
+    async def get_hero_portraits(self, hero: Hero, session: AsyncSession = None):
         """
         Fetch all hero portraits for `hero`
 
         Args:
-            hero (Hero): hero to fetch portraits for 
+            hero (Hero): hero to fetch portraits for
 
         Returns:
-            list[HeroPortrait]: list of all the HeroPortraits for a `hero`
+            PortraitResults: all the HeroPortraits for a `hero` inside a
+                PortraitResults object
         """
+
+        if session is not None:
+            self.session = session
+
+        if not self.has_session():
+            raise DatabaseError(
+                "Unable to find a way to connect to database, "
+                "provide a valid session or set the session on the object "
+                "calling this function")
+
         portraits_select = self.db_select(
             HeroPortrait).where(hero.id == HeroPortrait.id)
 
         hero_portraits = await self.db_execute(portraits_select).all()
-        return hero_portraits
+
+        required_portraits: list[HeroPortrait] = []
+        optional_portraits: list[HeroPortrait] = []
+
+        for hero_portrait in hero_portraits:
+            if hero_portrait.required:
+                required_portraits.append(hero_portrait)
+            else:
+                optional_portraits.append(hero_portrait)
+
+        optional_portraits.sort(key=lambda portrait: portrait.image_index)
+        return PortraitResults(required_portraits, optional_portraits)
 
     async def build_hero_image(self, session: AsyncSession):
         """
-        Build a HeroImage object from 
+        Build a HeroImage object from
 
         Args:
             session (AsyncSession): session connection to databases
@@ -141,7 +176,7 @@ class HeroPortrait(base, DatabaseMixin):
         hero_name = hero_object.name.lower()
         return HeroImage(hero_name, hero_image, self.full_path())
 
-    @classmethod
+    @ classmethod
     async def get_portrait(cls, hero: Hero, session: AsyncSession):
         """
         Get the first "required" portrait associated with a hero
@@ -154,6 +189,7 @@ class HeroPortrait(base, DatabaseMixin):
             HeroPortrait: a HerPortrait of the hero
         """
 
+        # Dummy portrait used to interact with database
         hero_portrait = HeroPortrait()
         hero_portrait.session = session
 
@@ -164,20 +200,55 @@ class HeroPortrait(base, DatabaseMixin):
 
         return await hero_portrait.db_execute(select_portrait).first()
 
-    @classmethod
+    @ classmethod
+    def build_name(cls, hero: Hero, portrait_results: PortraitResults,
+                   content_type: ContentType,
+                   portrait_type: PortraitType = PortraitType.required):
+        """
+        Build a portrait name for an image
+
+        Args:
+            hero (Hero): hero to build a name for
+            portrait_results (PortraitResults): currently stored portraits
+                in database
+            content_type (ContentType): type of image/content to build name for
+            portrait_type (PortraitType, optional): flag describing the type
+                of portrait to build a name for.
+                Defaults to PortraitType.required
+
+        Returns:
+            (str): new portrait name
+        """
+        if portrait_type == PortraitType.required:
+            portrait_count = len(portrait_results.optional_portraits)
+        else:
+            portrait_count = len(portrait_results.required_portraits)
+
+        portrait_name_info = PortraitNameInfo(
+            hero.name.lower(), portrait_type.name,
+            portrait_count, content_type.extension_type)
+
+        return str(portrait_name_info)
+
+    @ classmethod
     async def add_optional(cls, bot: "AlbedoBot", hero: Hero,
                            portrait_directory_path: Path,
-                           content_type: ContentType, hero_index: int):
+                           content_type: ContentType,
+                           hero_index: int,
+                           image_data: bytes):
         """
-        Create an optional hero portrait and add it into the portrait database,
-            also adjusts index of all other portraits that got bumped by the
-            new portrait
+        Create an optional hero portrait and add it into the portrait database.
+        Also flushes image_data to location referred to by new HeroPortrait that
+        is created. When need will adjust the index of all other portraits that
+        get their position bumped by the new portrait
 
         Args:
             hero (Hero): hero to add portrait for
             portrait_directory_path (Path): directory of hero portrait
             content_type (ContentType): extension/content type of portrait
             hero_index (int): index to create portrait at
+            image_data (bytes): image/image data to associate with the new
+                HeroPortrait
 
         Raises:
             MessageError: If image already exists at portrait path generated
@@ -187,36 +258,27 @@ class HeroPortrait(base, DatabaseMixin):
         Returns:
             HeroPortrait: newly created portrait
         """
-        required_portraits: list[HeroPortrait] = []
-        optional_portraits: list[HeroPortrait] = []
 
         new_portrait = HeroPortrait()
         new_portrait.bot = bot
 
-        hero_portraits = await new_portrait.get_hero_portraits(hero)
-
-        for hero_portrait in hero_portraits:
-            if hero_portrait.required:
-                required_portraits.append(hero_portrait)
-            else:
-                optional_portraits.append(hero_portrait)
-
-        optional_portraits.sort(key=lambda portrait: portrait.image_index)
+        portrait_results = await new_portrait.get_hero_portraits(hero)
 
         update_portraits: list[HeroPortrait] = []
 
+        optional_portrait_len = len(portrait_results.optional_portraits)
         if hero_index < 0:
-            hero_index = len(optional_portraits)
-        elif hero_index > len(optional_portraits):
-            hero_index = len(optional_portraits)
+            hero_index = optional_portrait_len
+        elif hero_index > optional_portrait_len:
+            hero_index = optional_portrait_len
         else:
-            for hero_portrait in optional_portraits:
+            for hero_portrait in portrait_results.optional_portraits:
                 if hero_portrait.image_index >= hero_index:
                     hero_portrait.image_index += 1
                     update_portraits.append(hero_portrait)
 
-        portrait_name = (f"{hero.name}-optional{len(optional_portraits)}."
-                         f"{content_type.extension_type}").lower()
+        portrait_name = cls.build_name(hero, portrait_results, content_type,
+                                       PortraitType.optional)
 
         new_portrait.image_index = hero_index
         new_portrait.required = False
@@ -224,8 +286,8 @@ class HeroPortrait(base, DatabaseMixin):
         new_portrait.image_name = portrait_name
         new_portrait.id = hero.id
 
-        full_portrait_path = portrait_directory_path.joinpath(
-            portrait_name)
+        full_portrait_path = new_portrait.full_path()
+
         if not portrait_directory_path.exists():
             embed_wrapper = EmbedWrapper(
                 title="Portrait Path Failure",
@@ -245,9 +307,18 @@ class HeroPortrait(base, DatabaseMixin):
                     "above error"))
             raise MessageError(embed_wrapper=embed_wrapper)
 
-        await bot.db_add(new_portrait)
+        try:
+            with open(full_portrait_path, 'wb') as file_pointer:
+                file_pointer.write(image_data)
 
-        for hero_portrait_update in update_portraits:
-            await bot.db_add(hero_portrait_update)
+            await bot.db_add(new_portrait)
+
+            for hero_portrait_update in update_portraits:
+                await bot.db_add(hero_portrait_update)
+        except Exception as exception:
+            # When exception occurs while adding portrait to DB wipe the newly
+            #   written image from disk
+            full_portrait_path.unlink()
+            raise exception
 
         return new_portrait
