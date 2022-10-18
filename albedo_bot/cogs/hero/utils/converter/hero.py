@@ -7,12 +7,14 @@ from albedo_bot.database.schema.hero.hero import Hero
 from albedo_bot.cogs.utils.mixins.database_mixin import DatabaseMixin
 from albedo_bot.cogs.hero.utils.converter.hero_value_mixin import (
     HeroValueMixin)
+from albedo_bot.database.schema.hero.abstract_hero_container import (
+    AbstractHeroContainer)
 
 if TYPE_CHECKING:
     from albedo_bot.bot import AlbedoBot
 
 
-class HeroValue(HeroValueMixin, DatabaseMixin):
+class HeroValue(HeroValueMixin, DatabaseMixin, AbstractHeroContainer):
     """
     A wrapper class around Hero to do argument conversion into Hero objects
     """

@@ -43,7 +43,7 @@ def setup_logging():
 
         log = logging.getLogger()
         log.setLevel(logging.INFO)
-        handler = RotatingFileHandler(filename='albedo_bot.log',
+        handler = RotatingFileHandler(filename='discord_albedo_bot.log',
                                       encoding='utf-8', mode='w',
                                       maxBytes=max_bytes, backupCount=5)
         date_format = '%Y-%m-%d %H:%M:%S'

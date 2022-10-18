@@ -18,6 +18,7 @@ class ConfigObjects:
     also adds capability to hot reload all objects to a new event loop
     during runtime 
     """
+
     def __init__(self) -> None:
         self.permissions = Permissions.from_json(
             PERMISSIONS_JSON_PATH.resolve())

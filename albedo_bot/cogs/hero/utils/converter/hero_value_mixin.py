@@ -2,6 +2,8 @@
 
 from abc import abstractmethod
 from typing import Any,  TYPE_CHECKING
+from albedo_bot.cogs.hero.utils.converter import converter_util
+from albedo_bot.utils.errors import ConversionError
 
 from discord.ext import commands
 
@@ -55,7 +57,12 @@ class HeroValueMixin(commands.Converter):
         hero_object: Hero = None
 
         for message_arg in ctx.args:
-            if isinstance(message_arg, Hero):
-                hero_object = message_arg
+            hero_object = converter_util.is_hero(message_arg)
+            if hero_object:
+                break
+
+        if hero_object is None:
+            raise ConversionError(
+                "Unable to detect a hero argument in this commands discord context")
 
         return hero_object

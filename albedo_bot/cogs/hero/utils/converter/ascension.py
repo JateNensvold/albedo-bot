@@ -1,5 +1,6 @@
 
 from typing import Union
+from albedo_bot.utils.errors import ConversionError
 
 from discord.ext import commands
 

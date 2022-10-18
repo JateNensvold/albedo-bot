@@ -55,6 +55,7 @@ class ChecklistValue(HeroValueMixin, DatabaseMixin):
             _type_: _description_
         """
         self.bot: "AlbedoBot" = ctx.bot
+
         try:
             checklist_select = self.db_select(
                 Checklist).where(Checklist.name == argument)
