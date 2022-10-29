@@ -143,7 +143,7 @@ class BasePlayerCog(BaseCog):
         players_result = await self.db_execute(players_select).all()
         return players_result
 
-    async def _unregistered(self, ctx: commands.Context):
+    async def _unregistered(self, ctx: commands.Context, afk_guild: Role | None):
         """_summary_
 
         Args:
@@ -151,10 +151,10 @@ class BasePlayerCog(BaseCog):
                 a discord event/command was invoked
         """
 
-        guild: discord.Guild = ctx.guild
+        discord_server: discord.Guild = ctx.guild
 
         member_dict: dict[int, Member] = {
-            member.id: member for member in guild.members}
+            member.id: member for member in discord_server.members}
 
         select_player = self.db_select(Player).where(
             Player.discord_id.in_(member_dict))
@@ -163,6 +163,14 @@ class BasePlayerCog(BaseCog):
         for registered_player in registered_players:
             del member_dict[registered_player.discord_id]
 
+        if afk_guild:
+            member_delete: set[int] = set()
+            for member_id, member in member_dict.items():
+                if afk_guild not in member.roles:
+                    member_delete.add(member_id)
+            for member_id in member_delete:
+                del member_dict[member_id]
+
         member_list: list[Member] = []
         for member_id, member in member_dict.items():
             if not member.bot:
@@ -170,11 +178,26 @@ class BasePlayerCog(BaseCog):
                     f"member_id={member_id}, name={member.mention}")
 
         member_list_str = "\n".join(member_list)
+
+        if afk_guild:
+            unregistered_players_embed_title = (
+                f"Unregistered players in \"{discord_server.name}\" for "
+                f"\"{afk_guild.name}\"")
+            unregistered_players_embed_description = (
+                f"There are currently `{len(member_list)}` unregistered users "
+                f"in `{afk_guild.name}` "
+                f"on this server`\n\n{member_list_str}")
+
+        else:
+            unregistered_players_embed_title = (
+                f"Unregistered players in \"{discord_server.name}\"")
+            unregistered_players_embed_description = (
+                f"There are currently `{len(member_list)}` unregistered users "
+                f"on this server\n\n{member_list_str}")
+
         await send_embed(ctx, embed_wrapper=EmbedWrapper(
-            title=f"Unregistered players in \"{guild.name}\"",
-            description=(
-                f"`There are currently {len(member_list)} unregistered users "
-                f"on this server`\n{member_list_str}")))
+            title=unregistered_players_embed_title,
+            description=unregistered_players_embed_description))
 
     async def build_view(self, author: Member):
         """
@@ -206,6 +229,6 @@ class BasePlayerCog(BaseCog):
         await send_message(
             ctx,
             text=("Select your timezone and availability for when you can "
-                     "play AFK Arena!"),
+                  "play AFK Arena!"),
             embed_wrapper=None,
             view=await self.build_view(ctx.author))

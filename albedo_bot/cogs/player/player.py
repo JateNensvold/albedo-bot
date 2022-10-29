@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import discord
 from discord.ext import commands
-from discord import Role, Member
+from discord import Role, Member, Guild
 
 from albedo_bot.database.schema.guild import Guild
 from albedo_bot.database.schema.player.player import Player
@@ -175,14 +175,20 @@ class PlayerCog(BasePlayerCog):
 
     # pylint: disable=no-member
     @BasePlayerCog.player_admin.command(name="unregistered")
-    async def unregistered(self, ctx: commands.Context):
-        """_summary_
+    async def unregistered(self, ctx: commands.Context, afk_guild: Role = None):
+        """ 
+        Display all unregistered players for a guild or guilds that have been
+        registered with the bot
 
         Args:
             ctx (Context): invocation context containing information on how
                 a discord event/command was invoked
+            afk_guild (Role, optional): An optional argument that can be used
+                to only show unregistered players in a specific guild.
+                Defaults to None.
         """
-        await self._unregistered(ctx)
+
+        await self._unregistered(ctx, afk_guild)
 
     @player.command(name="settime", aliases=["timezone"])
     async def set_time(self, ctx: commands.Context):
