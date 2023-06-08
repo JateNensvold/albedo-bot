@@ -1,0 +1,24 @@
+psql -h 172.40.0.7 -d afk_database -U postgres -W
+./backup_db /workspace/albedo-bot/ afk_database postgres
+
+python3 ../../yolov5/train.py --img 416 --batch 16 --epochs 3000 --data data.yaml
+python3 albedo_bot/albedo_main.py
+python3 image_processing/processing/processing_server.py
+python3 image_processing/processing/processing_client.py "https://media.discordapp.net/attachments/939041923442827306/953223043424059422/IMG_1222.png" -v
+python3 image_processing/build_db.py
+
+roster functionality:
+search for hero with min variables
+fix ``` parsing in long messages
+fix emojis on bot
+slash commands
+newly added heroes from CLI will not sync with autoload
+settime command fails on first timezone selection
+
+decouple image naming from hero name in HeroPortrait
+negative time shown in Executed in xxx seconds
+not adding a portrait in autoload when a hero is new
+adding required hero in heroData should be abstracted to new add_required method
+fix session transactions, if something fails reverse the entire transaction
+
+add wrappers around autoload command sections to allow partial success
